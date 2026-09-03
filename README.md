@@ -16,6 +16,7 @@
 - **Eliminar duelos**: desde la tarjeta del dashboard o desde la pantalla del duelo, con confirmación previa. Borra el duelo para ambos duelistas junto con el progreso, los comentarios y la portada.
 - **Perfil**: victorias, derrotas, capítulos totales, mayor racha e historial de duelos.
 - **Modo claro y oscuro** 🌙☀️ y **dos idiomas** (español / inglés), ambos con un clic en el header y recordados en tu navegador.
+- **Compatible con el traductor del navegador**: la interfaz está marcada como no traducible (usa el botón ES/EN de la app para eso) y solo el texto del capítulo queda expuesto al traductor de Chrome. Así se puede leer la novela en español sin que se rompan los iconos ni el diseño.
 - **Responsive**: funciona igual de bien en computadora y celular.
 
 > El límite es de 2500 capítulos por duelo, así que las novelas largas (tipo *Lord of the Mysteries*, 1432 caps) entran sin problema.
