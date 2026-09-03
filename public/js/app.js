@@ -303,7 +303,7 @@ function confirmDialog({ title, message, confirmText = 'Eliminar', danger = true
         <div class="p-card-padding-md flex flex-col gap-element-gap-md">
           <div class="flex items-start gap-element-gap-md">
             <div class="w-11 h-11 shrink-0 rounded-lg ${danger ? 'bg-error-container/20' : 'bg-primary-container/15'} flex items-center justify-center">
-              <span class="material-symbols-outlined ${danger ? 'text-error' : 'text-primary'} text-[24px]">${danger ? 'delete_forever' : 'help'}</span>
+              <span translate="no" class="material-symbols-outlined ${danger ? 'text-error' : 'text-primary'} text-[24px]">${danger ? 'delete_forever' : 'help'}</span>
             </div>
             <div class="min-w-0">
               <h2 class="font-serif text-headline-sm text-on-surface"></h2>
@@ -357,7 +357,7 @@ function coverHTML(duel, cls = '') {
     </div>`;
   }
   return `<div class="relative overflow-hidden bg-surface-container-lowest border border-outline-variant/50 flex flex-col items-center justify-center text-center p-3 gap-2 ${cls}" style="background-image: radial-gradient(rgba(255,200,128,0.07) 1px, transparent 1px); background-size: 10px 10px;">
-    <span class="material-symbols-outlined text-primary-container text-[22px]">menu_book</span>
+    <span translate="no" class="material-symbols-outlined text-primary-container text-[22px]">menu_book</span>
     <span class="font-serif font-semibold text-primary leading-tight text-[13px] line-clamp-4">${esc(duel.bookTitle)}</span>
     ${duel.author ? `<span class="font-sans text-[10px] text-on-surface-variant line-clamp-1">${esc(duel.author)}</span>` : ''}
     <div class="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-r from-black/60 to-transparent"></div>
@@ -402,7 +402,7 @@ function mountHeader(active, user) {
       </div>
       <div class="flex items-center gap-element-gap-sm md:gap-element-gap-md">
         <button aria-label="Cambiar tema" id="btn-theme" class="p-element-gap-sm text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all" type="button">
-          <span class="material-symbols-outlined align-middle" id="theme-icon">${currentTheme() === 'light' ? 'dark_mode' : 'light_mode'}</span>
+          <span translate="no" class="material-symbols-outlined align-middle" id="theme-icon">${currentTheme() === 'light' ? 'dark_mode' : 'light_mode'}</span>
         </button>
         <button aria-label="Cambiar idioma" id="btn-lang" class="px-2.5 py-1.5 rounded-lg font-sans text-label-sm font-bold text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all" type="button">${currentLang() === 'en' ? 'ES' : 'EN'}</button>
         <div class="flex items-center gap-element-gap-md">
@@ -414,11 +414,11 @@ function mountHeader(active, user) {
             <span class="font-sans text-label-sm text-outline">Lector Ávido</span>
           </div>
           <button aria-label="Cerrar sesión" id="btn-logout" class="hidden lg:block p-element-gap-sm text-on-surface-variant hover:text-error hover:bg-surface-container-high rounded-lg transition-all" type="button">
-            <span class="material-symbols-outlined align-middle">logout</span>
+            <span translate="no" class="material-symbols-outlined align-middle">logout</span>
           </button>
         </div>
         <button aria-label="Menú" id="btn-menu" class="lg:hidden p-element-gap-sm text-on-surface-variant hover:text-primary rounded-lg transition-all" type="button">
-          <span class="material-symbols-outlined align-middle">menu</span>
+          <span translate="no" class="material-symbols-outlined align-middle">menu</span>
         </button>
       </div>
     </div>

@@ -13,13 +13,13 @@
 <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.add("light")}catch(e){}</script>
 <style>body{margin:0;overscroll-behavior:none} ::-webkit-scrollbar{display:none}</style>
 </head>
-<body class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
+<body translate="no" class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
 <div id="header"></div>
 
 <main class="w-full pt-16 md:pt-20 min-h-screen">
   <div class="max-w-[1280px] mx-auto px-gutter-mobile md:px-gutter-tablet lg:px-gutter-desktop py-stack-gap-xl" id="content">
     <div class="flex items-center justify-center py-24 text-outline gap-2">
-      <span class="material-symbols-outlined animate-spin">progress_activity</span> Cargando perfil…
+      <span translate="no" class="material-symbols-outlined animate-spin">progress_activity</span> Cargando perfil…
     </div>
   </div>
 </main>
@@ -30,7 +30,7 @@ function metric(label, icon, value, unit, barPct, barNote, accent) {
   return `<div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-lg flex flex-col gap-element-gap-md relative overflow-hidden">
     <div class="flex items-center justify-between">
       <span class="font-sans text-label-md text-on-surface-variant">${label}</span>
-      <div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center"><span class="material-symbols-outlined ${accent} text-[22px]">${icon}</span></div>
+      <div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center"><span translate="no" class="material-symbols-outlined ${accent} text-[22px]">${icon}</span></div>
     </div>
     <div class="flex items-baseline gap-2">
       <span class="font-sans font-extrabold text-[40px] leading-none ${accent}">${value}</span>
@@ -56,7 +56,7 @@ function duelRow(d) {
       </p>
     </div>
     <span class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-sans text-label-sm font-bold ${won ? 'bg-primary-container/20 text-primary' : 'bg-error-container/25 text-error'}">
-      <span class="material-symbols-outlined text-[16px]">${won ? 'trophy' : 'close'}</span> ${won ? 'VICTORIA' : 'DERROTA'}
+      <span translate="no" class="material-symbols-outlined text-[16px]">${won ? 'trophy' : 'close'}</span> ${won ? 'VICTORIA' : 'DERROTA'}
     </span>
   </a>`;
 }
@@ -78,7 +78,7 @@ function duelRow(d) {
             <span class="font-serif font-bold text-[34px] text-primary">${esc(initials(user.displayName))}</span>
           </div>
           <span class="absolute bottom-0 right-1 w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center ring-4 ring-surface-container-low">
-            <span class="material-symbols-outlined text-primary text-[16px]">auto_stories</span>
+            <span translate="no" class="material-symbols-outlined text-primary text-[16px]">auto_stories</span>
           </span>
         </div>
         <div class="flex-1 min-w-0">
@@ -87,19 +87,19 @@ function duelRow(d) {
             <span class="font-sans text-body-md text-outline">@${esc(user.username)}</span>
           </div>
           <div class="flex items-center gap-element-gap-sm flex-wrap mt-element-gap-sm">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container/15 text-primary font-sans text-label-sm font-bold"><span class="material-symbols-outlined text-[16px]">military_tech</span> ${stats.wins >= 10 ? 'Gran Maestro de Lectura' : stats.wins >= 3 ? 'Duelista Experimentado' : 'Lector en Ascenso'}</span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container text-on-surface-variant font-sans text-label-sm"><span class="material-symbols-outlined text-[16px]">calendar_month</span> Miembro desde ${esc(memberSince)}</span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container/15 text-primary font-sans text-label-sm font-bold"><span translate="no" class="material-symbols-outlined text-[16px]">military_tech</span> ${stats.wins >= 10 ? 'Gran Maestro de Lectura' : stats.wins >= 3 ? 'Duelista Experimentado' : 'Lector en Ascenso'}</span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container text-on-surface-variant font-sans text-label-sm"><span translate="no" class="material-symbols-outlined text-[16px]">calendar_month</span> Miembro desde ${esc(memberSince)}</span>
           </div>
         </div>
         <a href="/nuevo" class="shrink-0 inline-flex items-center gap-2 px-card-padding-md py-3 rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold shadow-lg shadow-primary-container/25 transition-all active:scale-95 self-start md:self-center">
-          <span class="material-symbols-outlined text-[20px]">swords</span> Retar a Duelo
+          <span translate="no" class="material-symbols-outlined text-[20px]">swords</span> Retar a Duelo
         </a>
       </div>
     </div>
 
     <!-- Métricas -->
     <div class="flex items-center gap-2 mb-element-gap-lg">
-      <span class="material-symbols-outlined text-primary text-[22px]">monitoring</span>
+      <span translate="no" class="material-symbols-outlined text-primary text-[22px]">monitoring</span>
       <h2 class="font-serif text-headline-md text-on-surface">Métricas de Combate Literario</h2>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter-tablet mb-stack-gap-xl">
@@ -115,12 +115,12 @@ function duelRow(d) {
         <h2 class="font-serif text-headline-md text-on-surface">Duelos Finalizados</h2>
         <span class="px-2.5 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-sans text-label-sm">${finishedDuels.length}</span>
       </div>
-      <a href="/duelos" class="font-sans text-label-md text-secondary hover:underline flex items-center gap-1">Ver todos mis duelos <span class="material-symbols-outlined text-[16px]">arrow_forward</span></a>
+      <a href="/duelos" class="font-sans text-label-md text-secondary hover:underline flex items-center gap-1">Ver todos mis duelos <span translate="no" class="material-symbols-outlined text-[16px]">arrow_forward</span></a>
     </div>
     <div class="flex flex-col gap-gutter-mobile">
       ${finishedDuels.length ? finishedDuels.map(duelRow).join('') : `
         <div class="rounded-xl bg-surface-container-low p-card-padding-lg text-center flex flex-col items-center gap-element-gap-md">
-          <span class="material-symbols-outlined text-outline text-[36px]">history_edu</span>
+          <span translate="no" class="material-symbols-outlined text-outline text-[36px]">history_edu</span>
           <p class="font-sans text-body-md text-on-surface-variant">Todavía no has terminado ningún duelo. ¡Tu primer trofeo te espera!</p>
         </div>`}
     </div>`;

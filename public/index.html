@@ -16,11 +16,11 @@
   ::-webkit-scrollbar{display:none}
 </style>
 </head>
-<body class="bg-background font-sans text-body-md text-on-background min-h-screen flex items-center justify-center p-gutter-mobile selection:bg-primary selection:text-on-primary">
+<body translate="no" class="bg-background font-sans text-body-md text-on-background min-h-screen flex items-center justify-center p-gutter-mobile selection:bg-primary selection:text-on-primary">
 
 <div class="fixed top-4 right-4 z-50 flex items-center gap-1">
   <button aria-label="Cambiar tema" onclick="toggleTheme()" class="p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all" type="button">
-    <span class="material-symbols-outlined align-middle" id="theme-icon">light_mode</span>
+    <span translate="no" class="material-symbols-outlined align-middle" id="theme-icon">light_mode</span>
   </button>
   <button aria-label="Cambiar idioma" onclick="toggleLang()" id="login-lang" class="px-2.5 py-1.5 rounded-lg font-sans text-label-sm font-bold text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all" type="button">EN</button>
 </div>
@@ -42,17 +42,17 @@
 
       <div class="w-full grid grid-cols-2 gap-1 p-1 rounded-lg bg-surface-container-lowest mt-stack-gap-xl" role="tablist">
         <button id="tab-login" type="button" class="flex items-center justify-center gap-2 py-3 rounded-lg font-sans text-label-md transition-all bg-surface-container-highest text-on-surface font-bold">
-          <span class="material-symbols-outlined text-[18px]">key</span> Iniciar Sesión
+          <span translate="no" class="material-symbols-outlined text-[18px]">key</span> Iniciar Sesión
         </button>
         <button id="tab-register" type="button" class="flex items-center justify-center gap-2 py-3 rounded-lg font-sans text-label-md transition-all text-on-surface-variant hover:text-on-surface">
-          <span class="material-symbols-outlined text-[18px]">auto_stories</span> Crear Cuenta
+          <span translate="no" class="material-symbols-outlined text-[18px]">auto_stories</span> Crear Cuenta
         </button>
       </div>
 
       <form id="form" class="w-full flex flex-col gap-element-gap-lg mt-element-gap-lg">
         <div id="field-name" class="hidden flex-col gap-element-gap-sm">
           <label class="flex items-center gap-2 font-sans text-label-md text-on-surface-variant" for="displayName">
-            <span class="material-symbols-outlined text-primary text-[18px]">badge</span> Tu nombre (como te verá tu rival)
+            <span translate="no" class="material-symbols-outlined text-primary text-[18px]">badge</span> Tu nombre (como te verá tu rival)
           </label>
           <input id="displayName" name="displayName" type="text" maxlength="30" autocomplete="name" placeholder="Ej. Leo Ramos"
             class="w-full rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-3.5 font-sans text-body-md text-on-surface placeholder:text-outline/60 outline-none focus:border-primary-container focus:ring-[3px] focus:ring-primary-container/20 transition-all">
@@ -60,7 +60,7 @@
 
         <div class="flex flex-col gap-element-gap-sm">
           <label class="flex items-center gap-2 font-sans text-label-md text-on-surface-variant" for="username">
-            <span class="material-symbols-outlined text-primary text-[18px]">alternate_email</span> Usuario
+            <span translate="no" class="material-symbols-outlined text-primary text-[18px]">alternate_email</span> Usuario
           </label>
           <input id="username" name="username" type="text" required maxlength="20" autocomplete="username" placeholder="ej. borges.duelista"
             class="w-full rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-3.5 font-sans text-body-md text-on-surface placeholder:text-outline/60 outline-none focus:border-primary-container focus:ring-[3px] focus:ring-primary-container/20 transition-all">
@@ -68,14 +68,14 @@
 
         <div class="flex flex-col gap-element-gap-sm">
           <label class="flex items-center gap-2 font-sans text-label-md text-on-surface-variant" for="password">
-            <span class="material-symbols-outlined text-primary text-[18px]">lock</span> Contraseña Secreta
+            <span translate="no" class="material-symbols-outlined text-primary text-[18px]">lock</span> Contraseña Secreta
           </label>
           <div class="relative">
             <input id="password" name="password" type="password" required minlength="6" autocomplete="current-password" placeholder="••••••••••••"
               class="w-full rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-3.5 pr-12 font-sans text-body-md text-on-surface placeholder:text-outline/60 outline-none focus:border-primary-container focus:ring-[3px] focus:ring-primary-container/20 transition-all">
             <button type="button" id="toggle-pass" aria-label="Mostrar contraseña"
               class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors">
-              <span class="material-symbols-outlined align-middle">visibility</span>
+              <span translate="no" class="material-symbols-outlined align-middle">visibility</span>
             </button>
           </div>
         </div>
@@ -85,7 +85,7 @@
         <button id="submit" type="submit"
           class="w-full flex items-center justify-center gap-element-gap-sm rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold uppercase tracking-widest py-4 shadow-lg shadow-primary-container/25 transition-all active:scale-[0.98]">
           <span id="submit-label">Entrar al Duelo</span>
-          <span class="material-symbols-outlined text-[20px]">swords</span>
+          <span translate="no" class="material-symbols-outlined text-[20px]">swords</span>
         </button>
       </form>
     </div>
@@ -99,7 +99,7 @@
   </div>
 
   <p class="text-center font-sans text-body-sm text-outline mt-element-gap-lg flex items-center justify-center gap-2">
-    <span class="material-symbols-outlined text-primary-container text-[16px]">bolt</span>
+    <span translate="no" class="material-symbols-outlined text-primary-container text-[16px]">bolt</span>
     Configura tu libro, reta a un amigo y corona al lector más veloz.
   </p>
 </main>

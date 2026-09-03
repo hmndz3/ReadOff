@@ -13,7 +13,7 @@
 <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.add("light")}catch(e){}</script>
 <style>body{margin:0;overscroll-behavior:none} ::-webkit-scrollbar{display:none}</style>
 </head>
-<body class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
+<body translate="no" class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
 <div id="header"></div>
 
 <main class="w-full pt-16 md:pt-20 min-h-screen">
@@ -32,16 +32,16 @@
           </div>
           <h1 class="font-serif text-display-hero-mobile md:text-display-hero text-primary tracking-tight" id="greeting">¡Hola de nuevo!</h1>
           <p class="font-sans text-body-lg text-on-surface-variant flex items-center gap-2" id="subtitle">
-            <span class="material-symbols-outlined text-secondary text-[20px]">bolt</span>
+            <span translate="no" class="material-symbols-outlined text-secondary text-[20px]">bolt</span>
             <span>Cargando tus duelos…</span>
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-element-gap-md pt-element-gap-sm lg:pt-0">
           <a href="/nuevo" class="group inline-flex items-center justify-center gap-element-gap-sm px-card-padding-md py-3 rounded-lg bg-primary-container font-sans text-label-md text-on-primary-container font-bold shadow-lg shadow-primary-container/20 hover:bg-tertiary-fixed-dim transition-all active:scale-95">
-            <span class="material-symbols-outlined text-[20px] transition-transform group-hover:rotate-90">add</span> Nuevo Duelo
+            <span translate="no" class="material-symbols-outlined text-[20px] transition-transform group-hover:rotate-90">add</span> Nuevo Duelo
           </a>
           <a href="/unirse" class="inline-flex items-center justify-center gap-element-gap-sm px-card-padding-md py-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-secondary font-sans text-label-md transition-all active:scale-95 shadow-md">
-            <span class="material-symbols-outlined text-[20px]">key</span> Unirse con Código
+            <span translate="no" class="material-symbols-outlined text-[20px]">key</span> Unirse con Código
           </a>
         </div>
       </div>
@@ -56,12 +56,12 @@
     <!-- Estado vacío -->
     <div id="empty" class="hidden flex-col items-center justify-center text-center py-16 gap-element-gap-lg">
       <div class="w-24 h-24 rounded-full bg-surface-container-low flex items-center justify-center">
-        <span class="material-symbols-outlined text-primary-container text-[44px]">auto_stories</span>
+        <span translate="no" class="material-symbols-outlined text-primary-container text-[44px]">auto_stories</span>
       </div>
       <h2 class="font-serif text-headline-lg text-on-surface" id="empty-title">Aún no tienes duelos</h2>
       <p class="font-sans text-body-md text-on-surface-variant max-w-md">Configura un libro, genera tu código de invitación y reta a alguien a la carrera literaria.</p>
       <a href="/nuevo" class="inline-flex items-center gap-element-gap-sm px-card-padding-md py-3 rounded-lg bg-primary-container text-on-primary-container font-sans text-label-md font-bold shadow-lg shadow-primary-container/20 hover:bg-tertiary-fixed-dim transition-all active:scale-95">
-        <span class="material-symbols-outlined text-[20px]">swords</span> ¡Reta a alguien!
+        <span translate="no" class="material-symbols-outlined text-[20px]">swords</span> ¡Reta a alguien!
       </a>
     </div>
   </div>
@@ -99,32 +99,32 @@ function duelCard(d) {
   const lead = my.chaptersRead - rv.chaptersRead;
   const leadChip =
     cat === 'waiting'
-      ? `<div class="flex items-center gap-1 text-secondary font-sans text-label-sm bg-surface-container px-2 py-1 rounded"><span class="material-symbols-outlined text-[16px]">key</span><span class="font-bold tracking-widest">${esc(d.code)}</span></div>`
+      ? `<div class="flex items-center gap-1 text-secondary font-sans text-label-sm bg-surface-container px-2 py-1 rounded"><span translate="no" class="material-symbols-outlined text-[16px]">key</span><span class="font-bold tracking-widest">${esc(d.code)}</span></div>`
       : lead > 0
-      ? `<div class="flex items-center gap-1 text-primary font-sans text-label-sm bg-surface-container px-2 py-1 rounded"><span class="material-symbols-outlined text-[16px]">local_fire_department</span><span class="font-bold">Ventaja: +${lead} cap${lead === 1 ? '' : 's'}</span></div>`
+      ? `<div class="flex items-center gap-1 text-primary font-sans text-label-sm bg-surface-container px-2 py-1 rounded"><span translate="no" class="material-symbols-outlined text-[16px]">local_fire_department</span><span class="font-bold">Ventaja: +${lead} cap${lead === 1 ? '' : 's'}</span></div>`
       : lead < 0
-      ? `<div class="flex items-center gap-1 text-secondary font-sans text-label-sm bg-surface-container px-2 py-1 rounded"><span class="material-symbols-outlined text-[16px]">running_with_errors</span><span class="font-bold">Vas ${-lead} por detrás</span></div>`
-      : `<div class="flex items-center gap-1 text-on-surface-variant font-sans text-label-sm bg-surface-container px-2 py-1 rounded"><span class="material-symbols-outlined text-[16px]">balance</span><span class="font-bold">Empate</span></div>`;
+      ? `<div class="flex items-center gap-1 text-secondary font-sans text-label-sm bg-surface-container px-2 py-1 rounded"><span translate="no" class="material-symbols-outlined text-[16px]">running_with_errors</span><span class="font-bold">Vas ${-lead} por detrás</span></div>`
+      : `<div class="flex items-center gap-1 text-on-surface-variant font-sans text-label-sm bg-surface-container px-2 py-1 rounded"><span translate="no" class="material-symbols-outlined text-[16px]">balance</span><span class="font-bold">Empate</span></div>`;
 
   const rivalRow = d.rival
     ? `<div class="flex items-center gap-element-gap-sm pt-2">
         <div class="w-8 h-8 rounded-full bg-secondary-container/20 flex items-center justify-center ring-2 ring-secondary/50"><span class="font-sans text-label-sm text-secondary font-bold">${esc(initials(d.rival.displayName))}</span></div>
         <div class="flex flex-col"><span class="font-sans text-label-sm text-on-surface font-semibold leading-tight">${esc(d.rival.displayName)}</span><span class="font-sans text-[12px] text-outline">Tu rival</span></div>
       </div>`
-    : `<div class="flex items-center gap-element-gap-sm pt-2 text-outline font-sans text-body-sm"><span class="material-symbols-outlined text-[18px]">hourglass_empty</span> Comparte el código para empezar</div>`;
+    : `<div class="flex items-center gap-element-gap-sm pt-2 text-outline font-sans text-body-sm"><span translate="no" class="material-symbols-outlined text-[18px]">hourglass_empty</span> Comparte el código para empezar</div>`;
 
   const bars = d.rival
     ? `<div class="flex flex-col gap-element-gap-sm bg-surface-container/60 p-3 rounded-lg">
         <div class="flex flex-col gap-1">
           <div class="flex justify-between font-sans text-label-sm">
-            <span class="text-primary font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> Tú (Cap. ${my.chaptersRead}/${d.totalChapters})</span>
+            <span class="text-primary font-bold flex items-center gap-1"><span translate="no" class="material-symbols-outlined text-[14px]">person</span> Tú (Cap. ${my.chaptersRead}/${d.totalChapters})</span>
             <span class="text-primary font-bold">${my.pct}%</span>
           </div>
           <div class="w-full h-2.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-tertiary-container to-primary transition-all duration-500" style="width:${my.pct}%"></div></div>
         </div>
         <div class="flex flex-col gap-1">
           <div class="flex justify-between font-sans text-label-sm">
-            <span class="text-secondary flex items-center gap-1 font-medium"><span class="material-symbols-outlined text-[14px]">groups</span> ${esc(d.rival.displayName.split(' ')[0])} (Cap. ${rv.chaptersRead}/${d.totalChapters})</span>
+            <span class="text-secondary flex items-center gap-1 font-medium"><span translate="no" class="material-symbols-outlined text-[14px]">groups</span> ${esc(d.rival.displayName.split(' ')[0])} (Cap. ${rv.chaptersRead}/${d.totalChapters})</span>
             <span class="text-secondary font-semibold">${rv.pct}%</span>
           </div>
           <div class="w-full h-2 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full bg-secondary-container transition-all duration-500" style="width:${rv.pct}%"></div></div>
@@ -136,9 +136,9 @@ function duelCard(d) {
       </div>`;
 
   const activity = rv.lastRead
-    ? `<div class="flex items-center gap-2 text-outline font-sans text-body-sm"><span class="material-symbols-outlined text-[16px]">history</span><span>${esc(d.rival.displayName.split(' ')[0])} avanzó al cap. ${rv.chaptersRead} ${timeAgo(rv.lastRead)}</span></div>`
+    ? `<div class="flex items-center gap-2 text-outline font-sans text-body-sm"><span translate="no" class="material-symbols-outlined text-[16px]">history</span><span>${esc(d.rival.displayName.split(' ')[0])} avanzó al cap. ${rv.chaptersRead} ${timeAgo(rv.lastRead)}</span></div>`
     : my.lastRead
-    ? `<div class="flex items-center gap-2 text-outline font-sans text-body-sm"><span class="material-symbols-outlined text-[16px]">history</span><span>Tu última lectura fue ${timeAgo(my.lastRead)}</span></div>`
+    ? `<div class="flex items-center gap-2 text-outline font-sans text-body-sm"><span translate="no" class="material-symbols-outlined text-[16px]">history</span><span>Tu última lectura fue ${timeAgo(my.lastRead)}</span></div>`
     : '';
 
   return `<article class="flex flex-col justify-between rounded-xl bg-surface-container-low p-card-padding-md shadow-lg hover:shadow-2xl transition-all duration-300 relative overflow-hidden">
@@ -170,10 +170,10 @@ function duelCard(d) {
       <div class="flex items-center gap-element-gap-sm">
         <button data-delete="${d.id}" data-title="${esc(d.bookTitle)}" data-rival="${esc(d.rival ? d.rival.displayName : '')}" aria-label="Eliminar duelo"
           class="p-2 rounded-lg text-outline hover:text-error hover:bg-error-container/20 transition-all active:scale-95" type="button">
-          <span class="material-symbols-outlined align-middle text-[20px]">delete</span>
+          <span translate="no" class="material-symbols-outlined align-middle text-[20px]">delete</span>
         </button>
         <a href="/duelo?id=${d.id}" class="inline-flex items-center justify-center gap-element-gap-xs px-element-gap-lg py-2 rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold shadow-md shadow-primary-container/20 transition-all active:scale-95">
-          ${cat === 'ongoing' ? 'Continuar leyendo' : 'Ver duelo'} <span class="material-symbols-outlined text-[18px]">menu_book</span>
+          ${cat === 'ongoing' ? 'Continuar leyendo' : 'Ver duelo'} <span translate="no" class="material-symbols-outlined text-[18px]">menu_book</span>
         </a>
       </div>
     </div>

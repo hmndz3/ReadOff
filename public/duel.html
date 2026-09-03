@@ -13,13 +13,13 @@
 <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.add("light")}catch(e){}</script>
 <style>body{margin:0;overscroll-behavior:none} ::-webkit-scrollbar{display:none}</style>
 </head>
-<body class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
+<body translate="no" class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
 <div id="header"></div>
 
 <main class="w-full pt-16 md:pt-20 min-h-screen">
   <div class="max-w-[1280px] mx-auto px-gutter-mobile md:px-gutter-tablet lg:px-gutter-desktop py-stack-gap-xl" id="content">
     <div class="flex items-center justify-center py-24 text-outline gap-2">
-      <span class="material-symbols-outlined animate-spin">progress_activity</span> Cargando duelo…
+      <span translate="no" class="material-symbols-outlined animate-spin">progress_activity</span> Cargando duelo…
     </div>
   </div>
 </main>
@@ -38,7 +38,7 @@ function banner(d) {
   if (d.status === 'waiting') {
     return `<div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl mb-gutter-tablet flex flex-col md:flex-row md:items-center gap-element-gap-lg relative overflow-hidden">
       <div class="absolute inset-y-0 left-0 w-1.5 bg-secondary-container"></div>
-      <div class="w-12 h-12 shrink-0 rounded-lg bg-secondary-container/15 flex items-center justify-center"><span class="material-symbols-outlined text-secondary text-[26px]">hourglass_top</span></div>
+      <div class="w-12 h-12 shrink-0 rounded-lg bg-secondary-container/15 flex items-center justify-center"><span translate="no" class="material-symbols-outlined text-secondary text-[26px]">hourglass_top</span></div>
       <div class="flex-1">
         <span class="font-sans text-label-sm text-secondary uppercase tracking-widest">Esperando rival</span>
         <h2 class="font-serif text-headline-md text-on-surface mt-0.5">Comparte el código para empezar la carrera</h2>
@@ -46,8 +46,8 @@ function banner(d) {
       </div>
       <div class="flex items-center gap-element-gap-md">
         <span class="font-sans font-extrabold text-[28px] tracking-[0.3em] text-primary pl-[0.3em] bg-surface-container-lowest border-2 border-dashed border-primary-container/50 rounded-lg px-4 py-2">${esc(d.code)}</span>
-        <button id="btn-copy" class="p-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-secondary transition-all active:scale-95" type="button" aria-label="Copiar código"><span class="material-symbols-outlined align-middle">content_copy</span></button>
-        <button id="btn-share" class="p-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-secondary transition-all active:scale-95" type="button" aria-label="Compartir"><span class="material-symbols-outlined align-middle">share</span></button>
+        <button id="btn-copy" class="p-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-secondary transition-all active:scale-95" type="button" aria-label="Copiar código"><span translate="no" class="material-symbols-outlined align-middle">content_copy</span></button>
+        <button id="btn-share" class="p-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-secondary transition-all active:scale-95" type="button" aria-label="Compartir"><span translate="no" class="material-symbols-outlined align-middle">share</span></button>
       </div>
     </div>`;
   }
@@ -56,7 +56,7 @@ function banner(d) {
     return `<div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl mb-gutter-tablet flex items-center gap-element-gap-lg relative overflow-hidden">
       <div class="absolute inset-y-0 left-0 w-1.5 ${won ? 'bg-primary-container' : 'bg-error-container'}"></div>
       <div class="w-12 h-12 shrink-0 rounded-lg ${won ? 'bg-primary-container/15' : 'bg-error-container/20'} flex items-center justify-center">
-        <span class="material-symbols-outlined ${won ? 'text-primary' : 'text-error'} text-[26px]">${won ? 'trophy' : 'sentiment_dissatisfied'}</span>
+        <span translate="no" class="material-symbols-outlined ${won ? 'text-primary' : 'text-error'} text-[26px]">${won ? 'trophy' : 'sentiment_dissatisfied'}</span>
       </div>
       <div>
         <span class="font-sans text-label-sm ${won ? 'text-primary' : 'text-error'} uppercase tracking-widest">${won ? '¡Victoria!' : 'Derrota'}</span>
@@ -72,7 +72,7 @@ function banner(d) {
   return `<div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl mb-gutter-tablet flex items-center gap-element-gap-lg relative overflow-hidden">
     <div class="absolute inset-y-0 left-0 w-1.5 ${lead >= 0 ? 'bg-primary-container' : 'bg-secondary-container'}"></div>
     <div class="w-12 h-12 shrink-0 rounded-lg ${lead >= 0 ? 'bg-primary-container/15' : 'bg-secondary-container/15'} flex items-center justify-center">
-      <span class="material-symbols-outlined ${lead >= 0 ? 'text-primary' : 'text-secondary'} text-[26px]">${lead > 0 ? 'trophy' : lead < 0 ? 'sprint' : 'balance'}</span>
+      <span translate="no" class="material-symbols-outlined ${lead >= 0 ? 'text-primary' : 'text-secondary'} text-[26px]">${lead > 0 ? 'trophy' : lead < 0 ? 'sprint' : 'balance'}</span>
     </div>
     <div>
       <div class="flex items-center gap-element-gap-sm flex-wrap">
@@ -140,7 +140,7 @@ function statCard(label, icon, value, hint, accent = 'text-primary') {
   return `<div class="rounded-xl bg-surface-container-low p-card-padding-sm shadow-lg flex flex-col gap-element-gap-sm relative overflow-hidden">
     <div class="flex items-center justify-between">
       <span class="font-sans text-label-sm text-outline uppercase tracking-widest">${label}</span>
-      <span class="material-symbols-outlined ${accent} text-[22px] opacity-80">${icon}</span>
+      <span translate="no" class="material-symbols-outlined ${accent} text-[22px] opacity-80">${icon}</span>
     </div>
     <span class="font-sans font-extrabold text-stat-counter ${accent}">${value}</span>
     <span class="font-sans text-body-sm text-on-surface-variant">${hint}</span>
@@ -154,7 +154,7 @@ function playerCard(d, mine) {
   const barCls = mine ? 'bg-gradient-to-r from-tertiary-container to-primary' : 'bg-secondary-container';
   if (!u) {
     return `<div class="flex-1 rounded-xl bg-surface-container p-card-padding-sm flex flex-col items-center justify-center gap-element-gap-sm text-center min-h-[150px]">
-      <span class="material-symbols-outlined text-outline text-[30px]">person_search</span>
+      <span translate="no" class="material-symbols-outlined text-outline text-[30px]">person_search</span>
       <span class="font-sans text-body-sm text-on-surface-variant max-w-[180px]">Esperando a que tu rival se una con el código</span>
     </div>`;
   }
@@ -165,7 +165,7 @@ function playerCard(d, mine) {
     <div class="flex items-center gap-element-gap-sm">
       <div class="relative w-11 h-11 rounded-full bg-${accent}-container/25 ring-2 ring-${accent}-container/70 flex items-center justify-center shrink-0">
         <span class="font-sans text-label-md text-${accent} font-bold">${esc(initials(u.displayName))}</span>
-        ${isWinner || isLeader ? `<span class="material-symbols-outlined absolute -top-3 left-1/2 -translate-x-1/2 text-primary text-[18px]" style="font-variation-settings:'FILL' 1">crown</span>` : ''}
+        ${isWinner || isLeader ? `<span translate="no" class="material-symbols-outlined absolute -top-3 left-1/2 -translate-x-1/2 text-primary text-[18px]" style="font-variation-settings:'FILL' 1">crown</span>` : ''}
       </div>
       <div class="min-w-0">
         <span class="font-sans text-label-md text-on-surface font-bold block truncate">${esc(u.displayName)}${mine ? ' (Tú)' : ''}</span>
@@ -201,7 +201,7 @@ function render(d, activity) {
             <span class="font-sans text-body-sm text-on-surface">${mine ? '<strong>Tú</strong> completaste' : `<strong>${esc(a.user.displayName)}</strong> completó`} el <strong>Capítulo ${a.chapter}</strong></span>
             <span class="font-sans text-[12px] text-outline block">${timeAgo(a.readAt)}</span>
           </div>
-          <span class="material-symbols-outlined ${mine ? 'text-primary' : 'text-secondary'} text-[20px]">check_circle</span>
+          <span translate="no" class="material-symbols-outlined ${mine ? 'text-primary' : 'text-secondary'} text-[20px]">check_circle</span>
         </div>`;
       }).join('')
     : '<p class="font-sans text-body-sm text-outline py-4 text-center">Aún no hay lecturas registradas. ¡Marca tu primer capítulo!</p>';
@@ -228,9 +228,9 @@ function render(d, activity) {
           <p class="font-sans text-body-md text-on-surface-variant mt-1">${d.author ? `Por <span class="text-secondary font-semibold">${esc(d.author)}</span> • ` : ''}Edición ${d.totalChapters} Capítulos${d.deadline ? ` • Fecha límite: ${fmtDate(d.deadline)}` : ''}</p>
         </div>
         <div class="flex items-center gap-element-gap-sm self-start md:self-center">
-          <button id="btn-copy2" class="p-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant transition-all active:scale-95" type="button" aria-label="Copiar código"><span class="material-symbols-outlined align-middle text-[20px]">content_copy</span></button>
+          <button id="btn-copy2" class="p-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant transition-all active:scale-95" type="button" aria-label="Copiar código"><span translate="no" class="material-symbols-outlined align-middle text-[20px]">content_copy</span></button>
           <span class="font-sans text-label-sm text-outline tracking-widest">${esc(d.code)}</span>
-          <button id="btn-delete" class="p-2.5 rounded-lg bg-surface-container-high hover:bg-error-container/30 text-on-surface-variant hover:text-error transition-all active:scale-95" type="button" aria-label="Eliminar duelo"><span class="material-symbols-outlined align-middle text-[20px]">delete</span></button>
+          <button id="btn-delete" class="p-2.5 rounded-lg bg-surface-container-high hover:bg-error-container/30 text-on-surface-variant hover:text-error transition-all active:scale-95" type="button" aria-label="Eliminar duelo"><span translate="no" class="material-symbols-outlined align-middle text-[20px]">delete</span></button>
         </div>
       </div>
     </div>
@@ -249,7 +249,7 @@ function render(d, activity) {
 
         <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl">
           <div class="flex items-center justify-between mb-element-gap-sm">
-            <h3 class="font-serif text-headline-sm text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[20px]">forum</span> Comentarios del Duelo</h3>
+            <h3 class="font-serif text-headline-sm text-on-surface flex items-center gap-2"><span translate="no" class="material-symbols-outlined text-primary text-[20px]">forum</span> Comentarios del Duelo</h3>
             <span class="font-sans text-label-sm text-outline" id="comments-count"></span>
           </div>
           <p class="font-sans text-body-sm text-on-surface-variant mb-element-gap-md">Deja un comentario rápido sobre el capítulo en el que vas.</p>
@@ -264,7 +264,7 @@ function render(d, activity) {
               <input id="comment-text" maxlength="280" placeholder="Escribe tu comentario…" autocomplete="off"
                 class="flex-1 rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-2.5 font-sans text-body-md text-on-surface placeholder:text-outline/60 outline-none focus:border-primary-container focus:ring-[3px] focus:ring-primary-container/20 transition-all">
               <button type="submit" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold shadow-md shadow-primary-container/20 transition-all active:scale-95">
-                <span class="material-symbols-outlined text-[18px]">send</span><span class="hidden sm:inline">Comentar</span>
+                <span translate="no" class="material-symbols-outlined text-[18px]">send</span><span class="hidden sm:inline">Comentar</span>
               </button>
             </div>
           </form>
@@ -273,7 +273,7 @@ function render(d, activity) {
 
         <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl">
           <div class="flex items-center justify-between mb-element-gap-sm">
-            <h3 class="font-serif text-headline-sm text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[20px]">history_edu</span> Actividad del Duelo</h3>
+            <h3 class="font-serif text-headline-sm text-on-surface flex items-center gap-2"><span translate="no" class="material-symbols-outlined text-primary text-[20px]">history_edu</span> Actividad del Duelo</h3>
             ${d.status === 'active' ? '<span class="font-sans text-label-sm text-secondary flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> En directo</span>' : ''}
           </div>
           <div>${activityHTML}</div>
@@ -305,10 +305,10 @@ function render(d, activity) {
             </div>
             <div class="flex items-center gap-element-gap-sm shrink-0 flex-wrap">
               ${d.sourceSlug && my.chaptersRead < d.totalChapters ? `<a href="/leer?duelo=${d.id}&cap=${my.chaptersRead + 1}" class="inline-flex items-center justify-center gap-2 px-card-padding-sm py-3 rounded-lg bg-secondary-container hover:bg-secondary-fixed-dim text-on-secondary-container font-sans text-label-md font-bold shadow-lg shadow-secondary-container/25 transition-all active:scale-95">
-                <span class="material-symbols-outlined text-[20px]">auto_stories</span> Leer Cap. ${my.chaptersRead + 1}
+                <span translate="no" class="material-symbols-outlined text-[20px]">auto_stories</span> Leer Cap. ${my.chaptersRead + 1}
               </a>` : ''}
               ${my.chaptersRead < d.totalChapters && d.status !== 'waiting' ? `<button id="btn-mark" class="inline-flex items-center justify-center gap-2 px-card-padding-sm py-3 rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold shadow-lg shadow-primary-container/25 transition-all active:scale-95" type="button">
-                <span class="material-symbols-outlined text-[20px]">task_alt</span> Marcar Cap. ${my.chaptersRead + 1}
+                <span translate="no" class="material-symbols-outlined text-[20px]">task_alt</span> Marcar Cap. ${my.chaptersRead + 1}
               </button>` : ''}
             </div>
           </div>
@@ -322,8 +322,8 @@ function render(d, activity) {
           <div class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 pt-2" id="chapters-grid">${grid}</div>
           <div class="flex items-center justify-between mt-element-gap-lg pt-element-gap-md border-t border-surface-container-highest/40 flex-wrap gap-2">
             ${d.sourceSlug
-              ? '<span class="font-sans text-body-sm text-outline flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">info</span> El progreso se sincroniza con tu rival al instante.</span>'
-              : `<button id="btn-link-source" class="font-sans text-body-sm text-secondary hover:underline flex items-center gap-1.5" type="button"><span class="material-symbols-outlined text-[16px]">link</span> Enlazar con chikari.moe para leer aquí</button>`}
+              ? '<span class="font-sans text-body-sm text-outline flex items-center gap-1.5"><span translate="no" class="material-symbols-outlined text-[16px]">info</span> El progreso se sincroniza con tu rival al instante.</span>'
+              : `<button id="btn-link-source" class="font-sans text-body-sm text-secondary hover:underline flex items-center gap-1.5" type="button"><span translate="no" class="material-symbols-outlined text-[16px]">link</span> Enlazar con chikari.moe para leer aquí</button>`}
             ${my.chaptersRead > 0 ? `<button id="btn-revert" class="font-sans text-label-md text-primary hover:underline" type="button">Revertir último capítulo</button>` : ''}
           </div>
         </div>
@@ -468,7 +468,7 @@ async function load() {
     render(duel, activity);
   } catch (err) {
     document.getElementById('content').innerHTML = `<div class="flex flex-col items-center py-24 gap-4 text-center">
-      <span class="material-symbols-outlined text-error text-[40px]">error</span>
+      <span translate="no" class="material-symbols-outlined text-error text-[40px]">error</span>
       <p class="font-sans text-body-md text-on-surface-variant">${esc(err.message)}</p>
       <a href="/duelos" class="text-primary font-sans text-label-md hover:underline">← Volver a mis duelos</a>
     </div>`;

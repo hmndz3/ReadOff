@@ -14,7 +14,7 @@
 <style>body{margin:0;overscroll-behavior:none} ::-webkit-scrollbar{display:none}
 input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0.4)}</style>
 </head>
-<body class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
+<body translate="no" class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
 <div id="header"></div>
 
 <main class="w-full pt-16 md:pt-20 min-h-screen">
@@ -22,7 +22,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
 
     <div class="flex flex-col items-center text-center gap-element-gap-sm mb-stack-gap-xl">
       <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container text-on-surface-variant font-sans text-label-sm uppercase tracking-widest">
-        <span class="material-symbols-outlined text-primary text-[16px]">swords</span> Competición Asíncrona
+        <span translate="no" class="material-symbols-outlined text-primary text-[16px]">swords</span> Competición Asíncrona
       </span>
       <h1 class="font-serif text-headline-xl md:text-display-hero text-primary tracking-tight">Crear Nuevo Duelo Literario</h1>
       <p class="font-sans text-body-md text-on-surface-variant max-w-lg">Configura el libro, define los capítulos y reta a un amigo a una contienda de páginas y resistencia.</p>
@@ -35,13 +35,13 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
 
         <div class="rounded-lg bg-secondary-container/10 ring-1 ring-secondary-container/25 p-card-padding-sm flex flex-col gap-element-gap-sm">
           <label class="flex items-center gap-2 font-sans text-label-md text-secondary font-bold" for="novel-url">
-            <span class="material-symbols-outlined text-[18px]">auto_fix_high</span> ¿Leen en chikari.moe? Pega la URL de la novela (opcional)
+            <span translate="no" class="material-symbols-outlined text-[18px]">auto_fix_high</span> ¿Leen en chikari.moe? Pega la URL de la novela (opcional)
           </label>
           <div class="flex gap-element-gap-sm">
             <input id="novel-url" type="url" placeholder="https://chikari.moe/novels/…" autocomplete="off"
               class="flex-1 min-w-0 rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-2.5 font-sans text-body-sm text-on-surface placeholder:text-outline/60 outline-none focus:border-secondary-container focus:ring-[3px] focus:ring-secondary-container/20 transition-all">
             <button type="button" id="btn-autofill" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-secondary font-sans text-label-md font-bold transition-all active:scale-95">
-              <span class="material-symbols-outlined text-[18px]" id="autofill-icon">bolt</span> Autoconfigurar
+              <span translate="no" class="material-symbols-outlined text-[18px]" id="autofill-icon">bolt</span> Autoconfigurar
             </button>
           </div>
           <span class="font-sans text-[12px] text-on-surface-variant">Se llenará el título, autor, capítulos y portada automáticamente.</span>
@@ -53,7 +53,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
             <span class="font-sans text-label-sm text-outline">Requerido</span>
           </div>
           <div class="relative">
-            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-[20px]">menu_book</span>
+            <span translate="no" class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-[20px]">menu_book</span>
             <input id="title" required maxlength="120" placeholder="Ej. El Nombre del Viento"
               class="w-full rounded-lg bg-surface-container-lowest border border-surface-container-highest pl-12 pr-4 py-3.5 font-sans text-body-md text-on-surface placeholder:text-outline/60 outline-none focus:border-primary-container focus:ring-[3px] focus:ring-primary-container/20 transition-all">
           </div>
@@ -63,7 +63,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
           <div class="flex flex-col gap-element-gap-sm">
             <label class="font-sans text-label-md text-on-surface" for="author">Autor</label>
             <div class="relative">
-              <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-[20px]">edit_note</span>
+              <span translate="no" class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-[20px]">edit_note</span>
               <input id="author" maxlength="80" placeholder="Ej. Patrick Rothfuss"
                 class="w-full rounded-lg bg-surface-container-lowest border border-surface-container-highest pl-12 pr-4 py-3.5 font-sans text-body-md text-on-surface placeholder:text-outline/60 outline-none focus:border-primary-container focus:ring-[3px] focus:ring-primary-container/20 transition-all">
             </div>
@@ -71,7 +71,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
           <div class="flex flex-col gap-element-gap-sm">
             <label class="font-sans text-label-md text-on-surface" for="genre">Género (opcional)</label>
             <div class="relative">
-              <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-[20px]">category</span>
+              <span translate="no" class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-[20px]">category</span>
               <input id="genre" maxlength="40" placeholder="Ej. Fantasía Épica"
                 class="w-full rounded-lg bg-surface-container-lowest border border-surface-container-highest pl-12 pr-4 py-3.5 font-sans text-body-md text-on-surface placeholder:text-outline/60 outline-none focus:border-primary-container focus:ring-[3px] focus:ring-primary-container/20 transition-all">
             </div>
@@ -86,7 +86,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
           </div>
           <div class="flex items-stretch gap-element-gap-md">
             <button type="button" id="ch-minus" class="w-14 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-all active:scale-95 flex items-center justify-center">
-              <span class="material-symbols-outlined">remove</span>
+              <span translate="no" class="material-symbols-outlined">remove</span>
             </button>
             <div class="flex-1 rounded-lg bg-surface-container-lowest border border-surface-container-highest flex flex-col items-center justify-center py-2">
               <input id="chapters" type="number" min="1" max="2500" value="20" inputmode="numeric"
@@ -94,7 +94,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
               <span class="font-sans text-label-sm text-outline uppercase tracking-widest -mt-1">Capítulos</span>
             </div>
             <button type="button" id="ch-plus" class="w-14 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface transition-all active:scale-95 flex items-center justify-center">
-              <span class="material-symbols-outlined">add</span>
+              <span translate="no" class="material-symbols-outlined">add</span>
             </button>
           </div>
           <div class="flex items-center gap-element-gap-sm flex-wrap">
@@ -113,7 +113,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
           <label id="dropzone" class="cursor-pointer rounded-lg border-2 border-dashed border-surface-container-highest hover:border-primary-container/60 bg-surface-container-lowest/60 transition-all flex flex-col items-center justify-center gap-element-gap-sm py-10 px-4 text-center">
             <input id="cover" type="file" accept="image/jpeg,image/png,image/webp" class="hidden">
             <div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center">
-              <span class="material-symbols-outlined text-primary text-[26px]">cloud_upload</span>
+              <span translate="no" class="material-symbols-outlined text-primary text-[26px]">cloud_upload</span>
             </div>
             <span class="font-sans text-body-md text-on-surface font-semibold" id="drop-text">Arrastra la portada o toca para explorar</span>
             <span class="font-sans text-body-sm text-outline">JPG, PNG o WebP (hasta 5MB). Si no subes nada, se genera una portada de cuero.</span>
@@ -127,7 +127,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
             <span class="font-sans text-label-sm text-outline">Sin prisa si la dejas vacía</span>
           </div>
           <div class="relative">
-            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-[20px]">calendar_month</span>
+            <span translate="no" class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-[20px]">calendar_month</span>
             <input id="deadline" type="date"
               class="w-full rounded-lg bg-surface-container-lowest border border-surface-container-highest pl-12 pr-4 py-3.5 font-sans text-body-md text-on-surface outline-none focus:border-primary-container focus:ring-[3px] focus:ring-primary-container/20 transition-all">
           </div>
@@ -135,7 +135,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
 
         <button type="submit" id="submit"
           class="w-full flex items-center justify-center gap-element-gap-sm rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold py-4 shadow-lg shadow-primary-container/25 transition-all active:scale-[0.98]">
-          <span class="material-symbols-outlined text-[20px]">bolt</span> Crear Duelo y Generar Código
+          <span translate="no" class="material-symbols-outlined text-[20px]">bolt</span> Crear Duelo y Generar Código
         </button>
       </form>
 
@@ -144,7 +144,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
         <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl flex flex-col gap-element-gap-lg">
           <div class="flex items-center justify-between">
             <span class="flex items-center gap-2 font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">
-              <span class="material-symbols-outlined text-primary text-[18px]">auto_stories</span> Previsualización del libro
+              <span translate="no" class="material-symbols-outlined text-primary text-[18px]">auto_stories</span> Previsualización del libro
             </span>
             <span class="px-2 py-0.5 rounded-full bg-secondary-container/20 text-secondary font-sans text-label-sm">En Vivo</span>
           </div>
@@ -164,7 +164,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
         </div>
         <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl flex gap-element-gap-md">
           <div class="w-10 h-10 shrink-0 rounded-lg bg-surface-container-high flex items-center justify-center">
-            <span class="material-symbols-outlined text-primary text-[22px]">military_tech</span>
+            <span translate="no" class="material-symbols-outlined text-primary text-[22px]">military_tech</span>
           </div>
           <div class="flex flex-col gap-1">
             <span class="font-sans text-label-md text-on-surface font-bold">¿Cómo funciona el duelo?</span>
@@ -178,7 +178,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
     <div id="success" class="hidden max-w-xl mx-auto rounded-xl bg-surface-container-low p-card-padding-md md:p-card-padding-lg shadow-2xl flex-col items-center text-center gap-element-gap-lg relative overflow-hidden">
       <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary-container via-tertiary-container to-secondary-container"></div>
       <div class="w-16 h-16 rounded-full bg-primary-container/15 flex items-center justify-center mt-2">
-        <span class="material-symbols-outlined text-primary text-[34px]">celebration</span>
+        <span translate="no" class="material-symbols-outlined text-primary text-[34px]">celebration</span>
       </div>
       <div>
         <h2 class="font-serif text-headline-lg text-on-surface">¡Duelo creado!</h2>
@@ -190,10 +190,10 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
       </div>
       <div class="flex flex-col sm:flex-row gap-element-gap-md w-full">
         <button id="copy-code" type="button" class="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-secondary font-sans text-label-md font-bold py-3.5 transition-all active:scale-95">
-          <span class="material-symbols-outlined text-[20px]">content_copy</span> Copiar código
+          <span translate="no" class="material-symbols-outlined text-[20px]">content_copy</span> Copiar código
         </button>
         <a id="goto-duel" href="#" class="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold py-3.5 shadow-lg shadow-primary-container/25 transition-all active:scale-95">
-          <span class="material-symbols-outlined text-[20px]">swords</span> Ir al duelo
+          <span translate="no" class="material-symbols-outlined text-[20px]">swords</span> Ir al duelo
         </a>
       </div>
     </div>
@@ -244,7 +244,7 @@ function refreshPreview() {
   } else {
     holder.innerHTML = `
       <div class="w-full h-full rounded-lg bg-surface-container-lowest border border-outline-variant/50 flex flex-col items-center justify-center text-center p-5 gap-3" style="background-image: radial-gradient(rgba(255,200,128,0.07) 1px, transparent 1px); background-size: 12px 12px;">
-        <span class="material-symbols-outlined text-primary-container text-[30px]">menu_book</span>
+        <span translate="no" class="material-symbols-outlined text-primary-container text-[30px]">menu_book</span>
         <div class="w-10 border-t border-primary-container/50"></div>
         <span class="font-serif font-semibold text-primary text-[19px] leading-snug">${esc(title)}</span>
         <div class="w-6 border-t border-outline-variant"></div>

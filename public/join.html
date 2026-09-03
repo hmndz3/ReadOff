@@ -13,7 +13,7 @@
 <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.add("light")}catch(e){}</script>
 <style>body{margin:0;overscroll-behavior:none} ::-webkit-scrollbar{display:none}</style>
 </head>
-<body class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
+<body translate="no" class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
 <div id="header"></div>
 
 <main class="w-full pt-16 md:pt-20 min-h-screen">
@@ -55,15 +55,15 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-gutter-tablet mt-stack-gap-xl">
       <div class="rounded-xl bg-surface-container-low p-card-padding-sm flex gap-element-gap-md">
-        <div class="w-10 h-10 shrink-0 rounded-lg bg-surface-container-high flex items-center justify-center"><span class="material-symbols-outlined text-primary text-[20px]">sync_alt</span></div>
+        <div class="w-10 h-10 shrink-0 rounded-lg bg-surface-container-high flex items-center justify-center"><span translate="no" class="material-symbols-outlined text-primary text-[20px]">sync_alt</span></div>
         <div><span class="font-sans text-label-md text-on-surface font-bold block">Ritmo Asincrónico</span><p class="font-sans text-body-sm text-on-surface-variant mt-1">Lee en tu horario libre. Cada avance se sincroniza al instante con tu rival.</p></div>
       </div>
       <div class="rounded-xl bg-surface-container-low p-card-padding-sm flex gap-element-gap-md">
-        <div class="w-10 h-10 shrink-0 rounded-lg bg-surface-container-high flex items-center justify-center"><span class="material-symbols-outlined text-primary text-[20px]">auto_stories</span></div>
+        <div class="w-10 h-10 shrink-0 rounded-lg bg-surface-container-high flex items-center justify-center"><span translate="no" class="material-symbols-outlined text-primary text-[20px]">auto_stories</span></div>
         <div><span class="font-sans text-label-md text-on-surface font-bold block">Validación por Capítulo</span><p class="font-sans text-body-sm text-on-surface-variant mt-1">Progreso con hitos por capítulo, sin spoilers anticipados.</p></div>
       </div>
       <div class="rounded-xl bg-surface-container-low p-card-padding-sm flex gap-element-gap-md">
-        <div class="w-10 h-10 shrink-0 rounded-lg bg-surface-container-high flex items-center justify-center"><span class="material-symbols-outlined text-primary text-[20px]">military_tech</span></div>
+        <div class="w-10 h-10 shrink-0 rounded-lg bg-surface-container-high flex items-center justify-center"><span translate="no" class="material-symbols-outlined text-primary text-[20px]">military_tech</span></div>
         <div><span class="font-sans text-label-md text-on-surface font-bold block">Corona al Campeón</span><p class="font-sans text-body-sm text-on-surface-variant mt-1">El primero en marcar el capítulo final se corona campeón del duelo.</p></div>
       </div>
     </div>
@@ -123,7 +123,7 @@ function check() {
   previewEl.classList.add('hidden'); previewEl.classList.remove('flex');
   const code = getCode();
   if (code.length < 6) { statusEl.innerHTML = ''; return; }
-  statusEl.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span> Buscando duelo…';
+  statusEl.innerHTML = '<span translate="no" class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span> Buscando duelo…';
   checkTimer = setTimeout(async () => {
     try {
       const { duel } = await api('/api/duels/code/' + code);
@@ -135,7 +135,7 @@ function check() {
       }
       if (duel.hasOpponent) { statusEl.innerHTML = '<span class="text-error">Este duelo ya tiene rival.</span>'; return; }
       currentDuel = duel;
-      statusEl.innerHTML = '<span class="material-symbols-outlined text-secondary text-[16px]">verified</span> <span class="text-secondary font-semibold">Código detectado — duelo activo encontrado</span>';
+      statusEl.innerHTML = '<span translate="no" class="material-symbols-outlined text-secondary text-[16px]">verified</span> <span class="text-secondary font-semibold">Código detectado — duelo activo encontrado</span>';
       renderPreview(duel);
       joinBtn.disabled = false;
     } catch (err) {
@@ -154,7 +154,7 @@ function renderPreview(d) {
       </div>
       <h2 class="font-serif text-headline-md text-on-surface">${esc(d.bookTitle)}</h2>
       ${d.author ? `<span class="font-serif italic text-body-md text-on-surface-variant">${esc(d.author)}</span>` : ''}
-      <span class="inline-flex items-center gap-1.5 font-sans text-body-sm text-secondary"><span class="material-symbols-outlined text-[16px]">schedule</span> Modalidad: Asincrónica directa</span>
+      <span class="inline-flex items-center gap-1.5 font-sans text-body-sm text-secondary"><span translate="no" class="material-symbols-outlined text-[16px]">schedule</span> Modalidad: Asincrónica directa</span>
     </div>
     <div class="md:w-64 shrink-0 rounded-lg bg-surface-container-lowest p-card-padding-sm flex flex-col gap-element-gap-sm">
       <span class="font-sans text-label-md text-on-surface font-bold">${esc(d.creator.displayName)}</span>
