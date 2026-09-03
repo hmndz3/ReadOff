@@ -9,6 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="/js/tw.js"></script>
+<link rel="stylesheet" href="/css/theme.css">
+<script>try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.add("light")}catch(e){}</script>
 <style>body{margin:0;overscroll-behavior:none} ::-webkit-scrollbar{display:none}</style>
 </head>
 <body class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
@@ -65,7 +67,8 @@ function banner(d) {
   }
   const lead = d.myStats.chaptersRead - (d.rivalStats ? d.rivalStats.chaptersRead : 0);
   const rivalName = d.rival ? d.rival.displayName : 'tu rival';
-  const msg = lead > 0 ? `Mantienes la delantera sobre ${esc(rivalName)}.` : lead < 0 ? `${esc(rivalName)} te lleva ${-lead} capítulo${lead === -1 ? '' : 's'}. ¡Remonta!` : `Empate técnico con ${esc(rivalName)}. Todo se decide ahora.`;
+  const rn = esc(rivalName).replace(/\.$/, ''); // evita el doble punto si el nombre ya acaba en "."
+  const msg = lead > 0 ? `Mantienes la delantera sobre ${rn}.` : lead < 0 ? `${rn} te lleva ${-lead} capítulo${lead === -1 ? '' : 's'}. ¡Remonta!` : `Empate técnico con ${rn}. Todo se decide ahora.`;
   return `<div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl mb-gutter-tablet flex items-center gap-element-gap-lg relative overflow-hidden">
     <div class="absolute inset-y-0 left-0 w-1.5 ${lead >= 0 ? 'bg-primary-container' : 'bg-secondary-container'}"></div>
     <div class="w-12 h-12 shrink-0 rounded-lg ${lead >= 0 ? 'bg-primary-container/15' : 'bg-secondary-container/15'} flex items-center justify-center">
@@ -79,6 +82,42 @@ function banner(d) {
       <h2 class="font-serif text-headline-md text-on-surface mt-0.5">${msg}</h2>
     </div>
   </div>`;
+}
+
+/* Cuadrícula paginada: novelas largas se dividen en bloques de 100 capítulos */
+const BLOCK = 100;
+let gridPage = null;
+
+function blockCount(d) {
+  return d.totalChapters > 120 ? Math.ceil(d.totalChapters / BLOCK) : 1;
+}
+
+function blockRange(d) {
+  if (blockCount(d) === 1) return [1, d.totalChapters];
+  const total = blockCount(d);
+  if (gridPage === null) gridPage = Math.min(total - 1, Math.floor((d.myStats.chaptersRead || 0) / BLOCK));
+  gridPage = Math.max(0, Math.min(total - 1, gridPage));
+  return [gridPage * BLOCK + 1, Math.min((gridPage + 1) * BLOCK, d.totalChapters)];
+}
+
+function blocksHTML(d) {
+  const total = blockCount(d);
+  if (total === 1) return '';
+  const mine = d.myStats.chaptersRead;
+  const rivalAt = d.rivalStats ? d.rivalStats.chaptersRead : 0;
+  const chips = Array.from({ length: total }, (_, i) => {
+    const from = i * BLOCK + 1;
+    const to = Math.min((i + 1) * BLOCK, d.totalChapters);
+    const active = i === gridPage;
+    const hasMe = mine + 1 >= from && mine + 1 <= to;
+    const hasRival = rivalAt > 0 && rivalAt >= from && rivalAt <= to;
+    return `<button type="button" data-block="${i}" class="shrink-0 relative px-3 py-1.5 rounded-lg font-sans text-label-sm transition-all ${
+      active ? 'bg-surface-container-highest text-primary font-bold shadow-sm' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+    }">${from}–${to}${hasMe ? '<span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary-container"></span>' : ''}${
+      hasRival ? '<span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-secondary-container"></span>' : ''
+    }</button>`;
+  }).join('');
+  return `<div class="flex items-center gap-1 overflow-x-auto pb-element-gap-sm mb-element-gap-sm border-b border-surface-container-highest/40" id="block-tabs">${chips}</div>`;
 }
 
 function chapterCell(d, n) {
@@ -116,7 +155,7 @@ function playerCard(d, mine) {
   if (!u) {
     return `<div class="flex-1 rounded-xl bg-surface-container p-card-padding-sm flex flex-col items-center justify-center gap-element-gap-sm text-center min-h-[150px]">
       <span class="material-symbols-outlined text-outline text-[30px]">person_search</span>
-      <span class="font-sans text-body-sm text-on-surface-variant">Esperando a que tu rival<br>se una con el código</span>
+      <span class="font-sans text-body-sm text-on-surface-variant max-w-[180px]">Esperando a que tu rival se una con el código</span>
     </div>`;
   }
   const otherCount = mine ? (d.rivalStats ? d.rivalStats.chaptersRead : -1) : d.myStats.chaptersRead;
@@ -148,7 +187,8 @@ function render(d, activity) {
   const finishedMine = my.chaptersRead >= d.totalChapters;
   const canMark = d.status === 'active' && !finishedMine;
 
-  const grid = Array.from({ length: d.totalChapters }, (_, i) => chapterCell(d, i + 1)).join('');
+  const [from, to] = blockRange(d);
+  const grid = Array.from({ length: to - from + 1 }, (_, i) => chapterCell(d, from + i)).join('');
 
   const activityHTML = activity.length
     ? activity.map((a) => {
@@ -208,6 +248,30 @@ function render(d, activity) {
 
         <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl">
           <div class="flex items-center justify-between mb-element-gap-sm">
+            <h3 class="font-serif text-headline-sm text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[20px]">forum</span> Comentarios del Duelo</h3>
+            <span class="font-sans text-label-sm text-outline" id="comments-count"></span>
+          </div>
+          <p class="font-sans text-body-sm text-on-surface-variant mb-element-gap-md">Deja un comentario rápido sobre el capítulo en el que vas.</p>
+          <form id="comment-form" class="flex flex-col gap-element-gap-sm mb-element-gap-md">
+            <div class="flex items-center gap-element-gap-sm">
+              <label class="font-sans text-label-sm text-outline shrink-0" for="comment-chapter">Sobre el capítulo</label>
+              <input id="comment-chapter" type="number" min="1" max="${d.totalChapters}" value="${Math.max(1, Math.min(my.chaptersRead || 1, d.totalChapters))}"
+                class="w-20 rounded-lg bg-surface-container-lowest border border-surface-container-highest px-3 py-1.5 font-sans text-label-md text-primary font-bold text-center outline-none focus:border-primary-container [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+              <span class="font-sans text-label-sm text-outline ml-auto"><span id="comment-len">0</span>/280</span>
+            </div>
+            <div class="flex gap-element-gap-sm">
+              <input id="comment-text" maxlength="280" placeholder="Escribe tu comentario…" autocomplete="off"
+                class="flex-1 rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-2.5 font-sans text-body-md text-on-surface placeholder:text-outline/60 outline-none focus:border-primary-container focus:ring-[3px] focus:ring-primary-container/20 transition-all">
+              <button type="submit" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold shadow-md shadow-primary-container/20 transition-all active:scale-95">
+                <span class="material-symbols-outlined text-[18px]">send</span><span class="hidden sm:inline">Comentar</span>
+              </button>
+            </div>
+          </form>
+          <div id="comments-list" class="flex flex-col max-h-[420px] overflow-y-auto pr-1"></div>
+        </div>
+
+        <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl">
+          <div class="flex items-center justify-between mb-element-gap-sm">
             <h3 class="font-serif text-headline-sm text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[20px]">history_edu</span> Actividad del Duelo</h3>
             ${d.status === 'active' ? '<span class="font-sans text-label-sm text-secondary flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> En directo</span>' : ''}
           </div>
@@ -248,6 +312,7 @@ function render(d, activity) {
             <span class="flex items-center gap-1.5 text-on-surface-variant"><span class="w-3.5 h-3.5 rounded bg-surface-container-lowest inline-block border border-surface-container-highest"></span> Pendientes</span>
             ${d.rival && rv && rv.chaptersRead > 0 ? `<span class="flex items-center gap-1.5 text-secondary"><span class="w-2 h-2 rounded-full bg-secondary inline-block"></span> Posición de ${esc(d.rival.displayName.split(' ')[0])}: Cap. ${rv.chaptersRead}</span>` : ''}
           </div>
+          ${blocksHTML(d)}
           <div class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 pt-2" id="chapters-grid">${grid}</div>
           <div class="flex items-center justify-between mt-element-gap-lg pt-element-gap-md border-t border-surface-container-highest/40 flex-wrap gap-2">
             <span class="font-sans text-body-sm text-outline flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">info</span> El progreso se sincroniza con tu rival al instante.</span>
@@ -263,6 +328,9 @@ function render(d, activity) {
       const res = await api(`/api/duels/${d.id}/read`, { method: 'POST' });
       if (res.duel.status === 'finished' && res.duel.iWon) toast('🏆 ¡Capítulo final! Eres el campeón del duelo', 'ok');
       else toast(`Capítulo ${res.duel.myStats.chaptersRead} registrado ✓`, 'ok');
+      // Si el siguiente capítulo cae en otro bloque, saltamos a él
+      if (blockCount(res.duel) > 1)
+        gridPage = Math.min(blockCount(res.duel) - 1, Math.floor(res.duel.myStats.chaptersRead / BLOCK));
       load();
     } catch (err) { toast(err.message); }
   };
@@ -278,6 +346,31 @@ function render(d, activity) {
     try { await api(`/api/duels/${d.id}/revert`, { method: 'POST' }); toast('Último capítulo revertido', 'ok'); load(); }
     catch (err) { toast(err.message); }
   });
+
+  // Navegación por bloques de capítulos
+  document.querySelectorAll('#block-tabs button').forEach((b) =>
+    b.addEventListener('click', () => {
+      gridPage = parseInt(b.dataset.block, 10);
+      render(d, activity);
+    })
+  );
+
+  // Comentarios
+  const cText = document.getElementById('comment-text');
+  cText.addEventListener('input', () => { document.getElementById('comment-len').textContent = cText.value.length; });
+  document.getElementById('comment-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const chapter = parseInt(document.getElementById('comment-chapter').value, 10);
+    const text = cText.value.trim();
+    if (!text) return;
+    try {
+      await api(`/api/duels/${d.id}/comments`, { method: 'POST', body: { chapter, text } });
+      cText.value = '';
+      document.getElementById('comment-len').textContent = '0';
+      loadComments(d);
+    } catch (err) { toast(err.message); }
+  });
+  loadComments(d);
   const copy = async () => {
     try { await navigator.clipboard.writeText(d.code); toast('Código copiado: ' + d.code, 'ok'); }
     catch { toast('Código: ' + d.code, 'ok'); }
@@ -289,6 +382,48 @@ function render(d, activity) {
     if (navigator.share) { try { await navigator.share({ text }); } catch {} }
     else { try { await navigator.clipboard.writeText(text); toast('Invitación copiada al portapapeles', 'ok'); } catch {} }
   });
+}
+
+async function loadComments(d) {
+  try {
+    const { comments } = await api(`/api/duels/${d.id}/comments`);
+    const countEl = document.getElementById('comments-count');
+    const listEl = document.getElementById('comments-list');
+    if (!countEl || !listEl) return;
+    countEl.textContent = comments.length ? comments.length : '';
+    if (!comments.length) {
+      listEl.innerHTML = '<p class="font-sans text-body-sm text-outline py-4 text-center">Aún no hay comentarios. ¡Deja el primero!</p>';
+      return;
+    }
+    const myProgress = d.myStats ? d.myStats.chaptersRead : 0;
+    listEl.innerHTML = comments.map((c) => {
+      const mine = c.user.id === USER.id;
+      const spoiler = !mine && c.chapter > myProgress;
+      return `<div class="flex items-start gap-element-gap-md py-3 border-b border-surface-container-highest/30 last:border-0">
+        <div class="w-8 h-8 shrink-0 rounded-full ${mine ? 'bg-primary-container/20 ring-2 ring-primary-container/60' : 'bg-secondary-container/20 ring-2 ring-secondary/50'} flex items-center justify-center mt-0.5">
+          <span class="font-sans text-label-sm ${mine ? 'text-primary' : 'text-secondary'} font-bold">${esc(initials(c.user.displayName))}</span>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-element-gap-sm flex-wrap">
+            <span class="font-sans text-label-sm text-on-surface font-bold">${mine ? 'Tú' : esc(c.user.displayName)}</span>
+            <span class="px-1.5 py-px rounded bg-surface-container font-sans text-[10px] font-bold ${mine ? 'text-primary' : 'text-secondary'}">Cap. ${c.chapter}</span>
+            <span class="font-sans text-[11px] text-outline">${timeAgo(c.createdAt)}</span>
+          </div>
+          ${spoiler
+            ? `<p class="font-sans text-body-sm text-outline italic mt-1 cursor-pointer select-none spoiler-hidden" data-text="${esc(c.text)}">⚠️ Posible spoiler (Cap. ${c.chapter}) — toca para revelar</p>`
+            : `<p class="font-sans text-body-sm text-on-surface-variant mt-1 break-words">${esc(c.text)}</p>`}
+        </div>
+      </div>`;
+    }).join('');
+    listEl.querySelectorAll('.spoiler-hidden').forEach((el) =>
+      el.addEventListener('click', () => {
+        const p = document.createElement('p');
+        p.className = 'font-sans text-body-sm text-on-surface-variant mt-1 break-words';
+        p.textContent = el.dataset.text;
+        el.replaceWith(p);
+      })
+    );
+  } catch {}
 }
 
 async function load() {
@@ -308,7 +443,11 @@ async function load() {
   USER = await requireAuth('duelos');
   if (!duelId) { window.location.href = '/duelos'; return; }
   await load();
-  setInterval(async () => { if (!document.hidden) load(); }, 30000);
+  setInterval(async () => {
+    const c = document.getElementById('comment-text');
+    const typing = c && (c.value.trim() || document.activeElement === c);
+    if (!document.hidden && !typing) load();
+  }, 30000);
 })();
 </script>
 </body>
