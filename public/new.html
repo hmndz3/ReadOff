@@ -204,6 +204,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
 <script>
 let coverFile = null;
 let novelCoverUrl = null;
+let novelSlug = null;
 
 document.getElementById('btn-autofill').addEventListener('click', async () => {
   const url = document.getElementById('novel-url').value.trim();
@@ -218,6 +219,7 @@ document.getElementById('btn-autofill').addEventListener('click', async () => {
     if (novel.genres) document.getElementById('genre').value = novel.genres;
     if (novel.chapters) setChapters(novel.chapters);
     novelCoverUrl = novel.coverUrl || null;
+    novelSlug = novel.slug || null;
     refreshPreview();
     toast(`Listo: ${novel.title} (${novel.chapters || '?'} capítulos)`, 'ok');
   } catch (err) {
@@ -295,6 +297,7 @@ document.getElementById('form').addEventListener('submit', async (e) => {
     if (dl) fd.append('deadline', dl);
     if (coverFile) fd.append('cover', coverFile);
     else if (novelCoverUrl) fd.append('coverUrl', novelCoverUrl);
+    if (novelSlug) fd.append('sourceSlug', novelSlug);
     const { duel } = await api('/api/duels', { method: 'POST', body: fd });
     document.getElementById('layout').classList.add('hidden');
     const s = document.getElementById('success');
