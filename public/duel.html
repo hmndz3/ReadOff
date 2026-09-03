@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReadOff — Duelo</title>
+<link rel="icon" href="/img/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="/js/tw.js"></script>
+<style>body{margin:0;overscroll-behavior:none} ::-webkit-scrollbar{display:none}</style>
+</head>
+<body class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
+<div id="header"></div>
+
+<main class="w-full pt-16 md:pt-20 min-h-screen">
+  <div class="max-w-[1280px] mx-auto px-gutter-mobile md:px-gutter-tablet lg:px-gutter-desktop py-stack-gap-xl" id="content">
+    <div class="flex items-center justify-center py-24 text-outline gap-2">
+      <span class="material-symbols-outlined animate-spin">progress_activity</span> Cargando duelo…
+    </div>
+  </div>
+</main>
+
+<script src="/js/app.js"></script>
+<script>
+const duelId = new URLSearchParams(location.search).get('id');
+let USER = null;
+
+function dayNumber(d) {
+  const since = d.startedAt || d.createdAt;
+  return Math.max(1, Math.ceil((Date.now() - new Date(since.replace(' ', 'T') + 'Z')) / 86400000));
+}
+
+function banner(d) {
+  if (d.status === 'waiting') {
+    return `<div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl mb-gutter-tablet flex flex-col md:flex-row md:items-center gap-element-gap-lg relative overflow-hidden">
+      <div class="absolute inset-y-0 left-0 w-1.5 bg-secondary-container"></div>
+      <div class="w-12 h-12 shrink-0 rounded-lg bg-secondary-container/15 flex items-center justify-center"><span class="material-symbols-outlined text-secondary text-[26px]">hourglass_top</span></div>
+      <div class="flex-1">
+        <span class="font-sans text-label-sm text-secondary uppercase tracking-widest">Esperando rival</span>
+        <h2 class="font-serif text-headline-md text-on-surface mt-0.5">Comparte el código para empezar la carrera</h2>
+        <p class="font-sans text-body-sm text-on-surface-variant mt-1">Puedes ir marcando capítulos, pero el duelo arranca oficialmente cuando tu rival se una.</p>
+      </div>
+      <div class="flex items-center gap-element-gap-md">
+        <span class="font-sans font-extrabold text-[28px] tracking-[0.3em] text-primary pl-[0.3em] bg-surface-container-lowest border-2 border-dashed border-primary-container/50 rounded-lg px-4 py-2">${esc(d.code)}</span>
+        <button id="btn-copy" class="p-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-secondary transition-all active:scale-95" type="button" aria-label="Copiar código"><span class="material-symbols-outlined align-middle">content_copy</span></button>
+        <button id="btn-share" class="p-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-secondary transition-all active:scale-95" type="button" aria-label="Compartir"><span class="material-symbols-outlined align-middle">share</span></button>
+      </div>
+    </div>`;
+  }
+  if (d.status === 'finished') {
+    const won = d.iWon;
+    return `<div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl mb-gutter-tablet flex items-center gap-element-gap-lg relative overflow-hidden">
+      <div class="absolute inset-y-0 left-0 w-1.5 ${won ? 'bg-primary-container' : 'bg-error-container'}"></div>
+      <div class="w-12 h-12 shrink-0 rounded-lg ${won ? 'bg-primary-container/15' : 'bg-error-container/20'} flex items-center justify-center">
+        <span class="material-symbols-outlined ${won ? 'text-primary' : 'text-error'} text-[26px]">${won ? 'trophy' : 'sentiment_dissatisfied'}</span>
+      </div>
+      <div>
+        <span class="font-sans text-label-sm ${won ? 'text-primary' : 'text-error'} uppercase tracking-widest">${won ? '¡Victoria!' : 'Derrota'}</span>
+        <h2 class="font-serif text-headline-md text-on-surface mt-0.5">${won ? `Terminaste <em>${esc(d.bookTitle)}</em> antes que ${esc(d.rival ? d.rival.displayName : 'tu rival')}.` : `${esc(d.rival ? d.rival.displayName : 'Tu rival')} terminó el libro primero. ¡La revancha te espera!`}</h2>
+        <p class="font-sans text-body-sm text-on-surface-variant mt-1">Duelo finalizado ${timeAgo(d.finishedAt)}. Puedes seguir marcando tu lectura hasta terminar el libro.</p>
+      </div>
+    </div>`;
+  }
+  const lead = d.myStats.chaptersRead - (d.rivalStats ? d.rivalStats.chaptersRead : 0);
+  const rivalName = d.rival ? d.rival.displayName : 'tu rival';
+  const msg = lead > 0 ? `Mantienes la delantera sobre ${esc(rivalName)}.` : lead < 0 ? `${esc(rivalName)} te lleva ${-lead} capítulo${lead === -1 ? '' : 's'}. ¡Remonta!` : `Empate técnico con ${esc(rivalName)}. Todo se decide ahora.`;
+  return `<div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl mb-gutter-tablet flex items-center gap-element-gap-lg relative overflow-hidden">
+    <div class="absolute inset-y-0 left-0 w-1.5 ${lead >= 0 ? 'bg-primary-container' : 'bg-secondary-container'}"></div>
+    <div class="w-12 h-12 shrink-0 rounded-lg ${lead >= 0 ? 'bg-primary-container/15' : 'bg-secondary-container/15'} flex items-center justify-center">
+      <span class="material-symbols-outlined ${lead >= 0 ? 'text-primary' : 'text-secondary'} text-[26px]">${lead > 0 ? 'trophy' : lead < 0 ? 'sprint' : 'balance'}</span>
+    </div>
+    <div>
+      <div class="flex items-center gap-element-gap-sm flex-wrap">
+        <span class="font-sans text-label-sm ${lead >= 0 ? 'text-primary' : 'text-secondary'} uppercase tracking-widest">${lead > 0 ? '¡Ventaja en el duelo!' : lead < 0 ? 'Vas por detrás' : 'Empate'}</span>
+        <span class="px-2 py-0.5 rounded-full bg-secondary-container/15 text-secondary font-sans text-label-sm">Día ${dayNumber(d)} en marcha</span>
+      </div>
+      <h2 class="font-serif text-headline-md text-on-surface mt-0.5">${msg}</h2>
+    </div>
+  </div>`;
+}
+
+function chapterCell(d, n) {
+  const my = d.myStats.chaptersRead;
+  const rivalAt = d.rivalStats ? d.rivalStats.chaptersRead : 0;
+  const isNext = n === my + 1 && n <= d.totalChapters && d.status !== 'waiting' && !(d.status === 'finished' && my >= d.totalChapters);
+  const done = n <= my;
+  const isMeta = n === d.totalChapters;
+  const rivalMark = d.rival && rivalAt === n && rivalAt > 0
+    ? `<span class="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-px rounded bg-secondary-container text-on-secondary font-sans text-[9px] font-bold shadow">${esc(initials(d.rival.displayName))}</span>` : '';
+  let cls = 'relative h-12 rounded-lg flex flex-col items-center justify-center font-sans text-label-md transition-all select-none ';
+  let sub = '';
+  if (done) { cls += 'bg-primary-container/85 text-on-primary-container font-bold'; sub = '<span class="text-[9px] leading-none opacity-80">✓</span>'; }
+  else if (isNext) { cls += 'bg-surface-container-lowest text-on-surface border-2 border-primary-container ring-2 ring-primary-container/20 cursor-pointer hover:bg-surface-container font-bold'; sub = '<span class="text-[8px] leading-none text-primary uppercase tracking-wider">Sig.</span>'; }
+  else { cls += 'bg-surface-container-lowest text-outline'; if (isMeta) sub = '<span class="text-[8px] leading-none text-secondary uppercase tracking-wider">Meta</span>'; }
+  return `<div class="${cls}" ${isNext ? 'id="next-chapter" role="button" tabindex="0"' : ''}>${rivalMark}<span class="leading-tight">${n}</span>${sub}</div>`;
+}
+
+function statCard(label, icon, value, hint, accent = 'text-primary') {
+  return `<div class="rounded-xl bg-surface-container-low p-card-padding-sm shadow-lg flex flex-col gap-element-gap-sm relative overflow-hidden">
+    <div class="flex items-center justify-between">
+      <span class="font-sans text-label-sm text-outline uppercase tracking-widest">${label}</span>
+      <span class="material-symbols-outlined ${accent} text-[22px] opacity-80">${icon}</span>
+    </div>
+    <span class="font-sans font-extrabold text-stat-counter ${accent}">${value}</span>
+    <span class="font-sans text-body-sm text-on-surface-variant">${hint}</span>
+  </div>`;
+}
+
+function playerCard(d, mine) {
+  const u = mine ? d.me : d.rival;
+  const s = mine ? d.myStats : d.rivalStats;
+  const accent = mine ? 'primary' : 'secondary';
+  const barCls = mine ? 'bg-gradient-to-r from-tertiary-container to-primary' : 'bg-secondary-container';
+  if (!u) {
+    return `<div class="flex-1 rounded-xl bg-surface-container p-card-padding-sm flex flex-col items-center justify-center gap-element-gap-sm text-center min-h-[150px]">
+      <span class="material-symbols-outlined text-outline text-[30px]">person_search</span>
+      <span class="font-sans text-body-sm text-on-surface-variant">Esperando a que tu rival<br>se una con el código</span>
+    </div>`;
+  }
+  const otherCount = mine ? (d.rivalStats ? d.rivalStats.chaptersRead : -1) : d.myStats.chaptersRead;
+  const isLeader = d.rival && s.chaptersRead > otherCount;
+  const isWinner = d.status === 'finished' && d.winnerId === u.id;
+  return `<div class="flex-1 rounded-xl ${mine ? 'bg-primary-container/10 ring-1 ring-primary-container/30' : 'bg-secondary-container/10 ring-1 ring-secondary-container/25'} p-card-padding-sm flex flex-col gap-element-gap-sm">
+    <div class="flex items-center gap-element-gap-sm">
+      <div class="relative w-11 h-11 rounded-full bg-${accent}-container/25 ring-2 ring-${accent}-container/70 flex items-center justify-center shrink-0">
+        <span class="font-sans text-label-md text-${accent} font-bold">${esc(initials(u.displayName))}</span>
+        ${isWinner || isLeader ? `<span class="material-symbols-outlined absolute -top-3 left-1/2 -translate-x-1/2 text-primary text-[18px]" style="font-variation-settings:'FILL' 1">crown</span>` : ''}
+      </div>
+      <div class="min-w-0">
+        <span class="font-sans text-label-md text-on-surface font-bold block truncate">${esc(u.displayName)}${mine ? ' (Tú)' : ''}</span>
+        <span class="font-sans text-label-sm ${mine ? 'text-primary' : 'text-secondary'}">${isWinner ? '¡Campeón del duelo!' : isLeader ? 'Líder del duelo' : 'Persiguiendo la delantera'}</span>
+      </div>
+      <span class="ml-auto px-2 py-0.5 rounded bg-surface-container-lowest font-sans text-label-sm ${mine ? 'text-primary' : 'text-secondary'} font-bold">${s.pct}%</span>
+    </div>
+    <span class="font-serif font-bold text-[38px] leading-none ${mine ? 'text-primary' : 'text-secondary'}">Cap. ${s.chaptersRead}</span>
+    <span class="font-sans text-body-sm text-on-surface-variant">${s.chaptersRead} / ${d.totalChapters} capítulos leídos</span>
+    <div class="w-full h-2.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full ${barCls} transition-all duration-500" style="width:${s.pct}%"></div></div>
+  </div>`;
+}
+
+function render(d, activity) {
+  document.title = `ReadOff — ${d.bookTitle}`;
+  const my = d.myStats;
+  const rv = d.rivalStats;
+  const lead = rv ? my.chaptersRead - rv.chaptersRead : null;
+  const finishedMine = my.chaptersRead >= d.totalChapters;
+  const canMark = d.status === 'active' && !finishedMine;
+
+  const grid = Array.from({ length: d.totalChapters }, (_, i) => chapterCell(d, i + 1)).join('');
+
+  const activityHTML = activity.length
+    ? activity.map((a) => {
+        const mine = a.user.id === USER.id;
+        return `<div class="flex items-center gap-element-gap-md py-3 border-b border-surface-container-highest/30 last:border-0">
+          <div class="w-8 h-8 shrink-0 rounded-full ${mine ? 'bg-primary-container/20 ring-2 ring-primary-container/60' : 'bg-secondary-container/20 ring-2 ring-secondary/50'} flex items-center justify-center">
+            <span class="font-sans text-label-sm ${mine ? 'text-primary' : 'text-secondary'} font-bold">${esc(initials(a.user.displayName))}</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <span class="font-sans text-body-sm text-on-surface">${mine ? '<strong>Tú</strong> completaste' : `<strong>${esc(a.user.displayName)}</strong> completó`} el <strong>Capítulo ${a.chapter}</strong></span>
+            <span class="font-sans text-[12px] text-outline block">${timeAgo(a.readAt)}</span>
+          </div>
+          <span class="material-symbols-outlined ${mine ? 'text-primary' : 'text-secondary'} text-[20px]">check_circle</span>
+        </div>`;
+      }).join('')
+    : '<p class="font-sans text-body-sm text-outline py-4 text-center">Aún no hay lecturas registradas. ¡Marca tu primer capítulo!</p>';
+
+  const projHint = my.projection
+    ? (rv && rv.projection ? (my.projection <= rv.projection ? `Antes que ${esc(d.rival.displayName.split(' ')[0])}` : `Después que ${esc(d.rival.displayName.split(' ')[0])} — ¡acelera!`) : 'A tu ritmo actual')
+    : finishedMine ? '¡Libro terminado!' : 'Marca capítulos para calcular';
+
+  document.getElementById('content').innerHTML = `
+    ${banner(d)}
+
+    <!-- Cabecera del libro -->
+    <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl mb-gutter-tablet relative overflow-hidden">
+      <div class="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-primary/10 blur-3xl pointer-events-none"></div>
+      <div class="relative z-10 flex flex-col md:flex-row md:items-center gap-element-gap-lg">
+        ${coverHTML(d, 'shrink-0 w-20 h-28 rounded-lg shadow-2xl')}
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-element-gap-sm flex-wrap">
+            <span class="px-2.5 py-1 rounded-full bg-primary-container/15 text-primary font-sans text-label-sm font-bold">Capítulo ${my.chaptersRead} de ${d.totalChapters} (${my.pct}%)</span>
+            <span class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-sans text-label-sm flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full ${d.status === 'finished' ? 'bg-outline' : 'bg-secondary animate-pulse'}"></span> ${d.status === 'waiting' ? 'Esperando rival' : d.status === 'finished' ? 'Finalizado' : 'En curso — Día ' + dayNumber(d)}</span>
+            ${d.genre ? `<span class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-sans text-label-sm">${esc(d.genre)}</span>` : ''}
+          </div>
+          <h1 class="font-serif text-headline-xl md:text-display-hero text-on-surface tracking-tight mt-2 truncate">${esc(d.bookTitle)}</h1>
+          <p class="font-sans text-body-md text-on-surface-variant mt-1">${d.author ? `Por <span class="text-secondary font-semibold">${esc(d.author)}</span> • ` : ''}Edición ${d.totalChapters} Capítulos${d.deadline ? ` • Fecha límite: ${fmtDate(d.deadline)}` : ''}</p>
+        </div>
+        <div class="flex items-center gap-element-gap-sm self-start md:self-center">
+          <button id="btn-copy2" class="p-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant transition-all active:scale-95" type="button" aria-label="Copiar código"><span class="material-symbols-outlined align-middle text-[20px]">content_copy</span></button>
+          <span class="font-sans text-label-sm text-outline tracking-widest">${esc(d.code)}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-gutter-tablet lg:gap-gutter-desktop items-start">
+      <!-- Columna izquierda -->
+      <div class="lg:col-span-2 flex flex-col gap-gutter-tablet">
+        <div class="grid grid-cols-2 gap-gutter-mobile">
+          ${rv !== null
+            ? statCard('Ventaja', 'crown', (lead > 0 ? '+' : '') + lead + ' Caps', lead > 0 ? 'Liderando la carrera' : lead < 0 ? 'Toca remontar' : 'Empate total')
+            : statCard('Ventaja', 'crown', '—', 'Sin rival todavía')}
+          ${statCard('Ritmo', 'speed', my.pace + ' caps/día', my.pace >= 1 ? 'Ritmo sólido y constante' : 'Puedes apretar un poco', 'text-secondary')}
+          ${statCard('Racha', 'local_fire_department', my.streak + ' día' + (my.streak === 1 ? '' : 's'), my.streak > 0 ? 'Sin perder ningún turno' : 'Lee hoy para encenderla')}
+          ${statCard('Meta estimada', 'flag', my.projection ? fmtDate(my.projection) : finishedMine ? '¡Hecho!' : '—', projHint, 'text-secondary')}
+        </div>
+
+        <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl">
+          <div class="flex items-center justify-between mb-element-gap-sm">
+            <h3 class="font-serif text-headline-sm text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[20px]">history_edu</span> Actividad del Duelo</h3>
+            ${d.status === 'active' ? '<span class="font-sans text-label-sm text-secondary flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> En directo</span>' : ''}
+          </div>
+          <div>${activityHTML}</div>
+        </div>
+      </div>
+
+      <!-- Columna derecha -->
+      <div class="lg:col-span-3 flex flex-col gap-gutter-tablet">
+        <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl">
+          <div class="flex flex-col sm:flex-row items-stretch gap-element-gap-md relative">
+            ${playerCard(d, true)}
+            <div class="flex sm:flex-col items-center justify-center gap-1 shrink-0 self-center">
+              <span class="font-serif font-bold text-headline-md text-on-surface-variant px-3 py-1 rounded-full bg-surface-container">VS</span>
+              ${lead !== null && lead !== 0 ? `<span class="font-sans text-label-sm ${lead > 0 ? 'text-primary' : 'text-secondary'} font-bold px-2 py-0.5 rounded bg-surface-container-lowest">${lead > 0 ? '+' + lead : lead} Caps</span>` : ''}
+            </div>
+            ${playerCard(d, false)}
+          </div>
+          ${rv ? `<div class="mt-element-gap-md rounded-lg bg-surface-container/60 px-4 py-3 font-sans text-body-sm text-on-surface-variant flex items-center gap-2 flex-wrap">
+            <span class="w-2 h-2 rounded-full bg-primary"></span>
+            <span>Ritmo: <strong class="text-on-surface">${my.pace} caps/día</strong> (tú) vs <strong class="text-on-surface">${rv.pace} caps/día</strong> (${esc(d.rival.displayName.split(' ')[0])})</span>
+          </div>` : ''}
+        </div>
+
+        <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-element-gap-md mb-element-gap-lg">
+            <div>
+              <h3 class="font-serif text-headline-lg text-on-surface">Progreso de Capítulos</h3>
+              <p class="font-sans text-body-sm text-on-surface-variant mt-1">${canMark ? 'Marca el siguiente capítulo cuando termines de leerlo.' : d.status === 'waiting' ? 'El duelo arranca cuando tu rival se una con el código.' : finishedMine ? '¡Completaste el libro entero!' : 'El duelo terminó, pero puedes seguir registrando tu lectura.'}</p>
+            </div>
+            ${my.chaptersRead < d.totalChapters && d.status !== 'waiting' ? `<button id="btn-mark" class="inline-flex items-center justify-center gap-2 px-card-padding-sm py-3 rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold shadow-lg shadow-primary-container/25 transition-all active:scale-95 shrink-0" type="button">
+              <span class="material-symbols-outlined text-[20px]">task_alt</span> Marcar Cap. ${my.chaptersRead + 1} como leído
+            </button>` : ''}
+          </div>
+          <div class="flex items-center gap-element-gap-md flex-wrap mb-element-gap-md font-sans text-label-sm">
+            <span class="flex items-center gap-1.5 text-on-surface-variant"><span class="w-3.5 h-3.5 rounded bg-primary-container/85 inline-block"></span> Completado por ti${my.chaptersRead ? ` (1 – ${my.chaptersRead})` : ''}</span>
+            <span class="flex items-center gap-1.5 text-on-surface-variant"><span class="w-3.5 h-3.5 rounded border-2 border-primary-container inline-block"></span> Siguiente por leer</span>
+            <span class="flex items-center gap-1.5 text-on-surface-variant"><span class="w-3.5 h-3.5 rounded bg-surface-container-lowest inline-block border border-surface-container-highest"></span> Pendientes</span>
+            ${d.rival && rv && rv.chaptersRead > 0 ? `<span class="flex items-center gap-1.5 text-secondary"><span class="w-2 h-2 rounded-full bg-secondary inline-block"></span> Posición de ${esc(d.rival.displayName.split(' ')[0])}: Cap. ${rv.chaptersRead}</span>` : ''}
+          </div>
+          <div class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 pt-2" id="chapters-grid">${grid}</div>
+          <div class="flex items-center justify-between mt-element-gap-lg pt-element-gap-md border-t border-surface-container-highest/40 flex-wrap gap-2">
+            <span class="font-sans text-body-sm text-outline flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">info</span> El progreso se sincroniza con tu rival al instante.</span>
+            ${my.chaptersRead > 0 ? `<button id="btn-revert" class="font-sans text-label-md text-primary hover:underline" type="button">Revertir último capítulo</button>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  // Acciones
+  const mark = async () => {
+    try {
+      const res = await api(`/api/duels/${d.id}/read`, { method: 'POST' });
+      if (res.duel.status === 'finished' && res.duel.iWon) toast('🏆 ¡Capítulo final! Eres el campeón del duelo', 'ok');
+      else toast(`Capítulo ${res.duel.myStats.chaptersRead} registrado ✓`, 'ok');
+      load();
+    } catch (err) { toast(err.message); }
+  };
+  const markBtn = document.getElementById('btn-mark');
+  if (markBtn) markBtn.addEventListener('click', mark);
+  const nextCell = document.getElementById('next-chapter');
+  if (nextCell) {
+    nextCell.addEventListener('click', mark);
+    nextCell.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') mark(); });
+  }
+  const revertBtn = document.getElementById('btn-revert');
+  if (revertBtn) revertBtn.addEventListener('click', async () => {
+    try { await api(`/api/duels/${d.id}/revert`, { method: 'POST' }); toast('Último capítulo revertido', 'ok'); load(); }
+    catch (err) { toast(err.message); }
+  });
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(d.code); toast('Código copiado: ' + d.code, 'ok'); }
+    catch { toast('Código: ' + d.code, 'ok'); }
+  };
+  ['btn-copy', 'btn-copy2'].forEach((id) => { const b = document.getElementById(id); if (b) b.addEventListener('click', copy); });
+  const shareBtn = document.getElementById('btn-share');
+  if (shareBtn) shareBtn.addEventListener('click', async () => {
+    const text = `¡Te reto a un duelo de lectura en ReadOff! 📚⚔️ Libro: ${d.bookTitle}. Únete con el código ${d.code} aquí: ${location.origin}/unirse?code=${d.code}`;
+    if (navigator.share) { try { await navigator.share({ text }); } catch {} }
+    else { try { await navigator.clipboard.writeText(text); toast('Invitación copiada al portapapeles', 'ok'); } catch {} }
+  });
+}
+
+async function load() {
+  try {
+    const { duel, activity } = await api('/api/duels/' + duelId);
+    render(duel, activity);
+  } catch (err) {
+    document.getElementById('content').innerHTML = `<div class="flex flex-col items-center py-24 gap-4 text-center">
+      <span class="material-symbols-outlined text-error text-[40px]">error</span>
+      <p class="font-sans text-body-md text-on-surface-variant">${esc(err.message)}</p>
+      <a href="/duelos" class="text-primary font-sans text-label-md hover:underline">← Volver a mis duelos</a>
+    </div>`;
+  }
+}
+
+(async () => {
+  USER = await requireAuth('duelos');
+  if (!duelId) { window.location.href = '/duelos'; return; }
+  await load();
+  setInterval(async () => { if (!document.hidden) load(); }, 30000);
+})();
+</script>
+</body>
+</html>

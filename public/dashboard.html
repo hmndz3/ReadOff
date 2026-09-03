@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReadOff — Mis Duelos</title>
+<link rel="icon" href="/img/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="/js/tw.js"></script>
+<style>body{margin:0;overscroll-behavior:none} ::-webkit-scrollbar{display:none}</style>
+</head>
+<body class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
+<div id="header"></div>
+
+<main class="w-full pt-16 md:pt-20 min-h-screen">
+  <div class="max-w-[1280px] mx-auto px-gutter-mobile md:px-gutter-tablet lg:px-gutter-desktop py-stack-gap-xl">
+
+    <!-- Hero -->
+    <div class="relative overflow-hidden rounded-xl bg-surface-container-low p-card-padding-md md:p-card-padding-lg shadow-xl mb-stack-gap-xl">
+      <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -left-20 w-80 h-80 rounded-full bg-secondary/10 blur-3xl pointer-events-none"></div>
+      <div class="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-element-gap-lg">
+        <div class="flex flex-col gap-element-gap-xs max-w-2xl">
+          <div class="flex items-center gap-element-gap-sm">
+            <span class="px-element-gap-sm py-0.5 rounded-full bg-primary-container/20 text-primary font-sans text-label-sm uppercase tracking-widest flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span> Arena Literaria
+            </span>
+          </div>
+          <h1 class="font-serif text-display-hero-mobile md:text-display-hero text-primary tracking-tight" id="greeting">¡Hola de nuevo!</h1>
+          <p class="font-sans text-body-lg text-on-surface-variant flex items-center gap-2" id="subtitle">
+            <span class="material-symbols-outlined text-secondary text-[20px]">bolt</span>
+            <span>Cargando tus duelos…</span>
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-element-gap-md pt-element-gap-sm lg:pt-0">
+          <a href="/nuevo" class="group inline-flex items-center justify-center gap-element-gap-sm px-card-padding-md py-3 rounded-lg bg-primary-container font-sans text-label-md text-on-primary-container font-bold shadow-lg shadow-primary-container/20 hover:bg-tertiary-fixed-dim transition-all active:scale-95">
+            <span class="material-symbols-outlined text-[20px] transition-transform group-hover:rotate-90">add</span> Nuevo Duelo
+          </a>
+          <a href="/unirse" class="inline-flex items-center justify-center gap-element-gap-sm px-card-padding-md py-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-secondary font-sans text-label-md transition-all active:scale-95 shadow-md">
+            <span class="material-symbols-outlined text-[20px]">key</span> Unirse con Código
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="flex items-center gap-1 overflow-x-auto py-1 pb-element-gap-lg border-b border-surface-container-highest/60 mb-element-gap-lg" id="tabs"></div>
+
+    <!-- Grid de duelos -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter-tablet lg:gap-gutter-desktop mb-stack-gap-xl" id="grid"></div>
+
+    <!-- Estado vacío -->
+    <div id="empty" class="hidden flex-col items-center justify-center text-center py-16 gap-element-gap-lg">
+      <div class="w-24 h-24 rounded-full bg-surface-container-low flex items-center justify-center">
+        <span class="material-symbols-outlined text-primary-container text-[44px]">auto_stories</span>
+      </div>
+      <h2 class="font-serif text-headline-lg text-on-surface" id="empty-title">Aún no tienes duelos</h2>
+      <p class="font-sans text-body-md text-on-surface-variant max-w-md">Configura un libro, genera tu código de invitación y reta a alguien a la carrera literaria.</p>
+      <a href="/nuevo" class="inline-flex items-center gap-element-gap-sm px-card-padding-md py-3 rounded-lg bg-primary-container text-on-primary-container font-sans text-label-md font-bold shadow-lg shadow-primary-container/20 hover:bg-tertiary-fixed-dim transition-all active:scale-95">
+        <span class="material-symbols-outlined text-[20px]">swords</span> ¡Reta a alguien!
+      </a>
+    </div>
+  </div>
+</main>
+
+<footer class="border-t border-surface-container-highest/40 py-element-gap-lg">
+  <div class="max-w-[1280px] mx-auto px-gutter-mobile flex flex-col sm:flex-row items-center justify-between gap-2">
+    <span class="font-serif text-headline-sm text-primary">ReadOff <span class="font-sans text-body-sm text-outline font-normal">— Duelos literarios de alta intensidad</span></span>
+  </div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+let allDuels = [];
+let filter = 'all';
+
+function categoryOf(d) {
+  if (d.status === 'waiting') return 'waiting';
+  if (d.status === 'finished') return d.iWon ? 'won' : 'lost';
+  return 'ongoing';
+}
+
+const CHIP = {
+  waiting: { text: 'Esperando rival', cls: 'bg-surface-container text-on-surface-variant', dot: 'bg-outline' },
+  ongoing: { text: 'En curso', cls: 'bg-primary-container/15 text-primary', dot: 'bg-primary' },
+  won: { text: 'Ganado', cls: 'bg-primary-container/20 text-primary', dot: 'bg-primary' },
+  lost: { text: 'Perdido', cls: 'bg-error-container/25 text-error', dot: 'bg-error' },
+};
+
+function duelCard(d) {
+  const cat = categoryOf(d);
+  const chip = CHIP[cat];
+  const my = d.myStats || { chaptersRead: 0, pct: 0 };
+  const rv = d.rivalStats || { chaptersRead: 0, pct: 0 };
+  const lead = my.chaptersRead - rv.chaptersRead;
+  const leadChip =
+    cat === 'waiting'
+      ? `<div class="flex items-center gap-1 text-secondary font-sans text-label-sm bg-surface-container px-2 py-1 rounded"><span class="material-symbols-outlined text-[16px]">key</span><span class="font-bold tracking-widest">${esc(d.code)}</span></div>`
+      : lead > 0
+      ? `<div class="flex items-center gap-1 text-primary font-sans text-label-sm bg-surface-container px-2 py-1 rounded"><span class="material-symbols-outlined text-[16px]">local_fire_department</span><span class="font-bold">Ventaja: +${lead} cap${lead === 1 ? '' : 's'}</span></div>`
+      : lead < 0
+      ? `<div class="flex items-center gap-1 text-secondary font-sans text-label-sm bg-surface-container px-2 py-1 rounded"><span class="material-symbols-outlined text-[16px]">running_with_errors</span><span class="font-bold">Vas ${-lead} por detrás</span></div>`
+      : `<div class="flex items-center gap-1 text-on-surface-variant font-sans text-label-sm bg-surface-container px-2 py-1 rounded"><span class="material-symbols-outlined text-[16px]">balance</span><span class="font-bold">Empate</span></div>`;
+
+  const rivalRow = d.rival
+    ? `<div class="flex items-center gap-element-gap-sm pt-2">
+        <div class="w-8 h-8 rounded-full bg-secondary-container/20 flex items-center justify-center ring-2 ring-secondary/50"><span class="font-sans text-label-sm text-secondary font-bold">${esc(initials(d.rival.displayName))}</span></div>
+        <div class="flex flex-col"><span class="font-sans text-label-sm text-on-surface font-semibold leading-tight">${esc(d.rival.displayName)}</span><span class="font-sans text-[12px] text-outline">Tu rival</span></div>
+      </div>`
+    : `<div class="flex items-center gap-element-gap-sm pt-2 text-outline font-sans text-body-sm"><span class="material-symbols-outlined text-[18px]">hourglass_empty</span> Comparte el código para empezar</div>`;
+
+  const bars = d.rival
+    ? `<div class="flex flex-col gap-element-gap-sm bg-surface-container/60 p-3 rounded-lg">
+        <div class="flex flex-col gap-1">
+          <div class="flex justify-between font-sans text-label-sm">
+            <span class="text-primary font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">person</span> Tú (Cap. ${my.chaptersRead}/${d.totalChapters})</span>
+            <span class="text-primary font-bold">${my.pct}%</span>
+          </div>
+          <div class="w-full h-2.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-tertiary-container to-primary transition-all duration-500" style="width:${my.pct}%"></div></div>
+        </div>
+        <div class="flex flex-col gap-1">
+          <div class="flex justify-between font-sans text-label-sm">
+            <span class="text-secondary flex items-center gap-1 font-medium"><span class="material-symbols-outlined text-[14px]">groups</span> ${esc(d.rival.displayName.split(' ')[0])} (Cap. ${rv.chaptersRead}/${d.totalChapters})</span>
+            <span class="text-secondary font-semibold">${rv.pct}%</span>
+          </div>
+          <div class="w-full h-2 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full bg-secondary-container transition-all duration-500" style="width:${rv.pct}%"></div></div>
+        </div>
+      </div>`
+    : `<div class="flex flex-col gap-1 bg-surface-container/60 p-3 rounded-lg">
+        <div class="flex justify-between font-sans text-label-sm"><span class="text-primary font-bold">Tu avance</span><span class="text-primary font-bold">${my.pct}%</span></div>
+        <div class="w-full h-2.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-tertiary-container to-primary" style="width:${my.pct}%"></div></div>
+      </div>`;
+
+  const activity = rv.lastRead
+    ? `<div class="flex items-center gap-2 text-outline font-sans text-body-sm"><span class="material-symbols-outlined text-[16px]">history</span><span>${esc(d.rival.displayName.split(' ')[0])} avanzó al cap. ${rv.chaptersRead} ${timeAgo(rv.lastRead)}</span></div>`
+    : my.lastRead
+    ? `<div class="flex items-center gap-2 text-outline font-sans text-body-sm"><span class="material-symbols-outlined text-[16px]">history</span><span>Tu última lectura fue ${timeAgo(my.lastRead)}</span></div>`
+    : '';
+
+  return `<article class="flex flex-col justify-between rounded-xl bg-surface-container-low p-card-padding-md shadow-lg hover:shadow-2xl transition-all duration-300 relative overflow-hidden">
+    <div class="absolute top-0 right-0 w-32 h-32 ${cat === 'lost' ? 'bg-error/5' : cat === 'waiting' ? 'bg-secondary/5' : 'bg-primary/5'} rounded-bl-full pointer-events-none"></div>
+    <div class="flex flex-col gap-element-gap-md">
+      <div class="flex items-start justify-between gap-element-gap-sm flex-wrap">
+        <div class="flex items-center gap-element-gap-xs px-2.5 py-1 rounded-full ${chip.cls}">
+          <span class="w-2 h-2 rounded-full ${chip.dot}"></span>
+          <span class="font-sans text-label-sm uppercase tracking-wider">${chip.text}</span>
+        </div>
+        ${leadChip}
+      </div>
+      <div class="flex gap-element-gap-md">
+        ${coverHTML(d, 'shrink-0 w-24 h-36 rounded-lg shadow-2xl')}
+        <div class="flex flex-col justify-between min-w-0">
+          <div>
+            <span class="font-sans text-label-sm text-outline uppercase tracking-wider">${esc(d.author) || '&nbsp;'}</span>
+            <h2 class="font-serif text-headline-md text-on-surface truncate mt-0.5">${esc(d.bookTitle)}</h2>
+            <p class="font-sans text-body-sm text-on-surface-variant mt-1">${d.totalChapters} capítulos ${d.genre ? '• ' + esc(d.genre) : ''}</p>
+          </div>
+          ${rivalRow}
+        </div>
+      </div>
+      ${bars}
+      ${activity}
+    </div>
+    <div class="mt-element-gap-lg pt-element-gap-md border-t border-surface-container-highest/40 flex items-center justify-between gap-2">
+      <span class="font-sans text-label-sm text-outline">${cat === 'waiting' ? 'Código: ' + esc(d.code) : 'Creado ' + timeAgo(d.createdAt)}</span>
+      <a href="/duelo?id=${d.id}" class="inline-flex items-center justify-center gap-element-gap-xs px-element-gap-lg py-2 rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold shadow-md shadow-primary-container/20 transition-all active:scale-95">
+        ${cat === 'ongoing' ? 'Continuar leyendo' : 'Ver duelo'} <span class="material-symbols-outlined text-[18px]">menu_book</span>
+      </a>
+    </div>
+  </article>`;
+}
+
+function renderTabs() {
+  const counts = { all: allDuels.length, ongoing: 0, waiting: 0, won: 0, lost: 0 };
+  allDuels.forEach((d) => counts[categoryOf(d)]++);
+  const tabs = [
+    ['all', 'Todos'], ['ongoing', 'En curso'], ['waiting', 'Esperando rival'], ['won', 'Ganados'], ['lost', 'Perdidos'],
+  ];
+  document.getElementById('tabs').innerHTML = tabs
+    .map(([key, label]) => {
+      const on = key === filter;
+      return `<button data-f="${key}" class="shrink-0 px-card-padding-sm py-element-gap-xs rounded-lg font-sans text-label-md transition-all ${on ? 'bg-surface-container-highest text-primary font-bold shadow-sm' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'}" type="button">${label} <span class="ml-1 opacity-80">(${counts[key]})</span></button>`;
+    })
+    .join('');
+  document.querySelectorAll('#tabs button').forEach((b) =>
+    b.addEventListener('click', () => { filter = b.dataset.f; render(); })
+  );
+}
+
+function render() {
+  renderTabs();
+  const duels = allDuels.filter((d) => filter === 'all' || categoryOf(d) === filter);
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  grid.innerHTML = duels.map(duelCard).join('');
+  const isEmpty = duels.length === 0;
+  empty.classList.toggle('hidden', !isEmpty);
+  empty.classList.toggle('flex', isEmpty);
+  document.getElementById('empty-title').textContent =
+    allDuels.length === 0 ? 'Aún no tienes duelos' : 'Nada por aquí con este filtro';
+}
+
+(async () => {
+  const user = await requireAuth('duelos');
+  document.getElementById('greeting').textContent = `¡Hola de nuevo, ${user.displayName.split(' ')[0]}!`;
+  const { duels } = await api('/api/duels');
+  allDuels = duels;
+  const active = duels.filter((d) => d.status === 'active').length;
+  const sub = document.getElementById('subtitle').querySelector('span:last-child');
+  if (active > 0) sub.innerHTML = `Tienes <strong class="text-on-surface font-semibold">${active} duelo${active === 1 ? '' : 's'} activo${active === 1 ? '' : 's'}</strong>. ¡A leer se ha dicho!`;
+  else if (duels.length > 0) sub.textContent = 'No tienes duelos activos ahora mismo. ¡Crea uno nuevo!';
+  else sub.textContent = 'Tu arena está lista. Crea tu primer duelo de lectura.';
+  render();
+})();
+</script>
+</body>
+</html>

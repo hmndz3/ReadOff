@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" fill="none">
+  <rect width="200" height="200" rx="44" fill="#12151C"/>
+  <!-- Open Book Base -->
+  <path d="M100 148C84 140 54 136 32 142V68C56 62 84 66 100 75C116 66 144 62 168 68V142C146 136 116 140 100 148Z" fill="#1C222E" stroke="#363E52" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- Book spine line -->
+  <line x1="100" y1="75" x2="100" y2="152" stroke="#F5A623" stroke-width="3" stroke-linecap="round"/>
+  <!-- Page layers -->
+  <path d="M38 136C58 131 82 134 96 142V72C82 65 58 63 38 68V136Z" fill="#242B3A" opacity="0.6"/>
+  <path d="M162 136C142 131 118 134 104 142V72C118 65 142 63 162 68V136Z" fill="#242B3A" opacity="0.6"/>
+  <!-- Left bookmark racing (User - Amber Gold) -->
+  <path d="M72 42V104L83 94L94 104V42C94 42 85 38 72 42Z" fill="#F5A623"/>
+  <path d="M78 48H88" stroke="#12151C" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+  <circle cx="83" cy="62" r="3" fill="#12151C" opacity="0.8"/>
+  <!-- Right bookmark racing (Rival - Vibrant Teal) -->
+  <path d="M108 50V114L119 103L130 114V50C130 50 120 46 108 50Z" fill="#2DD4BF"/>
+  <path d="M114 56H124" stroke="#12151C" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+  <circle cx="119" cy="70" r="3" fill="#12151C" opacity="0.8"/>
+  <!-- Subtle sparkles / speed dashes -->
+  <path d="M142 54L150 51M144 65L154 64" stroke="#F5A623" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <path d="M56 46L48 44M54 58L45 59" stroke="#2DD4BF" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+</svg>

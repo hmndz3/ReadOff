@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReadOff — Iniciar Sesión</title>
+<link rel="icon" href="/img/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="/js/tw.js"></script>
+<style>
+  body{margin:0;overscroll-behavior:none}
+  ::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body class="bg-background font-sans text-body-md text-on-background min-h-screen flex items-center justify-center p-gutter-mobile selection:bg-primary selection:text-on-primary">
+
+<div class="pointer-events-none fixed -top-32 left-1/4 w-[480px] h-[480px] rounded-full bg-primary-container/10 blur-3xl"></div>
+<div class="pointer-events-none fixed -bottom-32 right-1/5 w-[420px] h-[420px] rounded-full bg-secondary/10 blur-3xl"></div>
+
+<main class="relative w-full max-w-[460px]">
+  <div class="rounded-xl bg-surface-container-low shadow-2xl overflow-hidden">
+    <div class="h-1.5 bg-gradient-to-r from-primary-container via-tertiary-container to-secondary-container"></div>
+    <div class="p-card-padding-md md:p-card-padding-lg flex flex-col items-center">
+
+      <img src="/img/logo.svg" alt="ReadOff" class="w-16 h-16 rounded-2xl shadow-lg shadow-black/40 mb-element-gap-lg">
+      <span class="font-sans text-label-sm text-secondary uppercase tracking-[0.2em]">Arena Literaria • Nocturna</span>
+      <h1 class="font-serif text-display-hero-mobile text-on-surface mt-1">Read<em class="text-primary">Off</em></h1>
+      <p class="font-sans text-body-md text-on-surface-variant text-center mt-element-gap-sm max-w-[320px]">
+        ¿Quién lee más rápido? — El duelo de capítulos y progreso entre camaradas lectores.
+      </p>
+
+      <div class="w-full grid grid-cols-2 gap-1 p-1 rounded-lg bg-surface-container-lowest mt-stack-gap-xl" role="tablist">
+        <button id="tab-login" type="button" class="flex items-center justify-center gap-2 py-3 rounded-lg font-sans text-label-md transition-all bg-surface-container-highest text-on-surface font-bold">
+          <span class="material-symbols-outlined text-[18px]">key</span> Iniciar Sesión
+        </button>
+        <button id="tab-register" type="button" class="flex items-center justify-center gap-2 py-3 rounded-lg font-sans text-label-md transition-all text-on-surface-variant hover:text-on-surface">
+          <span class="material-symbols-outlined text-[18px]">auto_stories</span> Crear Cuenta
+        </button>
+      </div>
+
+      <form id="form" class="w-full flex flex-col gap-element-gap-lg mt-element-gap-lg">
+        <div id="field-name" class="hidden flex-col gap-element-gap-sm">
+          <label class="flex items-center gap-2 font-sans text-label-md text-on-surface-variant" for="displayName">
+            <span class="material-symbols-outlined text-primary text-[18px]">badge</span> Tu nombre (como te verá tu rival)
+          </label>
+          <input id="displayName" name="displayName" type="text" maxlength="30" autocomplete="name" placeholder="Ej. Leo Ramos"
+            class="w-full rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-3.5 font-sans text-body-md text-on-surface placeholder:text-outline/60 outline-none focus:border-primary-container focus:ring-[3px] focus:ring-primary-container/20 transition-all">
+        </div>
+
+        <div class="flex flex-col gap-element-gap-sm">
+          <label class="flex items-center gap-2 font-sans text-label-md text-on-surface-variant" for="username">
+            <span class="material-symbols-outlined text-primary text-[18px]">alternate_email</span> Usuario
+          </label>
+          <input id="username" name="username" type="text" required maxlength="20" autocomplete="username" placeholder="ej. borges.duelista"
+            class="w-full rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-3.5 font-sans text-body-md text-on-surface placeholder:text-outline/60 outline-none focus:border-primary-container focus:ring-[3px] focus:ring-primary-container/20 transition-all">
+        </div>
+
+        <div class="flex flex-col gap-element-gap-sm">
+          <label class="flex items-center gap-2 font-sans text-label-md text-on-surface-variant" for="password">
+            <span class="material-symbols-outlined text-primary text-[18px]">lock</span> Contraseña Secreta
+          </label>
+          <div class="relative">
+            <input id="password" name="password" type="password" required minlength="6" autocomplete="current-password" placeholder="••••••••••••"
+              class="w-full rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-3.5 pr-12 font-sans text-body-md text-on-surface placeholder:text-outline/60 outline-none focus:border-primary-container focus:ring-[3px] focus:ring-primary-container/20 transition-all">
+            <button type="button" id="toggle-pass" aria-label="Mostrar contraseña"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors">
+              <span class="material-symbols-outlined align-middle">visibility</span>
+            </button>
+          </div>
+        </div>
+
+        <p id="error" class="hidden font-sans text-body-sm text-error bg-error-container/20 border border-error-container/40 rounded-lg px-4 py-3"></p>
+
+        <button id="submit" type="submit"
+          class="w-full flex items-center justify-center gap-element-gap-sm rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold uppercase tracking-widest py-4 shadow-lg shadow-primary-container/25 transition-all active:scale-[0.98]">
+          <span id="submit-label">Entrar al Duelo</span>
+          <span class="material-symbols-outlined text-[20px]">swords</span>
+        </button>
+      </form>
+    </div>
+
+    <div class="flex items-center justify-between px-card-padding-md py-element-gap-lg bg-surface-container-lowest/60 border-t border-surface-container-highest/40">
+      <span class="flex items-center gap-2 font-sans text-label-sm text-on-surface-variant">
+        <span class="w-2 h-2 rounded-full bg-secondary"></span> Duelos de lectura 1 vs 1
+      </span>
+      <span class="font-sans text-label-sm text-outline">ReadOff v1.0</span>
+    </div>
+  </div>
+
+  <p class="text-center font-sans text-body-sm text-outline mt-element-gap-lg flex items-center justify-center gap-2">
+    <span class="material-symbols-outlined text-primary-container text-[16px]">bolt</span>
+    Configura tu libro, reta a un amigo y corona al lector más veloz.
+  </p>
+</main>
+
+<script src="/js/app.js"></script>
+<script>
+let mode = 'login';
+
+// Si ya hay sesión, directo al dashboard
+api('/api/me').then(() => (window.location.href = '/duelos')).catch(() => {});
+
+const tabLogin = document.getElementById('tab-login');
+const tabRegister = document.getElementById('tab-register');
+const fieldName = document.getElementById('field-name');
+const errorEl = document.getElementById('error');
+
+function setMode(m) {
+  mode = m;
+  const on = 'flex items-center justify-center gap-2 py-3 rounded-lg font-sans text-label-md transition-all bg-surface-container-highest text-on-surface font-bold';
+  const off = 'flex items-center justify-center gap-2 py-3 rounded-lg font-sans text-label-md transition-all text-on-surface-variant hover:text-on-surface';
+  tabLogin.className = m === 'login' ? on : off;
+  tabRegister.className = m === 'register' ? on : off;
+  fieldName.classList.toggle('hidden', m === 'login');
+  fieldName.classList.toggle('flex', m !== 'login');
+  document.getElementById('submit-label').textContent = m === 'login' ? 'Entrar al Duelo' : 'Crear mi Cuenta';
+  document.getElementById('password').autocomplete = m === 'login' ? 'current-password' : 'new-password';
+  errorEl.classList.add('hidden');
+}
+tabLogin.addEventListener('click', () => setMode('login'));
+tabRegister.addEventListener('click', () => setMode('register'));
+
+document.getElementById('toggle-pass').addEventListener('click', () => {
+  const p = document.getElementById('password');
+  p.type = p.type === 'password' ? 'text' : 'password';
+});
+
+document.getElementById('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errorEl.classList.add('hidden');
+  const btn = document.getElementById('submit');
+  btn.disabled = true;
+  btn.classList.add('opacity-70');
+  try {
+    const body = {
+      username: document.getElementById('username').value,
+      password: document.getElementById('password').value,
+    };
+    if (mode === 'register') body.displayName = document.getElementById('displayName').value;
+    await api('/api/auth/' + mode, { method: 'POST', body });
+    window.location.href = '/duelos';
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('opacity-70');
+  }
+});
+</script>
+</body>
+</html>
