@@ -103,6 +103,18 @@ const EN_DICT = {
   'Gran Maestro de Lectura': 'Reading Grand Master', 'Duelista Experimentado': 'Experienced Duelist',
   'Lector en Ascenso': 'Rising Reader', 'Retar a Duelo': 'Challenge to a Duel', 'VICTORIA': 'VICTORY', 'DERROTA': 'DEFEAT',
   'Cargando duelo…': 'Loading duel…', 'Cargando perfil…': 'Loading profile…', 'Volver a mis duelos': 'Back to my duels',
+  'Cancelar': 'Cancel', 'Sí, eliminar': 'Yes, delete', 'Eliminar duelo': 'Delete duel',
+  'Se borrará el duelo junto con tu progreso y tus comentarios. No se puede deshacer.':
+    'The duel will be deleted along with your progress and comments. This cannot be undone.',
+  'Enlazar con chikari.moe para leer aquí': 'Link with chikari.moe to read here',
+  'Cargando capítulo…': 'Loading chapter…', 'Tipo de letra': 'Font', 'Tamaño': 'Size',
+  'Interlineado': 'Line spacing', 'Compacto': 'Compact', 'Normal': 'Normal', 'Amplio': 'Wide',
+  'Ancho de columna': 'Column width', 'Estrecho': 'Narrow', 'Medio': 'Medium', 'Ancho': 'Wide',
+  'Tema de lectura': 'Reading theme', 'Oscuro': 'Dark', 'Sepia': 'Sepia', 'Claro': 'Light',
+  'Anterior': 'Previous', 'Siguiente': 'Next', 'Terminar': 'Finish', 'Ver duelo': 'View duel',
+  'Ajustes de lectura': 'Reading settings', 'Volver al duelo': 'Back to the duel',
+  'Al terminar se registrará el libro completo.': 'Finishing will log the whole book.',
+  'El duelo aún no arranca: se marcará cuando tu rival se una.': "The duel hasn't started: it will be logged once your rival joins.",
 };
 const EN_RX = [
   [/^¡Hola de nuevo, (.+)!$/, 'Welcome back, $1!'],
@@ -148,6 +160,15 @@ const EN_RX = [
   [/^Antes que (.+)$/, 'Before $1'],
   [/^Después que (.+) — ¡acelera!$/, 'After $1 — speed up!'],
   [/^Ritmo: (.+)$/, 'Pace: $1'],
+  [/^¿Eliminar «(.+)»\?$/, 'Delete “$1”?'],
+  [/^«(.+)» eliminado$/, '“$1” deleted'],
+  [/^Se borrará el duelo para ti y para (.+), junto con el progreso y los comentarios de ambos\. No se puede deshacer\.$/,
+    'The duel will be deleted for you and for $1, along with both progress and comments. This cannot be undone.'],
+  [/^Leer Cap\. (\d+)$/, 'Read Ch. $1'],
+  [/^Marcar Cap\. (\d+)$/, 'Mark Ch. $1'],
+  [/^Capítulo (\d+) de (\d+)$/, 'Chapter $1 of $2'],
+  [/^Al pasar al capítulo (\d+) se registrará tu lectura hasta el (\d+)\.$/, 'Moving to chapter $1 will log your reading up to $2.'],
+  [/^Ya tienes registrados (\d+) capítulos\.$/, 'You already have $1 chapters logged.'],
   [/^Cap\. (\d+) \/ (\d+)$/, 'Ch. $1 / $2'],
   [/^(.+) lleva (\d+)% leído$/, '$1 is $2% in'],
   [/^Tú completaste el $/, 'You completed '],
@@ -269,6 +290,45 @@ function toast(msg, kind = 'error') {
   el.style.opacity = '1';
   clearTimeout(el._t);
   el._t = setTimeout(() => (el.style.opacity = '0'), 3500);
+}
+
+/* Diálogo de confirmación para acciones irreversibles. Devuelve true/false. */
+function confirmDialog({ title, message, confirmText = 'Eliminar', danger = true }) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 z-[200] flex items-center justify-center p-gutter-mobile bg-black/70 backdrop-blur-sm';
+    overlay.innerHTML = `
+      <div class="w-full max-w-md rounded-xl bg-surface-container-low shadow-2xl overflow-hidden" role="dialog" aria-modal="true">
+        <div class="h-1 ${danger ? 'bg-error-container' : 'bg-primary-container'}"></div>
+        <div class="p-card-padding-md flex flex-col gap-element-gap-md">
+          <div class="flex items-start gap-element-gap-md">
+            <div class="w-11 h-11 shrink-0 rounded-lg ${danger ? 'bg-error-container/20' : 'bg-primary-container/15'} flex items-center justify-center">
+              <span class="material-symbols-outlined ${danger ? 'text-error' : 'text-primary'} text-[24px]">${danger ? 'delete_forever' : 'help'}</span>
+            </div>
+            <div class="min-w-0">
+              <h2 class="font-serif text-headline-sm text-on-surface"></h2>
+              <p class="font-sans text-body-sm text-on-surface-variant mt-1"></p>
+            </div>
+          </div>
+          <div class="flex gap-element-gap-sm justify-end pt-1">
+            <button data-act="cancel" class="px-4 py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-sans text-label-md transition-all active:scale-95" type="button">Cancelar</button>
+            <button data-act="ok" class="px-4 py-2.5 rounded-lg ${danger ? 'bg-error-container text-on-error-container hover:opacity-90' : 'bg-primary-container text-on-primary-container hover:bg-tertiary-fixed-dim'} font-sans text-label-md font-bold transition-all active:scale-95" type="button"></button>
+          </div>
+        </div>
+      </div>`;
+    overlay.querySelector('h2').textContent = title;
+    overlay.querySelector('p').textContent = message;
+    overlay.querySelector('[data-act="ok"]').textContent = confirmText;
+
+    const close = (val) => { overlay.remove(); document.removeEventListener('keydown', onKey); resolve(val); };
+    const onKey = (e) => { if (e.key === 'Escape') close(false); };
+    overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => close(false));
+    overlay.querySelector('[data-act="ok"]').addEventListener('click', () => close(true));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(false); });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(overlay);
+    overlay.querySelector('[data-act="cancel"]').focus();
+  });
 }
 
 function timeAgo(iso) {
