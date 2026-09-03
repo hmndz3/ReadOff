@@ -9,6 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="/js/tw.js"></script>
+<link rel="stylesheet" href="/css/theme.css">
+<script>try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.add("light")}catch(e){}</script>
 <style>body{margin:0;overscroll-behavior:none} ::-webkit-scrollbar{display:none}
 input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0.4)}</style>
 </head>
@@ -30,6 +32,20 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
       <!-- Formulario -->
       <form id="form" class="lg:col-span-3 rounded-xl bg-surface-container-low p-card-padding-md md:p-card-padding-lg shadow-xl flex flex-col gap-element-gap-lg relative overflow-hidden">
         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-container via-tertiary-container to-secondary-container"></div>
+
+        <div class="rounded-lg bg-secondary-container/10 ring-1 ring-secondary-container/25 p-card-padding-sm flex flex-col gap-element-gap-sm">
+          <label class="flex items-center gap-2 font-sans text-label-md text-secondary font-bold" for="novel-url">
+            <span class="material-symbols-outlined text-[18px]">auto_fix_high</span> ¿Leen en chikari.moe? Pega la URL de la novela (opcional)
+          </label>
+          <div class="flex gap-element-gap-sm">
+            <input id="novel-url" type="url" placeholder="https://chikari.moe/novels/…" autocomplete="off"
+              class="flex-1 min-w-0 rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-2.5 font-sans text-body-sm text-on-surface placeholder:text-outline/60 outline-none focus:border-secondary-container focus:ring-[3px] focus:ring-secondary-container/20 transition-all">
+            <button type="button" id="btn-autofill" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-secondary font-sans text-label-md font-bold transition-all active:scale-95">
+              <span class="material-symbols-outlined text-[18px]" id="autofill-icon">bolt</span> Autoconfigurar
+            </button>
+          </div>
+          <span class="font-sans text-[12px] text-on-surface-variant">Se llenará el título, autor, capítulos y portada automáticamente.</span>
+        </div>
 
         <div class="flex flex-col gap-element-gap-sm">
           <div class="flex justify-between items-center">
@@ -187,6 +203,30 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7) sepia(0
 <script src="/js/app.js"></script>
 <script>
 let coverFile = null;
+let novelCoverUrl = null;
+
+document.getElementById('btn-autofill').addEventListener('click', async () => {
+  const url = document.getElementById('novel-url').value.trim();
+  if (!url) { toast('Pega primero la URL de la novela'); return; }
+  const icon = document.getElementById('autofill-icon');
+  icon.textContent = 'progress_activity';
+  icon.classList.add('animate-spin');
+  try {
+    const { novel } = await api('/api/novel-info?url=' + encodeURIComponent(url));
+    document.getElementById('title').value = novel.title || '';
+    if (novel.authors) document.getElementById('author').value = novel.authors;
+    if (novel.genres) document.getElementById('genre').value = novel.genres;
+    if (novel.chapters) setChapters(novel.chapters);
+    novelCoverUrl = novel.coverUrl || null;
+    refreshPreview();
+    toast(`Listo: ${novel.title} (${novel.chapters || '?'} capítulos)`, 'ok');
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    icon.textContent = 'bolt';
+    icon.classList.remove('animate-spin');
+  }
+});
 
 function refreshPreview() {
   const title = document.getElementById('title').value.trim() || 'Tu próximo libro';
@@ -197,6 +237,8 @@ function refreshPreview() {
   if (coverFile) {
     const url = URL.createObjectURL(coverFile);
     holder.innerHTML = `<img src="${url}" alt="Portada" class="w-full h-full object-cover rounded-lg">`;
+  } else if (novelCoverUrl) {
+    holder.innerHTML = `<img src="${esc(novelCoverUrl)}" alt="Portada" class="w-full h-full object-cover rounded-lg">`;
   } else {
     holder.innerHTML = `
       <div class="w-full h-full rounded-lg bg-surface-container-lowest border border-outline-variant/50 flex flex-col items-center justify-center text-center p-5 gap-3" style="background-image: radial-gradient(rgba(255,200,128,0.07) 1px, transparent 1px); background-size: 12px 12px;">
@@ -252,6 +294,7 @@ document.getElementById('form').addEventListener('submit', async (e) => {
     const dl = document.getElementById('deadline').value;
     if (dl) fd.append('deadline', dl);
     if (coverFile) fd.append('cover', coverFile);
+    else if (novelCoverUrl) fd.append('coverUrl', novelCoverUrl);
     const { duel } = await api('/api/duels', { method: 'POST', body: fd });
     document.getElementById('layout').classList.add('hidden');
     const s = document.getElementById('success');
