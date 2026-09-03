@@ -1,20 +1,26 @@
-/* Tokens del design system "Nocturne Salon" (exportado de Stitch) */
+/* Tokens del design system "Nocturne Salon" (exportado de Stitch).
+   Los colores viven como variables RGB en /css/theme.css para soportar tema oscuro y claro. */
+const tk = (name) => `rgb(var(--tk-${name}) / <alpha-value>)`;
 tailwind.config = {
   darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        'secondary-fixed-dim': '#3cddc7', 'on-primary-container': '#644000', 'outline-variant': '#524534',
-        'primary-container': '#f5a623', error: '#ffb4ab', 'surface-container-high': '#272a31',
-        'surface-dim': '#10131a', 'on-secondary': '#003731', 'on-background': '#e0e2ec',
-        'surface-container-highest': '#32353c', 'primary-fixed': '#ffddb4', 'surface-container-low': '#191c23',
-        'tertiary-fixed-dim': '#ffb951', 'secondary-container': '#03c6b2', 'surface-variant': '#32353c',
-        'error-container': '#93000a', tertiary: '#ffc97e', 'on-tertiary': '#452b00', secondary: '#44e2cd',
-        surface: '#10131a', 'on-primary': '#452b00', 'on-surface-variant': '#d7c3ae', outline: '#9f8e7a',
-        'on-surface': '#e0e2ec', 'on-secondary-container': '#004d44', primary: '#ffc880',
-        background: '#10131a', 'surface-container-lowest': '#0b0e15', 'surface-container': '#1d2027',
-        'on-error-container': '#ffdad6', 'surface-tint': '#ffb955', 'primary-fixed-dim': '#ffb955',
-        'surface-bright': '#363941', 'tertiary-container': '#eea93f',
+        'secondary-fixed-dim': tk('secondary-fixed-dim'), 'on-primary-container': tk('on-primary-container'),
+        'outline-variant': tk('outline-variant'), 'primary-container': tk('primary-container'),
+        error: tk('error'), 'surface-container-high': tk('surface-container-high'),
+        'surface-dim': tk('surface-dim'), 'on-secondary': tk('on-secondary'), 'on-background': tk('on-background'),
+        'surface-container-highest': tk('surface-container-highest'), 'primary-fixed': tk('primary-fixed'),
+        'surface-container-low': tk('surface-container-low'), 'tertiary-fixed-dim': tk('tertiary-fixed-dim'),
+        'secondary-container': tk('secondary-container'), 'surface-variant': tk('surface-variant'),
+        'error-container': tk('error-container'), tertiary: tk('tertiary'), 'on-tertiary': tk('on-tertiary'),
+        secondary: tk('secondary'), surface: tk('surface'), 'on-primary': tk('on-primary'),
+        'on-surface-variant': tk('on-surface-variant'), outline: tk('outline'), 'on-surface': tk('on-surface'),
+        'on-secondary-container': tk('on-secondary-container'), primary: tk('primary'),
+        background: tk('background'), 'surface-container-lowest': tk('surface-container-lowest'),
+        'surface-container': tk('surface-container'), 'on-error-container': tk('on-error-container'),
+        'surface-tint': tk('surface-tint'), 'primary-fixed-dim': tk('primary-fixed-dim'),
+        'surface-bright': tk('surface-bright'), 'tertiary-container': tk('tertiary-container'),
       },
       borderRadius: { DEFAULT: '0.25rem', lg: '0.5rem', xl: '0.75rem', full: '9999px' },
       spacing: {

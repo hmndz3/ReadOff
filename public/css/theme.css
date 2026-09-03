@@ -1,0 +1,76 @@
+/* Tokens de color como variables RGB — tema oscuro (Nocturne Salon) y claro (Salón Diurno) */
+:root {
+  color-scheme: dark;
+  --tk-background: 16 19 26;
+  --tk-on-background: 224 226 236;
+  --tk-surface: 16 19 26;
+  --tk-surface-dim: 16 19 26;
+  --tk-surface-bright: 54 57 65;
+  --tk-surface-container-lowest: 11 14 21;
+  --tk-surface-container-low: 25 28 35;
+  --tk-surface-container: 29 32 39;
+  --tk-surface-container-high: 39 42 49;
+  --tk-surface-container-highest: 50 53 60;
+  --tk-surface-variant: 50 53 60;
+  --tk-on-surface: 224 226 236;
+  --tk-on-surface-variant: 215 195 174;
+  --tk-outline: 159 142 122;
+  --tk-outline-variant: 82 69 52;
+  --tk-surface-tint: 255 185 85;
+  --tk-primary: 255 200 128;
+  --tk-on-primary: 69 43 0;
+  --tk-primary-container: 245 166 35;
+  --tk-on-primary-container: 100 64 0;
+  --tk-primary-fixed: 255 221 180;
+  --tk-primary-fixed-dim: 255 185 85;
+  --tk-secondary: 68 226 205;
+  --tk-on-secondary: 0 55 49;
+  --tk-secondary-container: 3 198 178;
+  --tk-on-secondary-container: 0 77 68;
+  --tk-secondary-fixed-dim: 60 221 199;
+  --tk-tertiary: 255 201 126;
+  --tk-on-tertiary: 69 43 0;
+  --tk-tertiary-container: 238 169 63;
+  --tk-tertiary-fixed-dim: 255 185 81;
+  --tk-error: 255 180 171;
+  --tk-error-container: 147 0 10;
+  --tk-on-error-container: 255 218 214;
+}
+
+html.light {
+  color-scheme: light;
+  --tk-background: 242 236 223;
+  --tk-on-background: 38 42 51;
+  --tk-surface: 242 236 223;
+  --tk-surface-dim: 234 227 211;
+  --tk-surface-bright: 255 255 255;
+  --tk-surface-container-lowest: 231 224 205;
+  --tk-surface-container-low: 251 248 241;
+  --tk-surface-container: 241 235 221;
+  --tk-surface-container-high: 230 223 204;
+  --tk-surface-container-highest: 216 207 182;
+  --tk-surface-variant: 221 213 192;
+  --tk-on-surface: 38 42 51;
+  --tk-on-surface-variant: 92 81 64;
+  --tk-outline: 125 114 96;
+  --tk-outline-variant: 201 189 161;
+  --tk-surface-tint: 178 106 0;
+  --tk-primary: 154 92 0;
+  --tk-on-primary: 255 255 255;
+  --tk-primary-container: 245 166 35;
+  --tk-on-primary-container: 58 40 0;
+  --tk-primary-fixed: 255 221 180;
+  --tk-primary-fixed-dim: 221 143 14;
+  --tk-secondary: 0 105 93;
+  --tk-on-secondary: 255 255 255;
+  --tk-secondary-container: 3 198 178;
+  --tk-on-secondary-container: 0 51 44;
+  --tk-secondary-fixed-dim: 0 167 148;
+  --tk-tertiary: 138 90 0;
+  --tk-on-tertiary: 255 255 255;
+  --tk-tertiary-container: 238 169 63;
+  --tk-tertiary-fixed-dim: 221 143 14;
+  --tk-error: 171 31 31;
+  --tk-error-container: 255 217 212;
+  --tk-on-error-container: 122 0 7;
+}

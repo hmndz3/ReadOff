@@ -9,12 +9,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="/js/tw.js"></script>
+<link rel="stylesheet" href="/css/theme.css">
+<script>try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.add("light")}catch(e){}</script>
 <style>
   body{margin:0;overscroll-behavior:none}
   ::-webkit-scrollbar{display:none}
 </style>
 </head>
 <body class="bg-background font-sans text-body-md text-on-background min-h-screen flex items-center justify-center p-gutter-mobile selection:bg-primary selection:text-on-primary">
+
+<div class="fixed top-4 right-4 z-50 flex items-center gap-1">
+  <button aria-label="Cambiar tema" onclick="toggleTheme()" class="p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all" type="button">
+    <span class="material-symbols-outlined align-middle" id="theme-icon">light_mode</span>
+  </button>
+  <button aria-label="Cambiar idioma" onclick="toggleLang()" id="login-lang" class="px-2.5 py-1.5 rounded-lg font-sans text-label-sm font-bold text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all" type="button">EN</button>
+</div>
 
 <div class="pointer-events-none fixed -top-32 left-1/4 w-[480px] h-[480px] rounded-full bg-primary-container/10 blur-3xl"></div>
 <div class="pointer-events-none fixed -bottom-32 right-1/5 w-[420px] h-[420px] rounded-full bg-secondary/10 blur-3xl"></div>
@@ -98,6 +107,9 @@
 <script src="/js/app.js"></script>
 <script>
 let mode = 'login';
+
+document.getElementById('theme-icon').textContent = currentTheme() === 'light' ? 'dark_mode' : 'light_mode';
+document.getElementById('login-lang').textContent = currentLang() === 'en' ? 'ES' : 'EN';
 
 // Si ya hay sesión, directo al dashboard
 api('/api/me').then(() => (window.location.href = '/duelos')).catch(() => {});
