@@ -48,6 +48,16 @@ CREATE TABLE IF NOT EXISTS progress (
   UNIQUE(duel_id, user_id, chapter)
 );
 CREATE INDEX IF NOT EXISTS idx_progress_duel ON progress(duel_id, user_id);
+
+CREATE TABLE IF NOT EXISTS comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  duel_id INTEGER NOT NULL REFERENCES duels(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  chapter INTEGER NOT NULL,
+  text TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_comments_duel ON comments(duel_id, created_at);
 `);
 
 module.exports = { db, DATA_DIR, UPLOADS_DIR };

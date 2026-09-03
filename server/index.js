@@ -189,12 +189,14 @@ function duelPayload(duel, meId) {
 }
 
 // ---------- Duel routes ----------
-app.post('/api/duels', auth, upload.single('cover'), (req, res) => {
-  const { title, author, genre, chapters, deadline } = req.body || {};
+app.post('/api/duels', auth, upload.single('cover'), async (req, res) => {
+  const { title, author, genre, chapters, deadline, coverUrl } = req.body || {};
   const total = parseInt(chapters, 10);
   if (!title || !String(title).trim()) return res.status(400).json({ error: 'El título del libro es obligatorio' });
   if (!Number.isInteger(total) || total < 1 || total > 2500)
     return res.status(400).json({ error: 'Los capítulos deben ser un número entre 1 y 2500' });
+  let coverFile = req.file ? req.file.filename : null;
+  if (!coverFile && coverUrl) coverFile = await downloadCover(coverUrl);
   const code = generateCode();
   const info = db
     .prepare(
@@ -207,7 +209,7 @@ app.post('/api/duels', auth, upload.single('cover'), (req, res) => {
       String(author || '').trim(),
       String(genre || '').trim(),
       total,
-      req.file ? req.file.filename : null,
+      coverFile,
       deadline || null,
       req.user.id
     );
@@ -299,14 +301,13 @@ app.post('/api/duels/:id/read', auth, (req, res) => {
   const duel = getMyDuel(req, res);
   if (!duel) return;
   if (duel.status === 'waiting') return res.status(400).json({ error: 'Espera a que tu rival se una para empezar' });
-  if (duel.status === 'finished') return res.status(400).json({ error: 'Este duelo ya terminó' });
   const row = db
     .prepare('SELECT MAX(chapter) AS last FROM progress WHERE duel_id = ? AND user_id = ?')
     .get(duel.id, req.user.id);
   const next = (row.last || 0) + 1;
   if (next > duel.total_chapters) return res.status(400).json({ error: 'Ya terminaste el libro' });
   db.prepare('INSERT INTO progress (duel_id, user_id, chapter) VALUES (?, ?, ?)').run(duel.id, req.user.id, next);
-  if (next === duel.total_chapters) {
+  if (next === duel.total_chapters && duel.status !== 'finished') {
     db.prepare("UPDATE duels SET status = 'finished', winner_id = ?, finished_at = datetime('now') WHERE id = ?").run(
       req.user.id,
       duel.id
@@ -342,6 +343,112 @@ app.delete('/api/duels/:id', auth, (req, res) => {
   db.prepare('DELETE FROM duels WHERE id = ?').run(duel.id);
   res.json({ ok: true });
 });
+
+// ---------- Comentarios por capítulo ----------
+app.get('/api/duels/:id/comments', auth, (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  const comments = db
+    .prepare(
+      `SELECT c.id, c.chapter, c.text, c.created_at, u.id AS user_id, u.display_name, u.username
+       FROM comments c JOIN users u ON u.id = c.user_id
+       WHERE c.duel_id = ? ORDER BY c.created_at DESC, c.id DESC LIMIT 200`
+    )
+    .all(duel.id)
+    .map((c) => ({
+      id: c.id,
+      chapter: c.chapter,
+      text: c.text,
+      createdAt: c.created_at,
+      user: { id: c.user_id, displayName: c.display_name, username: c.username },
+    }));
+  res.json({ comments });
+});
+
+app.post('/api/duels/:id/comments', auth, (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  const { chapter, text } = req.body || {};
+  const ch = parseInt(chapter, 10);
+  const body = String(text || '').trim();
+  if (!Number.isInteger(ch) || ch < 1 || ch > duel.total_chapters)
+    return res.status(400).json({ error: 'Capítulo inválido' });
+  if (!body) return res.status(400).json({ error: 'Escribe algo antes de comentar' });
+  if (body.length > 280) return res.status(400).json({ error: 'Máximo 280 caracteres' });
+  const info = db
+    .prepare('INSERT INTO comments (duel_id, user_id, chapter, text) VALUES (?, ?, ?, ?)')
+    .run(duel.id, req.user.id, ch, body);
+  const row = db.prepare('SELECT created_at FROM comments WHERE id = ?').get(info.lastInsertRowid);
+  res.json({
+    comment: {
+      id: info.lastInsertRowid,
+      chapter: ch,
+      text: body,
+      createdAt: row.created_at,
+      user: { id: req.user.id, displayName: req.user.display_name, username: req.user.username },
+    },
+  });
+});
+
+// ---------- Autoconfiguración desde chikari.moe ----------
+const CHIKARI = 'https://chikari.moe';
+const UA = { 'User-Agent': 'Mozilla/5.0 (compatible; ReadOff personal duel app)' };
+
+function parseChikariSlug(input) {
+  const s = String(input || '').trim();
+  let m = s.match(/chikari\.moe\/novels\/([a-z0-9-]+)/i);
+  if (!m && /^[a-z0-9-]{2,80}$/i.test(s)) m = [null, s];
+  return m ? m[1].toLowerCase() : null;
+}
+
+app.get('/api/novel-info', auth, async (req, res) => {
+  const slug = parseChikariSlug(req.query.url);
+  if (!slug) return res.status(400).json({ error: 'URL no válida. Pega el enlace de la novela en chikari.moe' });
+  try {
+    const r = await fetch(`${CHIKARI}/api/novels/${slug}`, { headers: UA });
+    if (!r.ok) return res.status(404).json({ error: 'No se encontró esa novela en chikari.moe' });
+    const n = await r.json();
+    // authors/genres llegan como objeto suelto o lista de objetos {name, slug}
+    const names = (v, max) =>
+      (Array.isArray(v) ? v : v ? [v] : [])
+        .map((x) => (typeof x === 'string' ? x : x && x.name) || '')
+        .filter(Boolean)
+        .slice(0, max);
+    res.json({
+      novel: {
+        slug,
+        title: n.title,
+        authors: names(n.authors, 3).join(', '),
+        genres: names(n.genres, 2).join(' · '),
+        chapters: n.latest_number || n.chapter_count || null,
+        coverUrl: n.cover_url || null,
+        status: n.status,
+      },
+    });
+  } catch (e) {
+    res.status(502).json({ error: 'No se pudo consultar chikari.moe. Intenta de nuevo.' });
+  }
+});
+
+// Descarga una portada desde chikari y la guarda como archivo local. Devuelve el nombre o null.
+async function downloadCover(coverUrl) {
+  try {
+    const u = new URL(coverUrl);
+    if (!/(^|\.)chikari\.moe$/.test(u.hostname)) return null;
+    const r = await fetch(u, { headers: UA });
+    if (!r.ok) return null;
+    const type = (r.headers.get('content-type') || '').split(';')[0];
+    const ext = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' }[type];
+    if (!ext) return null;
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (buf.length > 5 * 1024 * 1024) return null;
+    const name = crypto.randomBytes(10).toString('hex') + ext;
+    fs.writeFileSync(path.join(UPLOADS_DIR, name), buf);
+    return name;
+  } catch {
+    return null;
+  }
+}
 
 // ---------- Perfil ----------
 app.get('/api/profile', auth, (req, res) => {
