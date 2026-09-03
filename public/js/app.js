@@ -104,6 +104,7 @@ const EN_DICT = {
   'Lector en Ascenso': 'Rising Reader', 'Retar a Duelo': 'Challenge to a Duel', 'VICTORIA': 'VICTORY', 'DERROTA': 'DEFEAT',
   'Cargando duelo…': 'Loading duel…', 'Cargando perfil…': 'Loading profile…', 'Volver a mis duelos': 'Back to my duels',
   'Cancelar': 'Cancel', 'Sí, eliminar': 'Yes, delete', 'Eliminar duelo': 'Delete duel',
+  'Para confirmar, escribe:': 'To confirm, type:',
   'Se borrará el duelo junto con tu progreso y tus comentarios. No se puede deshacer.':
     'The duel will be deleted along with your progress and comments. This cannot be undone.',
   'Enlazar con chikari.moe para leer aquí': 'Link with chikari.moe to read here',
@@ -293,7 +294,8 @@ function toast(msg, kind = 'error') {
 }
 
 /* Diálogo de confirmación para acciones irreversibles. Devuelve true/false. */
-function confirmDialog({ title, message, confirmText = 'Eliminar', danger = true }) {
+/* `requireText`: exige escribir ese texto para habilitar la confirmación. */
+function confirmDialog({ title, message, confirmText = 'Eliminar', danger = true, requireText = null }) {
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
     overlay.className = 'fixed inset-0 z-[200] flex items-center justify-center p-gutter-mobile bg-black/70 backdrop-blur-sm';
@@ -306,28 +308,47 @@ function confirmDialog({ title, message, confirmText = 'Eliminar', danger = true
               <span translate="no" class="material-symbols-outlined ${danger ? 'text-error' : 'text-primary'} text-[24px]">${danger ? 'delete_forever' : 'help'}</span>
             </div>
             <div class="min-w-0">
-              <h2 class="font-serif text-headline-sm text-on-surface"></h2>
-              <p class="font-sans text-body-sm text-on-surface-variant mt-1"></p>
+              <h2 data-el="title" class="font-serif text-headline-sm text-on-surface"></h2>
+              <p data-el="message" class="font-sans text-body-sm text-on-surface-variant mt-1"></p>
             </div>
           </div>
+          ${requireText ? `
+          <div class="flex flex-col gap-element-gap-sm rounded-lg bg-surface-container-lowest p-card-padding-sm">
+            <p class="font-sans text-body-sm text-on-surface-variant">
+              Para confirmar, escribe: <strong data-el="required" class="text-primary"></strong>
+            </p>
+            <input data-el="input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+              class="w-full rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-2.5 font-sans text-body-md text-on-surface outline-none focus:border-error focus:ring-[3px] focus:ring-error/20 transition-all">
+          </div>` : ''}
           <div class="flex gap-element-gap-sm justify-end pt-1">
             <button data-act="cancel" class="px-4 py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-sans text-label-md transition-all active:scale-95" type="button">Cancelar</button>
-            <button data-act="ok" class="px-4 py-2.5 rounded-lg ${danger ? 'bg-error-container text-on-error-container hover:opacity-90' : 'bg-primary-container text-on-primary-container hover:bg-tertiary-fixed-dim'} font-sans text-label-md font-bold transition-all active:scale-95" type="button"></button>
+            <button data-act="ok" class="px-4 py-2.5 rounded-lg ${danger ? 'bg-error-container text-on-error-container hover:opacity-90' : 'bg-primary-container text-on-primary-container hover:bg-tertiary-fixed-dim'} font-sans text-label-md font-bold transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none" type="button"></button>
           </div>
         </div>
       </div>`;
-    overlay.querySelector('h2').textContent = title;
-    overlay.querySelector('p').textContent = message;
-    overlay.querySelector('[data-act="ok"]').textContent = confirmText;
+    overlay.querySelector('[data-el="title"]').textContent = title;
+    overlay.querySelector('[data-el="message"]').textContent = message;
+    const okBtn = overlay.querySelector('[data-act="ok"]');
+    okBtn.textContent = confirmText;
+
+    const input = overlay.querySelector('[data-el="input"]');
+    // Tolerante con mayúsculas y espacios sobrantes: la fricción es escribirlo, no acertar el formato.
+    const matches = () => !requireText || input.value.trim().toLowerCase() === requireText.trim().toLowerCase();
+    if (requireText) {
+      overlay.querySelector('[data-el="required"]').textContent = requireText;
+      okBtn.disabled = true;
+      input.addEventListener('input', () => { okBtn.disabled = !matches(); });
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && matches()) close(true); });
+    }
 
     const close = (val) => { overlay.remove(); document.removeEventListener('keydown', onKey); resolve(val); };
     const onKey = (e) => { if (e.key === 'Escape') close(false); };
     overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => close(false));
-    overlay.querySelector('[data-act="ok"]').addEventListener('click', () => close(true));
+    okBtn.addEventListener('click', () => { if (matches()) close(true); });
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(false); });
     document.addEventListener('keydown', onKey);
     document.body.appendChild(overlay);
-    overlay.querySelector('[data-act="cancel"]').focus();
+    (input || overlay.querySelector('[data-act="cancel"]')).focus();
   });
 }
 

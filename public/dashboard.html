@@ -218,6 +218,7 @@ function render() {
           ? `Se borrará el duelo para ti y para ${rival}, junto con el progreso y los comentarios de ambos. No se puede deshacer.`
           : 'Se borrará el duelo junto con tu progreso y tus comentarios. No se puede deshacer.',
         confirmText: 'Sí, eliminar',
+        requireText: title,
       });
       if (!ok) return;
       try {
