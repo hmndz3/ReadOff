@@ -302,9 +302,14 @@ function render(d, activity) {
               <h3 class="font-serif text-headline-lg text-on-surface">Progreso de Capítulos</h3>
               <p class="font-sans text-body-sm text-on-surface-variant mt-1">${canMark ? 'Marca el siguiente capítulo cuando termines de leerlo.' : d.status === 'waiting' ? 'El duelo arranca cuando tu rival se una con el código.' : finishedMine ? '¡Completaste el libro entero!' : 'El duelo terminó, pero puedes seguir registrando tu lectura.'}</p>
             </div>
-            ${my.chaptersRead < d.totalChapters && d.status !== 'waiting' ? `<button id="btn-mark" class="inline-flex items-center justify-center gap-2 px-card-padding-sm py-3 rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold shadow-lg shadow-primary-container/25 transition-all active:scale-95 shrink-0" type="button">
-              <span class="material-symbols-outlined text-[20px]">task_alt</span> Marcar Cap. ${my.chaptersRead + 1} como leído
-            </button>` : ''}
+            <div class="flex items-center gap-element-gap-sm shrink-0 flex-wrap">
+              ${d.sourceSlug && my.chaptersRead < d.totalChapters ? `<a href="/leer?duelo=${d.id}&cap=${my.chaptersRead + 1}" class="inline-flex items-center justify-center gap-2 px-card-padding-sm py-3 rounded-lg bg-secondary-container hover:bg-secondary-fixed-dim text-on-secondary-container font-sans text-label-md font-bold shadow-lg shadow-secondary-container/25 transition-all active:scale-95">
+                <span class="material-symbols-outlined text-[20px]">auto_stories</span> Leer Cap. ${my.chaptersRead + 1}
+              </a>` : ''}
+              ${my.chaptersRead < d.totalChapters && d.status !== 'waiting' ? `<button id="btn-mark" class="inline-flex items-center justify-center gap-2 px-card-padding-sm py-3 rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold shadow-lg shadow-primary-container/25 transition-all active:scale-95" type="button">
+                <span class="material-symbols-outlined text-[20px]">task_alt</span> Marcar Cap. ${my.chaptersRead + 1}
+              </button>` : ''}
+            </div>
           </div>
           <div class="flex items-center gap-element-gap-md flex-wrap mb-element-gap-md font-sans text-label-sm">
             <span class="flex items-center gap-1.5 text-on-surface-variant"><span class="w-3.5 h-3.5 rounded bg-primary-container/85 inline-block"></span> Completado por ti${my.chaptersRead ? ` (1 – ${my.chaptersRead})` : ''}</span>
@@ -315,7 +320,9 @@ function render(d, activity) {
           ${blocksHTML(d)}
           <div class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 pt-2" id="chapters-grid">${grid}</div>
           <div class="flex items-center justify-between mt-element-gap-lg pt-element-gap-md border-t border-surface-container-highest/40 flex-wrap gap-2">
-            <span class="font-sans text-body-sm text-outline flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">info</span> El progreso se sincroniza con tu rival al instante.</span>
+            ${d.sourceSlug
+              ? '<span class="font-sans text-body-sm text-outline flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">info</span> El progreso se sincroniza con tu rival al instante.</span>'
+              : `<button id="btn-link-source" class="font-sans text-body-sm text-secondary hover:underline flex items-center gap-1.5" type="button"><span class="material-symbols-outlined text-[16px]">link</span> Enlazar con chikari.moe para leer aquí</button>`}
             ${my.chaptersRead > 0 ? `<button id="btn-revert" class="font-sans text-label-md text-primary hover:underline" type="button">Revertir último capítulo</button>` : ''}
           </div>
         </div>
@@ -345,6 +352,18 @@ function render(d, activity) {
   if (revertBtn) revertBtn.addEventListener('click', async () => {
     try { await api(`/api/duels/${d.id}/revert`, { method: 'POST' }); toast('Último capítulo revertido', 'ok'); load(); }
     catch (err) { toast(err.message); }
+  });
+
+  // Enlazar el duelo con una novela para poder leer dentro de la app
+  const linkBtn = document.getElementById('btn-link-source');
+  if (linkBtn) linkBtn.addEventListener('click', async () => {
+    const url = prompt('Pega la URL de la novela en chikari.moe:\n(ej. https://chikari.moe/novels/lord-of-the-mysteries)');
+    if (!url) return;
+    try {
+      const r = await api(`/api/duels/${d.id}/source`, { method: 'POST', body: { url } });
+      toast(`Enlazado con «${r.title}». Ya puedes leer aquí.`, 'ok');
+      load();
+    } catch (err) { toast(err.message); }
   });
 
   // Navegación por bloques de capítulos
