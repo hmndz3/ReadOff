@@ -6,12 +6,17 @@
 
 - **Login sencillo**: usuario + contraseña (sesión de 90 días).
 - **Duelos por código**: creas el duelo (título, autor, género, nº de capítulos, portada, fecha límite opcional) y compartes un código de 6 caracteres.
-- **Portada configurable**: sube JPG/PNG/WebP (hasta 5MB) o se genera una portada elegante automáticamente.
-- **Progreso por capítulos**: cuadrícula interactiva, marca el siguiente capítulo leído (y puedes revertir el último).
+- **Autoconfiguración desde chikari.moe**: pega la URL de una novela y se rellenan solos el título, autor, géneros, número de capítulos y la portada oficial.
+- **Portada configurable**: sube JPG/PNG/WebP (hasta 5MB), tráela de chikari, o deja que se genere una portada elegante automáticamente.
+- **Progreso por capítulos**: cuadrícula interactiva (paginada en bloques de 100 para novelas largas), marca el siguiente capítulo leído y puedes revertir el último.
+- **Comentarios por capítulo**: notas cortas (máx. 280 caracteres, ilimitadas) entre los dos duelistas, con **anti-spoiler**: los comentarios sobre capítulos más adelantados que tu progreso llegan ocultos hasta que tocas para revelarlos.
 - **Estadísticas en vivo**: ventaja, ritmo (caps/día), racha de días, fecha estimada de fin, actividad del duelo, posición del rival.
 - **Victoria automática**: el primero en marcar el capítulo final se corona campeón.
 - **Perfil**: victorias, derrotas, capítulos totales, mayor racha e historial de duelos.
+- **Modo claro y oscuro** 🌙☀️ y **dos idiomas** (español / inglés), ambos con un clic en el header y recordados en tu navegador.
 - **Responsive**: funciona igual de bien en computadora y celular.
+
+> El límite es de 2500 capítulos por duelo, así que las novelas largas (tipo *Lord of the Mysteries*, 1432 caps) entran sin problema.
 
 ## Correr en local
 
@@ -44,5 +49,10 @@ Abre http://localhost:3000. Los datos se guardan en `data/` (SQLite + portadas).
 ## Stack
 
 - **Backend**: Node.js + Express + SQLite (`better-sqlite3`), JWT en cookie httpOnly, `bcryptjs`, `multer` para portadas.
-- **Frontend**: HTML + Tailwind (CDN) + JS vanilla, design system "Nocturne Salon" (Playfair Display + Plus Jakarta Sans).
+- **Frontend**: HTML + Tailwind (CDN) + JS vanilla, design system "Nocturne Salon" (Playfair Display + Plus Jakarta Sans), con paleta clara y oscura en variables CSS.
 - Los diseños originales de Stitch están en [`designs/`](designs/).
+
+## Notas
+
+- La autoconfiguración solo **consulta los datos públicos** de la ficha de una novela en chikari.moe (título, autor, géneros, nº de capítulos y portada) para ahorrarte escribirlos. No descarga ni almacena el texto de los capítulos: la lectura sigue siendo en su web.
+- Si algún día cambian su API, esa función dejaría de rellenar los campos, pero el duelo se puede seguir creando a mano con normalidad.
