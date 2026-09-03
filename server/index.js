@@ -491,7 +491,6 @@ app.get('/api/profile', auth, (req, res) => {
     finishedDuels: finished.map((d) => duelPayload(d, me.id)),
   });
 });
-
 // ---------- Errores y páginas ----------
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE')
@@ -499,7 +498,6 @@ app.use((err, req, res, next) => {
   if (err) return res.status(400).json({ error: err.message || 'Error inesperado' });
   next();
 });
-
 const pages = { '/duelo': 'duel.html', '/nuevo': 'new.html', '/unirse': 'join.html', '/perfil': 'profile.html', '/duelos': 'dashboard.html' };
 for (const [route, file] of Object.entries(pages)) {
   app.get(route, (req, res) => res.sendFile(path.join(__dirname, '..', 'public', file)));
