@@ -13,7 +13,7 @@
 - **Comentarios por capítulo**: notas cortas (máx. 280 caracteres, ilimitadas) entre los dos duelistas, con **anti-spoiler**: los comentarios sobre capítulos más adelantados que tu progreso llegan ocultos hasta que tocas para revelarlos.
 - **Estadísticas en vivo**: ventaja, ritmo (caps/día), racha de días, fecha estimada de fin, actividad del duelo, posición del rival.
 - **Victoria automática**: el primero en marcar el capítulo final se corona campeón.
-- **Eliminar duelos**: desde la tarjeta del dashboard o desde la pantalla del duelo, con confirmación previa. Borra el duelo para ambos duelistas junto con el progreso, los comentarios y la portada.
+- **Eliminar duelos**: desde la tarjeta del dashboard o desde la pantalla del duelo. Para evitar borrados accidentales hay que **escribir el título del libro** para habilitar el botón. Borra el duelo para ambos duelistas junto con el progreso, los comentarios y la portada.
 - **Perfil**: victorias, derrotas, capítulos totales, mayor racha e historial de duelos.
 - **Modo claro y oscuro** 🌙☀️ y **dos idiomas** (español / inglés), ambos con un clic en el header y recordados en tu navegador.
 - **Compatible con el traductor del navegador**: la interfaz está marcada como no traducible (usa el botón ES/EN de la app para eso) y solo el texto del capítulo queda expuesto al traductor de Chrome. Así se puede leer la novela en español sin que se rompan los iconos ni el diseño.
