@@ -58,6 +58,23 @@ CREATE TABLE IF NOT EXISTS comments (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_comments_duel ON comments(duel_id, created_at);
+
+-- Caché local de capítulos: cada capítulo se descarga de la fuente una sola vez.
+CREATE TABLE IF NOT EXISTS chapters (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  slug TEXT NOT NULL,
+  number INTEGER NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  body TEXT NOT NULL,
+  next_number INTEGER,
+  prev_number INTEGER,
+  fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(slug, number)
+);
 `);
+
+// Vínculo opcional entre un duelo y una novela de la fuente externa
+const duelCols = db.prepare('PRAGMA table_info(duels)').all().map((c) => c.name);
+if (!duelCols.includes('source_slug')) db.exec('ALTER TABLE duels ADD COLUMN source_slug TEXT');
 
 module.exports = { db, DATA_DIR, UPLOADS_DIR };

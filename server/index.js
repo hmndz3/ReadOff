@@ -174,6 +174,7 @@ function duelPayload(duel, meId) {
     genre: duel.genre,
     totalChapters: duel.total_chapters,
     coverUrl: duel.cover_file ? '/uploads/' + duel.cover_file : null,
+    sourceSlug: duel.source_slug || null,
     deadline: duel.deadline,
     status: duel.status,
     winnerId: duel.winner_id,
@@ -190,7 +191,7 @@ function duelPayload(duel, meId) {
 
 // ---------- Duel routes ----------
 app.post('/api/duels', auth, upload.single('cover'), async (req, res) => {
-  const { title, author, genre, chapters, deadline, coverUrl } = req.body || {};
+  const { title, author, genre, chapters, deadline, coverUrl, sourceSlug } = req.body || {};
   const total = parseInt(chapters, 10);
   if (!title || !String(title).trim()) return res.status(400).json({ error: 'El título del libro es obligatorio' });
   if (!Number.isInteger(total) || total < 1 || total > 2500)
@@ -200,8 +201,8 @@ app.post('/api/duels', auth, upload.single('cover'), async (req, res) => {
   const code = generateCode();
   const info = db
     .prepare(
-      `INSERT INTO duels (code, book_title, author, genre, total_chapters, cover_file, deadline, creator_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO duels (code, book_title, author, genre, total_chapters, cover_file, deadline, creator_id, source_slug)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       code,
@@ -211,7 +212,8 @@ app.post('/api/duels', auth, upload.single('cover'), async (req, res) => {
       total,
       coverFile,
       deadline || null,
-      req.user.id
+      req.user.id,
+      parseChikariSlug(sourceSlug)
     );
   const duel = db.prepare('SELECT * FROM duels WHERE id = ?').get(info.lastInsertRowid);
   res.json({ duel: duelPayload(duel, req.user.id) });
@@ -450,6 +452,105 @@ async function downloadCover(coverUrl) {
   }
 }
 
+// Enlaza (o desenlaza) un duelo ya creado con una novela de la fuente
+app.post('/api/duels/:id/source', auth, async (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  const raw = (req.body || {}).url;
+  if (!raw) {
+    db.prepare('UPDATE duels SET source_slug = NULL WHERE id = ?').run(duel.id);
+    return res.json({ sourceSlug: null });
+  }
+  const slug = parseChikariSlug(raw);
+  if (!slug) return res.status(400).json({ error: 'URL no válida. Pega el enlace de la novela en chikari.moe' });
+  try {
+    const r = await fetch(`${CHIKARI}/api/novels/${slug}`, { headers: UA });
+    if (!r.ok) return res.status(404).json({ error: 'No se encontró esa novela en chikari.moe' });
+    const n = await r.json();
+    db.prepare('UPDATE duels SET source_slug = ? WHERE id = ?').run(slug, duel.id);
+    res.json({ sourceSlug: slug, title: n.title, chapters: n.latest_number || n.chapter_count || null });
+  } catch {
+    res.status(502).json({ error: 'No se pudo consultar chikari.moe. Intenta de nuevo.' });
+  }
+});
+
+// ---------- Lector de capítulos (caché local) ----------
+// El texto se descarga de la fuente una sola vez por capítulo y queda guardado.
+async function fetchChapter(slug, number) {
+  const cached = db.prepare('SELECT * FROM chapters WHERE slug = ? AND number = ?').get(slug, number);
+  if (cached) return cached;
+  const r = await fetch(`${CHIKARI}/api/novels/${slug}/chapters/${number}/read`, { headers: UA });
+  if (!r.ok) throw new Error(r.status === 404 ? 'Ese capítulo no existe todavía' : 'No se pudo obtener el capítulo');
+  const c = await r.json();
+  if (c.locked) throw new Error(c.lock_reason || 'Ese capítulo aún no está disponible');
+  db.prepare(
+    `INSERT OR REPLACE INTO chapters (slug, number, title, body, next_number, prev_number)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(slug, number, c.title || '', c.body || '', c.next_number ?? null, c.prev_number ?? null);
+  return db.prepare('SELECT * FROM chapters WHERE slug = ? AND number = ?').get(slug, number);
+}
+
+app.get('/api/duels/:id/chapters/:n', auth, async (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  if (!duel.source_slug)
+    return res.status(400).json({ error: 'Este duelo no está enlazado a una novela de chikari.moe' });
+  const n = parseInt(req.params.n, 10);
+  if (!Number.isInteger(n) || n < 1 || n > duel.total_chapters)
+    return res.status(400).json({ error: 'Capítulo fuera de rango' });
+  try {
+    const c = await fetchChapter(duel.source_slug, n);
+    const myRead = db
+      .prepare('SELECT MAX(chapter) AS last FROM progress WHERE duel_id = ? AND user_id = ?')
+      .get(duel.id, req.user.id).last || 0;
+    res.json({
+      chapter: {
+        number: c.number,
+        title: c.title,
+        body: c.body,
+        hasNext: n < duel.total_chapters,
+        hasPrev: n > 1,
+      },
+      duel: {
+        id: duel.id,
+        bookTitle: duel.book_title,
+        totalChapters: duel.total_chapters,
+        status: duel.status,
+        myRead,
+      },
+    });
+  } catch (e) {
+    res.status(502).json({ error: e.message });
+  }
+});
+
+// Marca capítulos leídos hasta `upTo` (usado al avanzar de capítulo en el lector)
+app.post('/api/duels/:id/read-upto', auth, (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  if (duel.status === 'waiting') return res.status(400).json({ error: 'Espera a que tu rival se una para empezar' });
+  const upTo = parseInt((req.body || {}).upTo, 10);
+  if (!Number.isInteger(upTo) || upTo < 1 || upTo > duel.total_chapters)
+    return res.status(400).json({ error: 'Capítulo fuera de rango' });
+  const last = db
+    .prepare('SELECT MAX(chapter) AS last FROM progress WHERE duel_id = ? AND user_id = ?')
+    .get(duel.id, req.user.id).last || 0;
+  if (upTo > last) {
+    const insert = db.prepare('INSERT OR IGNORE INTO progress (duel_id, user_id, chapter) VALUES (?, ?, ?)');
+    db.transaction(() => {
+      for (let ch = last + 1; ch <= upTo; ch++) insert.run(duel.id, req.user.id, ch);
+    })();
+    if (upTo === duel.total_chapters && duel.status !== 'finished') {
+      db.prepare("UPDATE duels SET status = 'finished', winner_id = ?, finished_at = datetime('now') WHERE id = ?").run(
+        req.user.id,
+        duel.id
+      );
+    }
+  }
+  const updated = db.prepare('SELECT * FROM duels WHERE id = ?').get(duel.id);
+  res.json({ duel: duelPayload(updated, req.user.id) });
+});
+
 // ---------- Perfil ----------
 app.get('/api/profile', auth, (req, res) => {
   const me = req.user;
@@ -498,7 +599,7 @@ app.use((err, req, res, next) => {
   if (err) return res.status(400).json({ error: err.message || 'Error inesperado' });
   next();
 });
-const pages = { '/duelo': 'duel.html', '/nuevo': 'new.html', '/unirse': 'join.html', '/perfil': 'profile.html', '/duelos': 'dashboard.html' };
+const pages = { '/duelo': 'duel.html', '/nuevo': 'new.html', '/unirse': 'join.html', '/perfil': 'profile.html', '/duelos': 'dashboard.html', '/leer': 'read.html' };
 for (const [route, file] of Object.entries(pages)) {
   app.get(route, (req, res) => res.sendFile(path.join(__dirname, '..', 'public', file)));
 }
