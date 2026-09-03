@@ -230,6 +230,7 @@ function render(d, activity) {
         <div class="flex items-center gap-element-gap-sm self-start md:self-center">
           <button id="btn-copy2" class="p-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant transition-all active:scale-95" type="button" aria-label="Copiar código"><span class="material-symbols-outlined align-middle text-[20px]">content_copy</span></button>
           <span class="font-sans text-label-sm text-outline tracking-widest">${esc(d.code)}</span>
+          <button id="btn-delete" class="p-2.5 rounded-lg bg-surface-container-high hover:bg-error-container/30 text-on-surface-variant hover:text-error transition-all active:scale-95" type="button" aria-label="Eliminar duelo"><span class="material-symbols-outlined align-middle text-[20px]">delete</span></button>
         </div>
       </div>
     </div>
@@ -352,6 +353,22 @@ function render(d, activity) {
   if (revertBtn) revertBtn.addEventListener('click', async () => {
     try { await api(`/api/duels/${d.id}/revert`, { method: 'POST' }); toast('Último capítulo revertido', 'ok'); load(); }
     catch (err) { toast(err.message); }
+  });
+
+  // Eliminar el duelo (se borra para ambos duelistas)
+  document.getElementById('btn-delete').addEventListener('click', async () => {
+    const ok = await confirmDialog({
+      title: `¿Eliminar «${d.bookTitle}»?`,
+      message: d.rival
+        ? `Se borrará el duelo para ti y para ${d.rival.displayName}, junto con el progreso y los comentarios de ambos. No se puede deshacer.`
+        : 'Se borrará el duelo junto con tu progreso y tus comentarios. No se puede deshacer.',
+      confirmText: 'Sí, eliminar',
+    });
+    if (!ok) return;
+    try {
+      await api(`/api/duels/${d.id}`, { method: 'DELETE' });
+      window.location.href = '/duelos?eliminado=' + encodeURIComponent(d.bookTitle);
+    } catch (err) { toast(err.message); }
   });
 
   // Enlazar el duelo con una novela para poder leer dentro de la app

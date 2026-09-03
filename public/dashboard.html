@@ -167,9 +167,15 @@ function duelCard(d) {
     </div>
     <div class="mt-element-gap-lg pt-element-gap-md border-t border-surface-container-highest/40 flex items-center justify-between gap-2">
       <span class="font-sans text-label-sm text-outline">${cat === 'waiting' ? 'Código: ' + esc(d.code) : 'Creado ' + timeAgo(d.createdAt)}</span>
-      <a href="/duelo?id=${d.id}" class="inline-flex items-center justify-center gap-element-gap-xs px-element-gap-lg py-2 rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold shadow-md shadow-primary-container/20 transition-all active:scale-95">
-        ${cat === 'ongoing' ? 'Continuar leyendo' : 'Ver duelo'} <span class="material-symbols-outlined text-[18px]">menu_book</span>
-      </a>
+      <div class="flex items-center gap-element-gap-sm">
+        <button data-delete="${d.id}" data-title="${esc(d.bookTitle)}" data-rival="${esc(d.rival ? d.rival.displayName : '')}" aria-label="Eliminar duelo"
+          class="p-2 rounded-lg text-outline hover:text-error hover:bg-error-container/20 transition-all active:scale-95" type="button">
+          <span class="material-symbols-outlined align-middle text-[20px]">delete</span>
+        </button>
+        <a href="/duelo?id=${d.id}" class="inline-flex items-center justify-center gap-element-gap-xs px-element-gap-lg py-2 rounded-lg bg-primary-container hover:bg-tertiary-fixed-dim text-on-primary-container font-sans text-label-md font-bold shadow-md shadow-primary-container/20 transition-all active:scale-95">
+          ${cat === 'ongoing' ? 'Continuar leyendo' : 'Ver duelo'} <span class="material-symbols-outlined text-[18px]">menu_book</span>
+        </a>
+      </div>
     </div>
   </article>`;
 }
@@ -202,10 +208,35 @@ function render() {
   empty.classList.toggle('flex', isEmpty);
   document.getElementById('empty-title').textContent =
     allDuels.length === 0 ? 'Aún no tienes duelos' : 'Nada por aquí con este filtro';
+
+  grid.querySelectorAll('[data-delete]').forEach((btn) =>
+    btn.addEventListener('click', async () => {
+      const { delete: id, title, rival } = btn.dataset;
+      const ok = await confirmDialog({
+        title: `¿Eliminar «${title}»?`,
+        message: rival
+          ? `Se borrará el duelo para ti y para ${rival}, junto con el progreso y los comentarios de ambos. No se puede deshacer.`
+          : 'Se borrará el duelo junto con tu progreso y tus comentarios. No se puede deshacer.',
+        confirmText: 'Sí, eliminar',
+      });
+      if (!ok) return;
+      try {
+        await api('/api/duels/' + id, { method: 'DELETE' });
+        allDuels = allDuels.filter((d) => String(d.id) !== String(id));
+        toast(`«${title}» eliminado`, 'ok');
+        render();
+      } catch (err) { toast(err.message); }
+    })
+  );
 }
 
 (async () => {
   const user = await requireAuth('duelos');
+  const borrado = new URLSearchParams(location.search).get('eliminado');
+  if (borrado) {
+    toast(`«${borrado}» eliminado`, 'ok');
+    history.replaceState({}, '', '/duelos');
+  }
   document.getElementById('greeting').textContent = `¡Hola de nuevo, ${user.displayName.split(' ')[0]}!`;
   const { duels } = await api('/api/duels');
   allDuels = duels;
