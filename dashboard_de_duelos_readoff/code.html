@@ -1,0 +1,394 @@
+<!DOCTYPE html><html class="dark" lang="es"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><title>ReadOff</title><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "secondary-fixed-dim": "#3cddc7", "on-primary-container": "#644000", "on-tertiary-fixed-variant": "#633f00", "outline-variant": "#524534", "primary-container": "#f5a623", "error": "#ffb4ab", "surface-container-high": "#272a31", "surface-dim": "#10131a", "on-secondary": "#003731", "on-background": "#e0e2ec", "on-secondary-fixed": "#00201c", "tertiary-fixed": "#ffddb3", "on-error": "#690005", "surface-container-highest": "#32353c", "primary-fixed": "#ffddb4", "on-secondary-fixed-variant": "#005047", "surface-container-low": "#191c23", "tertiary-fixed-dim": "#ffb951", "on-tertiary-fixed": "#291800", "secondary-container": "#03c6b2", "surface-variant": "#32353c", "error-container": "#93000a", "on-tertiary-container": "#644000", "tertiary": "#ffc97e", "on-tertiary": "#452b00", "secondary": "#44e2cd", "on-primary-fixed": "#291800", "surface": "#10131a", "on-primary": "#452b00", "on-surface-variant": "#d7c3ae", "secondary-fixed": "#62fae3", "outline": "#9f8e7a", "on-surface": "#e0e2ec", "on-secondary-container": "#004d44", "primary": "#ffc880", "inverse-on-surface": "#2d3038", "background": "#10131a", "surface-container-lowest": "#0b0e15", "surface-container": "#1d2027", "inverse-surface": "#e0e2ec", "on-primary-fixed-variant": "#633f00", "on-error-container": "#ffdad6", "inverse-primary": "#835500", "surface-tint": "#ffb955", "primary-fixed-dim": "#ffb955", "surface-bright": "#363941", "tertiary-container": "#eea93f" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "element-gap-sm": "0.5rem", "margin-tablet": "2rem", "element-gap-md": "0.75rem", "gutter-mobile": "1rem", "stack-gap-xl": "2rem", "gutter-tablet": "1.5rem", "card-padding-lg": "2.25rem", "card-padding-md": "1.5rem", "element-gap-lg": "1rem", "margin-mobile": "1rem", "margin-desktop": "3rem", "element-gap-xs": "0.25rem", "gutter-desktop": "2rem", "card-padding-sm": "1rem" }, "fontFamily": { "headline-sm": ["Playfair Display"], "display-hero-mobile": ["Playfair Display"], "display-hero": ["Playfair Display"], "body-sm": ["Plus Jakarta Sans"], "stat-counter": ["Plus Jakarta Sans"], "headline-lg": ["Playfair Display"], "body-md": ["Plus Jakarta Sans"], "headline-xl": ["Playfair Display"], "body-lg": ["Plus Jakarta Sans"], "headline-md": ["Playfair Display"], "label-md": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "headline-xl-mobile": ["Playfair Display"] }, "fontSize": { "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "display-hero-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "display-hero": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "body-sm": ["13px", { "lineHeight": "20px", "fontWeight": "400" }], "stat-counter": ["24px", { "lineHeight": "28px", "letterSpacing": "-0.02em", "fontWeight": "800" }], "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }], "body-md": ["15px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-xl": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }], "headline-md": ["22px", { "lineHeight": "30px", "fontWeight": "500" }], "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.03em", "fontWeight": "600" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.06em", "fontWeight": "700" }], "headline-xl-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }] } } } };</script></head><body class="bg-background font-body-md text-body-md text-on-background selection:bg-primary selection:text-on-primary"><header class="fixed top-0 left-0 right-0 z-50 bg-surface/85 backdrop-blur-xl shadow-[0_12px_32px_-8px_rgba(0,0,0,0.45)]"><div class="h-20 max-w-[1280px] mx-auto px-gutter-mobile md:px-gutter-tablet lg:px-gutter-desktop flex items-center justify-between gap-element-gap-md"><div class="flex items-center gap-element-gap-lg"><a class="flex items-center gap-element-gap-md group" data-path="mis-duelos" href="#"><img alt="ReadOff Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1WigqB7Z1IYB8BKsRBUFR65MLpYkbsAbSF4f5i6HLUV3aisvS-WTjkJDXcJq663sMU3bDk9X17naRo25bWk3b5rRYp4VMoC0WPvxh0TWcF7S2JWhZ_7oidmO8Ai4YQkdRm4uu6tfXXrzpbhhWK8BIbKzsrJ4B_IFfTe8AdHn83vKmTu11lrVFBxE2iV1W85iTWOJxiZj0OBENbixxct97ckvvIHWyYtHYIT1Hb2_fIXjkzEMOFltu2RBU4"><div class="flex flex-col"><span class="font-headline-lg text-headline-lg text-primary leading-none tracking-tight">ReadOff</span><span class="font-label-sm text-label-sm text-outline tracking-wider italic mt-element-gap-xs">¿Quién lee más rápido?</span></div></a><nav class="hidden lg:flex items-center gap-element-gap-xs ml-element-gap-lg" data-active-classes="bg-surface-container-highest text-primary font-bold"><a aria-current="page" class="px-element-gap-md py-element-gap-sm rounded-lg transition-all bg-surface-container-highest text-primary font-bold" data-path="mis-duelos" href="#">Mis Duelos</a><a class="px-element-gap-md py-element-gap-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="nuevo-duelo" href="#">Nuevo Duelo</a><a class="px-element-gap-md py-element-gap-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="unirse-con-codigo" href="#">Unirse con Código</a><a class="px-element-gap-md py-element-gap-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="mi-perfil" href="#">Mi Perfil</a></nav></div><div class="flex items-center gap-element-gap-md"><button aria-label="Notificaciones" class="relative p-element-gap-sm text-on-surface-variant hover:text-primary transition-colors" type="button"><span class="material-symbols-outlined">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-secondary ring-2 ring-surface"></span></button><div class="flex items-center gap-element-gap-md pl-element-gap-sm"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="hidden sm:flex flex-col"><span class="font-label-sm text-label-sm text-on-surface">LR</span><span class="font-label-sm text-label-sm text-outline">Lector Ávido</span></div><button aria-label="Cerrar sesión" class="p-element-gap-sm text-on-surface-variant hover:text-error hover:bg-surface-container-high rounded-lg transition-all" type="button"><span class="material-symbols-outlined">logout</span></button></div></div></div></header><main class="w-full pt-20 bg-background min-h-screen"><div class="max-w-[1280px] mx-auto px-gutter-mobile md:px-gutter-tablet lg:px-gutter-desktop py-stack-gap-xl"><div class="flex flex-col w-full">
+<div class="relative overflow-hidden rounded-xl bg-surface-container-low p-card-padding-md md:p-card-padding-lg shadow-xl mb-stack-gap-xl">
+<div class="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-24 -left-20 w-80 h-80 rounded-full bg-secondary/10 blur-3xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-element-gap-lg">
+<div class="flex flex-col gap-element-gap-xs max-w-2xl">
+<div class="flex items-center gap-element-gap-sm">
+<span class="px-element-gap-sm py-0.5 rounded-full bg-primary-container/20 text-primary font-label-sm text-label-sm uppercase tracking-widest flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
+            En Vivo
+          </span>
+<span class="font-label-sm text-label-sm text-outline tracking-wider uppercase">Temporada Literaria 2024</span>
+</div>
+<h1 class="font-display-hero text-display-hero-mobile md:text-display-hero text-primary tracking-tight">
+          ¡Hola de nuevo, Leo!
+        </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">bolt</span>
+          Tienes <strong class="text-on-surface font-semibold">2 duelos activos hoy</strong>. Tu rival Mateo leyó hace 2 horas.
+        </p>
+</div>
+<div class="flex flex-wrap items-center gap-element-gap-md pt-element-gap-sm lg:pt-0">
+<button class="group relative inline-flex items-center justify-center gap-element-gap-sm px-card-padding-md py-3 rounded-lg bg-primary font-label-md text-label-md text-on-primary font-bold shadow-lg shadow-primary/20 hover:bg-primary-fixed hover:shadow-primary/30 transition-all duration-200 active:scale-95" type="button">
+<span class="material-symbols-outlined text-[20px] transition-transform group-hover:rotate-90">add</span>
+<span class="">+ Nuevo Duelo</span>
+</button>
+<button class="inline-flex items-center justify-center gap-element-gap-sm px-card-padding-md py-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-secondary font-label-md text-label-md transition-all duration-200 active:scale-95 shadow-md" type="button">
+<span class="material-symbols-outlined text-[20px]">key</span>
+<span class="">Unirse con Código (6 dígitos)</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-element-gap-md pb-element-gap-lg border-b border-surface-container-highest/60 mb-element-gap-lg">
+<div class="flex items-center gap-1 overflow-x-auto py-1 scrollbar-none" id="tabs-container">
+<button class="tab-btn px-card-padding-sm py-element-gap-xs rounded-lg font-label-md text-label-md transition-all bg-surface-container-highest text-primary font-bold shadow-sm" data-filter="all" type="button">
+        Todos <span class="ml-1 opacity-80">(4)</span>
+</button>
+<button class="tab-btn px-card-padding-sm py-element-gap-xs rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" data-filter="ongoing" type="button">
+        En curso <span class="ml-1 opacity-80">(2)</span>
+</button>
+<button class="tab-btn px-card-padding-sm py-element-gap-xs rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" data-filter="won" type="button">
+        Ganados <span class="ml-1 opacity-80">(1)</span>
+</button>
+<button class="tab-btn px-card-padding-sm py-element-gap-xs rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" data-filter="waiting" type="button">
+        Esperando rival <span class="ml-1 opacity-80">(1)</span>
+</button>
+</div>
+<div class="flex items-center gap-element-gap-xs self-end sm:self-auto text-outline font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]">swap_vert</span>
+<span class="">Ordenar por: Más recientes</span>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter-desktop mb-stack-gap-xl" id="duels-grid">
+<article class="duel-card flex flex-col justify-between rounded-xl bg-surface-container-low p-card-padding-md shadow-lg hover:shadow-2xl transition-all duration-300 relative group overflow-hidden" data-category="ongoing">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none"></div>
+<div class="flex flex-col gap-element-gap-md">
+<div class="flex items-start justify-between gap-element-gap-sm">
+<div class="flex items-center gap-element-gap-xs px-2.5 py-1 rounded-full bg-primary-container/15 text-primary">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">En curso</span>
+</div>
+<div class="flex items-center gap-1 text-primary-container font-label-sm text-label-sm bg-surface-container px-2 py-0.5 rounded">
+<span class="material-symbols-outlined text-[16px] fill-1 text-primary">local_fire_department</span>
+<span class="font-bold">Ventaja: +3 capítulos</span>
+</div>
+</div>
+<div class="flex gap-element-gap-md">
+<div class="relative shrink-0 w-24 h-36 rounded-lg overflow-hidden shadow-2xl bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Cover of Dune by Frank Herbert with minimalist golden desert dunes, giant sandworm silhouette, and deep cosmic indigo sky in classical literary typography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUBL-DzdDYOve3HBD59h3JSjcN10dirKryj111Zdv_cZetII7NI7vUCt6jAsmbPqXjqGyFA40STbyHGW-os9hpMEwSqx-DPYIQoqKlC2H_2gUH8LUUCwv8bszsauAYMxasOMRhJIaJfgpTAtGW84QJKpJXrOyv9Z1XqmtUwAhDYg0GsPk7xFarjes6EFh85L1p9hux9nDnLbATyhuRpGXt1sP4s50L6fYSWeptMivlbmDMtY8MLFTJ">
+<div class="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-r from-black/60 to-transparent"></div>
+</div>
+<div class="flex flex-col justify-between min-w-0">
+<div>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Frank Herbert</span>
+<h2 class="font-headline-md text-headline-md text-on-surface truncate mt-0.5">Dune</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">
+                La épica travesía de Paul Atreides en el inhóspito planeta Arrakis.
+              </p>
+</div>
+<div class="flex items-center gap-element-gap-sm pt-2">
+<div class="relative w-8 h-8 rounded-full bg-[#4F80E1]/20 flex items-center justify-center ring-2 ring-[#4F80E1]/70 shadow-md"><span class="font-label-sm text-label-sm text-[#70A0F8] font-bold">MR</span></div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold leading-tight">Mateo R.</span>
+<span class="font-body-sm text-body-sm text-outline text-[12px]">Tu rival</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-element-gap-sm bg-surface-container/60 p-3 rounded-lg mt-element-gap-xs">
+<div class="flex flex-col gap-1">
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-primary font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">person</span> Tú (Cap. 34/50)
+              </span>
+<span class="text-primary font-bold">68%</span>
+</div>
+<div class="w-full h-2.5 rounded-full bg-surface-container-lowest overflow-hidden">
+<div class="h-full rounded-full bg-gradient-to-r from-tertiary-container to-primary transition-all duration-500" style="width: 68%;"></div>
+</div>
+</div>
+<div class="flex flex-col gap-1"><div class="flex justify-between font-label-sm text-label-sm"><span class="text-[#70A0F8] flex items-center gap-1 font-medium"><span class="material-symbols-outlined text-[14px]">groups</span> Mateo (Cap. 31/50)</span><span class="text-[#70A0F8] font-semibold">62%</span></div><div class="w-full h-2 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full bg-[#4F80E1] transition-all duration-500" style="width: 62%;"></div></div></div>
+</div>
+<div class="flex items-center gap-2 text-outline font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px]">history</span>
+<span class="">Mateo avanzó al cap. 31 hace 2h</span>
+</div>
+</div>
+<div class="mt-element-gap-lg pt-element-gap-md border-t border-surface-container-highest/40 flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Pág. 412 de 604</span>
+<button class="inline-flex items-center justify-center gap-element-gap-xs px-element-gap-lg py-2 rounded-lg bg-primary hover:bg-primary-fixed text-on-primary font-label-md text-label-md font-bold shadow-md shadow-primary/20 transition-all active:scale-95" type="button">
+<span class="">Continuar leyendo</span>
+<span class="material-symbols-outlined text-[18px]">menu_book</span>
+</button>
+</div>
+</article>
+<article class="duel-card flex flex-col justify-between rounded-xl bg-surface-container-low p-card-padding-md shadow-lg hover:shadow-2xl transition-all duration-300 relative group overflow-hidden" data-category="ongoing">
+<div class="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-bl-full pointer-events-none"></div>
+<div class="flex flex-col gap-element-gap-md">
+<div class="flex items-start justify-between gap-element-gap-sm">
+<div class="flex items-center gap-element-gap-xs px-2.5 py-1 rounded-full bg-primary-container/15 text-primary">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">En curso</span>
+</div>
+<div class="flex items-center gap-1 text-[#70A0F8] font-label-sm text-label-sm bg-surface-container px-2 py-0.5 rounded"><span class="material-symbols-outlined text-[16px] text-[#70A0F8]">trending_down</span><span class="font-bold">Detrás: -2 capítulos</span></div>
+</div>
+<div class="flex gap-element-gap-md">
+<div class="relative shrink-0 w-24 h-36 rounded-lg overflow-hidden shadow-2xl bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Vintage cover of Cien Anos de Soledad with lush Macondo yellow butterflies, dark Colombian botanical jungle foliage and baroque gold leaf styling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuADpFfkm4aBzZpca7QIQUxk13x5hcZfKTxv9He4NbBOYJic0JdDXO8wPsEAId8YtYU-1FEzX0HbyiS8Fay44G-PYr1iTpV5RusJmAH6d4ZdjnYi8kCeEAupKZJ9y74ObDkByQ9-DScWzSFM7v2aMcxVa_vSnKNbCdAmC60nRt1ree12tNYS6Ajk9mlEgJKHNZ3Jn0BcY4ApXqVPzOTmWzptyildLfUHLhK3nrE__M2ADKB9et_ug_V3">
+<div class="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-r from-black/60 to-transparent"></div>
+</div>
+<div class="flex flex-col justify-between min-w-0">
+<div>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Gabriel García Márquez</span>
+<h2 class="font-headline-md text-headline-md text-on-surface truncate mt-0.5">Cien Años de Soledad</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">
+                La saga generacional de la familia Buendía en el mítico pueblo de Macondo.
+              </p>
+</div>
+<div class="flex items-center gap-element-gap-sm pt-2">
+<div class="relative w-8 h-8 rounded-full bg-[#4F80E1]/20 flex items-center justify-center ring-2 ring-[#4F80E1]/70 shadow-md"><span class="font-label-sm text-label-sm text-[#70A0F8] font-bold">SV</span></div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold leading-tight">Sofía V.</span>
+<span class="font-body-sm text-body-sm text-outline text-[12px]">Líder de la carrera</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-element-gap-sm bg-surface-container/60 p-3 rounded-lg mt-element-gap-xs">
+<div class="flex flex-col gap-1">
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-primary font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">person</span> Tú (Cap. 9/20)
+              </span>
+<span class="text-primary font-bold">45%</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-lowest overflow-hidden">
+<div class="h-full rounded-full bg-primary transition-all duration-500" style="width: 45%;"></div>
+</div>
+</div>
+<div class="flex flex-col gap-1"><div class="flex justify-between font-label-sm text-label-sm"><span class="text-[#70A0F8] flex items-center gap-1 font-bold"><span class="material-symbols-outlined text-[14px]">groups</span> Sofía (Cap. 11/20)</span><span class="text-[#70A0F8] font-bold">55%</span></div><div class="w-full h-2.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-[#3B65B5] to-[#4F80E1] transition-all duration-500" style="width: 55%;"></div></div></div>
+</div>
+<div class="flex items-center gap-2 text-outline font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span class="">Sofía terminó cap. 11 ayer</span>
+</div>
+</div>
+<div class="mt-element-gap-lg pt-element-gap-md border-t border-surface-container-highest/40 flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Meta semanal: Cap. 12</span>
+<button class="inline-flex items-center justify-center gap-element-gap-xs px-element-gap-lg py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md font-semibold transition-all active:scale-95" type="button">
+<span class="">Ver duelo</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</article>
+<article class="duel-card flex flex-col justify-between rounded-xl bg-surface-container-low p-card-padding-md shadow-lg hover:shadow-2xl transition-all duration-300 relative group overflow-hidden" data-category="won">
+<div class="absolute top-0 right-0 w-36 h-36 bg-primary/10 rounded-bl-full pointer-events-none"></div>
+<div class="flex flex-col gap-element-gap-md">
+<div class="flex items-start justify-between gap-element-gap-sm">
+<div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/20 text-primary font-bold shadow-sm">
+<span class="material-symbols-outlined text-[16px] fill-1 text-primary">emoji_events</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">Ganado • Campeón</span>
+</div>
+<div class="flex items-center gap-1 text-primary font-label-sm text-label-sm bg-surface-container px-2 py-0.5 rounded font-semibold">
+<span class="material-symbols-outlined text-[16px]">stars</span>
+<span class="">+150 XP</span>
+</div>
+</div>
+<div class="flex gap-element-gap-md">
+<div class="relative shrink-0 w-24 h-36 rounded-lg overflow-hidden shadow-2xl bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Cover of El Alquimista Paulo Coelho showing mystical Egyptian pyramids bathed in glowing celestial golden starlight on dark indigo cloth" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvHxHjHsw2pOdBOeqVkHVUU3H-N08yHcqHrv9SMvxftdfjYyUO0baJu0dCQTAJpAlBoWfKfa-whkORcthhqemcfOqUuaxaR5qoaYrFWg2rtPJWJXYELnLgdNI9_Ew6YZ7iuSreT2gjDqdzTAMsoyE6txfKsERDw4axM7AkwW6vgV_rjG_1oiPGK19uJwVjnyxQSyB4WYQ0dGKscz9wXON8L5xieEcR1o64Kwg-qrH50sW2JtAwGngM">
+<div class="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-r from-black/60 to-transparent"></div>
+<div class="absolute inset-0 bg-primary/10 mix-blend-overlay"></div>
+</div>
+<div class="flex flex-col justify-between min-w-0">
+<div>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Paulo Coelho</span>
+<h2 class="font-headline-md text-headline-md text-on-surface truncate mt-0.5">El Alquimista</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">
+                La búsqueda espiritual de Santiago para encontrar su propia leyenda personal.
+              </p>
+</div>
+<div class="flex items-center gap-element-gap-sm pt-2">
+<div class="relative w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-outline shadow-inner">
+<span class="font-label-sm text-label-sm font-bold">CM</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-medium leading-tight">Carlos M.</span>
+<span class="font-body-sm text-body-sm text-outline text-[12px]">Finalizó en 2º puesto</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-element-gap-sm bg-surface-container/60 p-3 rounded-lg mt-element-gap-xs">
+<div class="flex flex-col gap-1">
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-primary font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">workspace_premium</span> Leo (Completado)
+              </span>
+<span class="text-primary font-extrabold">100% • Ganador</span>
+</div>
+<div class="w-full h-2.5 rounded-full bg-surface-container-lowest overflow-hidden">
+<div class="h-full rounded-full bg-gradient-to-r from-tertiary to-primary" style="width: 100%;"></div>
+</div>
+</div>
+<div class="flex flex-col gap-1 opacity-70">
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-outline flex items-center gap-1">Carlos M. (Cap. 16/20)</span>
+<span class="text-outline font-medium">80%</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-lowest overflow-hidden">
+<div class="h-full rounded-full bg-outline" style="width: 80%;"></div>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 text-outline font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px]">celebration</span>
+<span class="">Completado hace 3 días en 5 horas lectivas</span>
+</div>
+</div>
+<div class="mt-element-gap-lg pt-element-gap-md border-t border-surface-container-highest/40 flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-primary font-semibold">Resumen disponible</span>
+<button class="inline-flex items-center justify-center gap-element-gap-xs px-element-gap-lg py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md font-semibold transition-all active:scale-95" type="button">
+<span class="">Ver podio &amp; notas</span>
+<span class="material-symbols-outlined text-[18px]">insights</span>
+</button>
+</div>
+</article>
+<article class="duel-card flex flex-col justify-between rounded-xl bg-surface-container-low p-card-padding-md shadow-lg hover:shadow-2xl transition-all duration-300 relative group overflow-hidden" data-category="waiting">
+<div class="absolute top-0 right-0 w-32 h-32 bg-surface-container-highest/40 rounded-bl-full pointer-events-none"></div>
+<div class="flex flex-col gap-element-gap-md">
+<div class="flex items-start justify-between gap-element-gap-sm">
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-highest text-on-surface-variant font-medium">
+<span class="w-2 h-2 rounded-full bg-outline animate-pulse"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">Esperando rival</span>
+</div>
+<div class="font-label-sm text-label-sm text-outline bg-surface-container px-2 py-0.5 rounded">
+            Duelo creado hoy
+          </div>
+</div>
+<div class="flex gap-element-gap-md">
+<div class="relative shrink-0 w-24 h-36 rounded-lg overflow-hidden shadow-2xl bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="Cover of Klara and the Sun by Kazuo Ishiguro with minimalist warm yellow solar light hitting an introspective mechanical android face in oil painting style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0yCgKm1xxjdZirt1G_SsYdZRVaMAygOHXp4qOrM91BgOccpCYsD77wwmPImLMi_xSdgupBphIrljo2gWCHd3M-EJK3izP9Ln3jXJ_wFq0rLW-YUbL3MFMS-4b7tPuF7wnezFxYmrfz_RUVSagR3siaUdo5hJ6p1wZewWkSKgmT6dx_0XiYb8n7S-cgY4N_486fUNqnampcJbONueVAf-wdkiwjnYDjY0eOhzUre9xxCU40ssgMeh8">
+<div class="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-r from-black/60 to-transparent"></div>
+</div>
+<div class="flex flex-col justify-between min-w-0">
+<div>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Kazuo Ishiguro</span>
+<h2 class="font-headline-md text-headline-md text-on-surface truncate mt-0.5">Klara y el Sol</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">
+                La mirada luminosa y devota de una Amiga Artificial ante el mundo cambiante de los humanos.
+              </p>
+</div>
+<div class="pt-2">
+<span class="font-label-sm text-label-sm text-outline block">Modalidad: Ritmo libre</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant font-medium">320 páginas en total</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-element-gap-sm bg-surface-container/70 p-card-padding-sm rounded-lg mt-element-gap-xs">
+<span class="font-label-sm text-label-sm text-outline">Comparte este código para iniciar el reto:</span>
+<div class="flex items-center justify-between bg-surface-container-lowest px-4 py-2.5 rounded-md">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">tag</span>
+<span class="font-stat-counter text-stat-counter text-primary tracking-widest" id="duel-code">READ-84</span>
+</div>
+<button class="px-3 py-1 rounded bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-sm text-label-sm transition-colors" onclick="navigator.clipboard &amp;&amp; navigator.clipboard.writeText('READ-84'); this.innerText='¡Copiado!'; setTimeout(()=&gt;this.innerText='Copiar', 2000)" type="button">
+              Copiar
+            </button>
+</div>
+</div>
+<div class="flex items-center gap-2 text-outline font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px]">hourglass_top</span>
+<span class="">El duelo expirará automáticamente en 48 horas</span>
+</div>
+</div>
+<div class="mt-element-gap-lg pt-element-gap-md border-t border-surface-container-highest/40 flex items-center justify-between">
+<button class="text-error hover:underline font-label-sm text-label-sm flex items-center gap-1 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">cancel</span>
+<span class="">Cancelar sala</span>
+</button>
+<button class="inline-flex items-center justify-center gap-element-gap-xs px-element-gap-lg py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-[#70A0F8] font-label-md text-label-md font-semibold transition-all active:scale-95" type="button"><span class="material-symbols-outlined text-[18px]">share</span><span class="">Copiar enlace de invitación</span></button>
+</div>
+</article>
+</div>
+<div class="w-full rounded-xl bg-surface-container-lowest p-card-padding-md md:p-card-padding-lg shadow-inner">
+<div class="flex items-center justify-between cursor-pointer select-none" id="empty-state-toggle">
+<div class="flex items-center gap-element-gap-sm">
+<span class="material-symbols-outlined text-primary text-[22px]">help_outline</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">¿Primera vez en ReadOff? Vista previa de estado vacío</h3>
+</div>
+<button class="p-1 rounded-full text-on-surface-variant hover:text-on-surface transition-transform" id="empty-state-icon" type="button">
+<span class="material-symbols-outlined text-[24px]">expand_more</span>
+</button>
+</div>
+<div class="hidden flex-col items-center justify-center text-center pt-card-padding-md pb-element-gap-lg max-w-xl mx-auto" id="empty-state-content">
+<div class="relative w-48 h-40 flex items-center justify-center mb-element-gap-md">
+<div class="absolute inset-0 bg-primary/5 rounded-full blur-xl"></div>
+<svg class="w-full h-full" fill="none" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
+<path class="text-surface-container-highest" d="M20 130 C 60 110, 140 150, 180 130" stroke="currentColor" stroke-dasharray="4 4" stroke-width="2"></path>
+<g transform="translate(45, 45)">
+<rect fill="#f5a623" fill-opacity="0.2" height="64" rx="4" stroke="#f5a623" stroke-width="2" width="46" x="0" y="0"></rect>
+<path d="M12 18H34M12 28H34M12 38H24" stroke="#ffc880" stroke-linecap="round" stroke-width="2"></path>
+<circle cx="23" cy="-10" fill="#ffc880" r="8"></circle>
+<path d="M15 -2 L23 10 L31 -2" stroke="#644000" stroke-width="2"></path>
+</g>
+<g transform="translate(110, 35)">
+<rect fill="#03c6b2" fill-opacity="0.2" height="64" rx="4" stroke="#44e2cd" stroke-width="2" width="46" x="0" y="0"></rect>
+<path d="M12 18H34M12 28H34M12 38H26" stroke="#44e2cd" stroke-linecap="round" stroke-width="2"></path>
+<circle cx="23" cy="-10" fill="#44e2cd" r="8"></circle>
+<path d="M16 2 L23 -8 L30 2" stroke="#003731" stroke-width="2"></path>
+</g>
+<path class="animate-pulse" d="M78 80 L90 92 L122 62" stroke="#ffddb4" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path>
+</svg>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface">Aún no tienes duelos</h4>
+<p class="font-body-md text-body-md text-outline mt-element-gap-xs mb-element-gap-lg max-w-md">
+        ¡Reta a un amigo a terminar un libro juntos! Sincronicen sus lecturas, comparen su avance capítulo a capítulo y celebren la meta.
+      </p>
+<button class="inline-flex items-center justify-center gap-element-gap-sm px-card-padding-lg py-3 rounded-lg bg-primary hover:bg-primary-fixed text-on-primary font-label-md text-label-md font-bold shadow-lg shadow-primary/20 transition-all active:scale-95" type="button">
+<span class="material-symbols-outlined text-[20px]">auto_stories</span>
+<span class="">+ Crear mi primer duelo</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  (function initDashboard() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    const cards = document.querySelectorAll('.duel-card');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => {
+          t.classList.remove('bg-surface-container-highest', 'text-primary', 'font-bold', 'shadow-sm');
+          t.classList.add('text-on-surface-variant');
+        });
+        tab.classList.add('bg-surface-container-highest', 'text-primary', 'font-bold', 'shadow-sm');
+        tab.classList.remove('text-on-surface-variant');
+
+        const filter = tab.getAttribute('data-filter');
+        cards.forEach(card => {
+          if (filter === 'all' || card.getAttribute('data-category') === filter) {
+            card.style.display = 'flex';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    });
+
+    const toggleBtn = document.getElementById('empty-state-toggle');
+    const content = document.getElementById('empty-state-content');
+    const icon = document.getElementById('empty-state-icon');
+
+    if (toggleBtn && content && icon) {
+      toggleBtn.addEventListener('click', () => {
+        const isHidden = content.classList.contains('hidden');
+        if (isHidden) {
+          content.classList.remove('hidden');
+          content.classList.add('flex');
+          icon.classList.add('rotate-180');
+        } else {
+          content.classList.add('hidden');
+          content.classList.remove('flex');
+          icon.classList.remove('rotate-180');
+        }
+      });
+    }
+  })();
+</script></div></main><footer class="w-full bg-surface-container-lowest py-margin-tablet"><div class="max-w-[1280px] mx-auto px-gutter-mobile md:px-gutter-tablet lg:px-gutter-desktop flex flex-col md:flex-row items-center justify-between gap-element-gap-md text-center md:text-left"><div class="flex items-center gap-element-gap-sm"><span class="font-headline-sm text-headline-sm text-primary">ReadOff</span><span class="font-body-sm text-body-sm text-outline">— Duelos literarios de alta intensidad</span></div><div class="font-body-sm text-body-sm text-outline">© 2024 ReadOff Inc. Todos los derechos reservados.</div></div></footer>
+
+</body></html>

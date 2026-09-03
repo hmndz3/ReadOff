@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><title>ReadOff</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "secondary-fixed-dim": "#3cddc7", "on-primary-container": "#644000", "on-tertiary-fixed-variant": "#633f00", "outline-variant": "#524534", "primary-container": "#f5a623", "error": "#ffb4ab", "surface-container-high": "#272a31", "surface-dim": "#10131a", "on-secondary": "#003731", "on-background": "#e0e2ec", "on-secondary-fixed": "#00201c", "tertiary-fixed": "#ffddb3", "on-error": "#690005", "surface-container-highest": "#32353c", "primary-fixed": "#ffddb4", "on-secondary-fixed-variant": "#005047", "surface-container-low": "#191c23", "tertiary-fixed-dim": "#ffb951", "on-tertiary-fixed": "#291800", "secondary-container": "#03c6b2", "surface-variant": "#32353c", "error-container": "#93000a", "on-tertiary-container": "#644000", "tertiary": "#ffc97e", "on-tertiary": "#452b00", "secondary": "#44e2cd", "on-primary-fixed": "#291800", "surface": "#10131a", "on-primary": "#452b00", "on-surface-variant": "#d7c3ae", "secondary-fixed": "#62fae3", "outline": "#9f8e7a", "on-surface": "#e0e2ec", "on-secondary-container": "#004d44", "primary": "#ffc880", "inverse-on-surface": "#2d3038", "background": "#10131a", "surface-container-lowest": "#0b0e15", "surface-container": "#1d2027", "inverse-surface": "#e0e2ec", "on-primary-fixed-variant": "#633f00", "on-error-container": "#ffdad6", "inverse-primary": "#835500", "surface-tint": "#ffb955", "primary-fixed-dim": "#ffb955", "surface-bright": "#363941", "tertiary-container": "#eea93f" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "element-gap-sm": "0.5rem", "margin-tablet": "2rem", "element-gap-md": "0.75rem", "gutter-mobile": "1rem", "stack-gap-xl": "2rem", "gutter-tablet": "1.5rem", "card-padding-lg": "2.25rem", "card-padding-md": "1.5rem", "element-gap-lg": "1rem", "margin-mobile": "1rem", "margin-desktop": "3rem", "element-gap-xs": "0.25rem", "gutter-desktop": "2rem", "card-padding-sm": "1rem" }, "fontFamily": { "headline-sm": ["Playfair Display"], "display-hero-mobile": ["Playfair Display"], "display-hero": ["Playfair Display"], "body-sm": ["Plus Jakarta Sans"], "stat-counter": ["Plus Jakarta Sans"], "headline-lg": ["Playfair Display"], "body-md": ["Plus Jakarta Sans"], "headline-xl": ["Playfair Display"], "body-lg": ["Plus Jakarta Sans"], "headline-md": ["Playfair Display"], "label-md": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "headline-xl-mobile": ["Playfair Display"] }, "fontSize": { "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "display-hero-mobile": ["34px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "display-hero": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "body-sm": ["13px", { "lineHeight": "20px", "fontWeight": "400" }], "stat-counter": ["24px", { "lineHeight": "28px", "letterSpacing": "-0.02em", "fontWeight": "800" }], "headline-lg": ["28px", { "lineHeight": "36px", "fontWeight": "600" }], "body-md": ["15px", { "lineHeight": "24px", "fontWeight": "400" }], "headline-xl": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }], "headline-md": ["22px", { "lineHeight": "30px", "fontWeight": "500" }], "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.03em", "fontWeight": "600" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.06em", "fontWeight": "700" }], "headline-xl-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }] } } } };</script></head><body class="bg-background font-body-md text-body-md text-on-background selection:bg-primary selection:text-on-primary"><header class="fixed top-0 left-0 right-0 z-50 bg-surface/85 backdrop-blur-xl shadow-[0_12px_32px_-8px_rgba(0,0,0,0.45)]"><div class="h-20 max-w-[1280px] mx-auto px-gutter-mobile md:px-gutter-tablet lg:px-gutter-desktop flex items-center justify-between gap-element-gap-md"><div class="flex items-center gap-element-gap-lg"><a class="flex items-center gap-element-gap-md group" data-path="mis-duelos" href="#"><img alt="ReadOff Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1WigqB7Z1IYB8BKsRBUFR65MLpYkbsAbSF4f5i6HLUV3aisvS-WTjkJDXcJq663sMU3bDk9X17naRo25bWk3b5rRYp4VMoC0WPvxh0TWcF7S2JWhZ_7oidmO8Ai4YQkdRm4uu6tfXXrzpbhhWK8BIbKzsrJ4B_IFfTe8AdHn83vKmTu11lrVFBxE2iV1W85iTWOJxiZj0OBENbixxct97ckvvIHWyYtHYIT1Hb2_fIXjkzEMOFltu2RBU4"/><div class="flex flex-col"><span class="font-headline-lg text-headline-lg text-primary leading-none tracking-tight">ReadOff</span><span class="font-label-sm text-label-sm text-outline tracking-wider italic mt-element-gap-xs">¿Quién lee más rápido?</span></div></a><nav class="hidden lg:flex items-center gap-element-gap-xs ml-element-gap-lg" data-active-classes="bg-surface-container-highest text-primary font-bold"><a class="px-element-gap-md py-element-gap-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="mis-duelos" href="#">Mis Duelos</a><a aria-current="page" class="px-element-gap-md py-element-gap-sm rounded-lg transition-all bg-surface-container-highest text-primary font-bold" data-path="nuevo-duelo" href="#">Nuevo Duelo</a><a class="px-element-gap-md py-element-gap-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="unirse-con-codigo" href="#">Unirse con Código</a><a class="px-element-gap-md py-element-gap-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="mi-perfil" href="#">Mi Perfil</a></nav></div><div class="flex items-center gap-element-gap-md"><button aria-label="Notificaciones" class="relative p-element-gap-sm text-on-surface-variant hover:text-primary transition-colors" type="button"><span class="material-symbols-outlined">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-secondary ring-2 ring-surface"></span></button><div class="flex items-center gap-element-gap-md pl-element-gap-sm"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="hidden sm:flex flex-col"><span class="font-label-sm text-label-sm text-on-surface">LR</span><span class="font-label-sm text-label-sm text-outline">Lector Ávido</span></div><button aria-label="Cerrar sesión" class="p-element-gap-sm text-on-surface-variant hover:text-error hover:bg-surface-container-high rounded-lg transition-all" type="button"><span class="material-symbols-outlined">logout</span></button></div></div></div></header><main class="w-full pt-20 bg-background min-h-screen"><div class="max-w-[1280px] mx-auto px-gutter-mobile md:px-gutter-tablet lg:px-gutter-desktop py-stack-gap-xl"><div class="flex flex-col w-full">
+<div class="relative w-full max-w-5xl mx-auto py-element-gap-lg">
+<div class="absolute -top-12 left-1/2 -translate-x-1/2 w-[520px] h-[220px] bg-primary/10 rounded-full blur-[90px] pointer-events-none"></div>
+<div class="absolute top-96 -right-20 w-[380px] h-[380px] bg-secondary/5 rounded-full blur-[110px] pointer-events-none"></div>
+<div class="relative flex flex-col items-center text-center mb-stack-gap-xl px-gutter-mobile">
+<div class="inline-flex items-center gap-element-gap-xs px-element-gap-md py-1 rounded-full bg-surface-container-highest shadow-inner mb-element-gap-md">
+<span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings: 'FILL' 1;">swords</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Competición Asíncrona</span>
+</div>
+<h1 class="font-headline-xl text-headline-xl text-primary tracking-tight max-w-2xl">
+        Crear Nuevo Duelo Literario
+      </h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-element-gap-xs max-w-xl">
+        Configura el libro, define los capítulos y reta a un amigo a una contienda de páginas y resistencia.
+      </p>
+</div>
+<div class="relative grid grid-cols-1 lg:grid-cols-12 gap-gutter-desktop items-start">
+<form class="lg:col-span-7 bg-surface-container rounded-2xl p-card-padding-md md:p-card-padding-lg shadow-[0_20px_48px_-12px_rgba(0,0,0,0.6)] flex flex-col gap-element-gap-lg" id="duel-form" onsubmit="event.preventDefault(); window.submitDuel();">
+<div class="flex flex-col gap-element-gap-xs">
+<label class="font-label-md text-label-md text-on-surface flex items-center justify-between" for="book-title">
+<span>Título del libro <span class="text-primary">*</span></span>
+<span class="font-label-sm text-label-sm text-outline">Requerido</span>
+</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-outline text-[20px] pointer-events-none">menu_book</span>
+<input class="w-full bg-surface-container-lowest text-on-surface pl-11 pr-4 py-3 rounded-xl font-body-md text-body-md shadow-inner placeholder:text-outline/60 focus:outline-none focus:bg-surface-container-low transition-all" id="book-title" oninput="window.updatePreviewTitle(this.value)" placeholder="Ej: El Nombre del Viento" required="" type="text" value="El Nombre del Viento"/>
+</div>
+</div>
+<div class="flex flex-col gap-element-gap-xs">
+<label class="font-label-md text-label-md text-on-surface flex items-center justify-between" for="book-author">
+<span>Autor <span class="text-primary">*</span></span>
+<span class="font-label-sm text-label-sm text-outline">Para la ficha</span>
+</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-outline text-[20px] pointer-events-none">edit_note</span>
+<input class="w-full bg-surface-container-lowest text-on-surface pl-11 pr-4 py-3 rounded-xl font-body-md text-body-md shadow-inner placeholder:text-outline/60 focus:outline-none focus:bg-surface-container-low transition-all" id="book-author" oninput="window.updatePreviewAuthor(this.value)" placeholder="Ej: Patrick Rothfuss" required="" type="text" value="Patrick Rothfuss"/>
+</div>
+</div>
+<div class="flex flex-col gap-element-gap-sm bg-surface-container-low p-card-padding-sm rounded-xl">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface">Total de Capítulos</span>
+<span class="font-label-sm text-label-sm text-primary font-bold">Meta común</span>
+</div>
+<div class="flex items-center justify-between gap-element-gap-md">
+<button aria-label="Restar capítulo" class="w-12 h-12 rounded-xl bg-surface-container-highest text-on-surface hover:bg-surface-bright flex items-center justify-center transition-transform active:scale-95 shadow-sm" onclick="window.adjustChapters(-1)" type="button">
+<span class="material-symbols-outlined text-[20px]">remove</span>
+</button>
+<div class="flex-1 flex flex-col items-center justify-center bg-surface-container-lowest py-2 rounded-xl shadow-inner">
+<span class="font-stat-counter text-stat-counter text-primary tracking-tight font-extrabold leading-tight" id="chapter-count">74</span>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Capítulos</span>
+</div>
+<button aria-label="Sumar capítulo" class="w-12 h-12 rounded-xl bg-surface-container-highest text-on-surface hover:bg-surface-bright flex items-center justify-center transition-transform active:scale-95 shadow-sm" onclick="window.adjustChapters(1)" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+<div class="flex flex-wrap items-center gap-element-gap-xs pt-element-gap-xs">
+<span class="font-label-sm text-label-sm text-outline mr-1">Rápidos:</span>
+<button class="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-surface-bright font-label-sm text-label-sm text-on-surface-variant transition-colors" onclick="window.setChapters(10)" type="button">10</button>
+<button class="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-surface-bright font-label-sm text-label-sm text-on-surface-variant transition-colors" onclick="window.setChapters(20)" type="button">20</button>
+<button class="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-surface-bright font-label-sm text-label-sm text-on-surface-variant transition-colors" onclick="window.setChapters(35)" type="button">35</button>
+<button class="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-surface-bright font-label-sm text-label-sm text-on-surface-variant transition-colors" onclick="window.setChapters(50)" type="button">50</button>
+<button class="px-2.5 py-1 rounded-lg bg-surface-container-highest hover:bg-surface-bright font-label-sm text-label-sm text-primary font-bold transition-colors" onclick="window.setChapters(75)" type="button">75</button>
+</div>
+</div>
+<div class="flex flex-col gap-element-gap-xs">
+<label class="font-label-md text-label-md text-on-surface">Portada del Libro</label>
+<div class="group cursor-pointer relative flex flex-col items-center justify-center p-card-padding-md rounded-xl bg-surface-container-lowest hover:bg-surface-container-low transition-all text-center shadow-inner overflow-hidden" id="dropzone" onclick="document.getElementById('cover-file-input').click()">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center mb-element-gap-xs group-hover:scale-110 group-hover:bg-primary-container/20 transition-all">
+<span class="material-symbols-outlined text-primary text-[24px]">cloud_upload</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Arrastra la portada o toca para explorar</span>
+<span class="font-body-sm text-body-sm text-outline mt-0.5">JPG, PNG o WebP (Hasta 5MB). O usa la portada de cuero generada.</span>
+<input accept="image/*" class="hidden" id="cover-file-input" onchange="window.handleCoverUpload(event)" type="file"/>
+</div>
+</div>
+<div class="flex flex-col gap-element-gap-xs">
+<label class="font-label-md text-label-md text-on-surface">Modo de Carrera</label>
+<div class="grid grid-cols-2 gap-element-gap-sm bg-surface-container-lowest p-1.5 rounded-xl shadow-inner">
+<button class="flex items-center justify-center gap-element-gap-xs py-2.5 px-3 rounded-lg bg-surface-container-highest text-primary font-label-md text-label-md font-bold shadow transition-all" id="mode-chapters" onclick="window.selectMode('chapters')" type="button">
+<span class="material-symbols-outlined text-[18px]">format_list_numbered</span>
+<span>Capítulo a capítulo</span>
+</button>
+<button class="flex items-center justify-center gap-element-gap-xs py-2.5 px-3 rounded-lg text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all" id="mode-pages" onclick="window.selectMode('pages')" type="button">
+<span class="material-symbols-outlined text-[18px]">percent</span>
+<span>Por porcentaje</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-element-gap-xs">
+<div class="flex items-center justify-between">
+<label class="font-label-md text-label-md text-on-surface" for="duel-deadline">Fecha límite (opcional)</label>
+<label class="inline-flex items-center gap-element-gap-xs cursor-pointer select-none">
+<input class="sr-only peer" id="no-rush-toggle" onchange="window.toggleNoRush(this.checked)" type="checkbox"/>
+<div class="w-8 h-4 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-surface peer-checked:bg-secondary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-on-secondary after:rounded-full after:h-3 after:w-3.5 after:transition-all"></div>
+<span class="font-label-sm text-label-sm text-outline peer-checked:text-secondary font-medium">Sin prisa (ritmo libre)</span>
+</label>
+</div>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-outline text-[20px] pointer-events-none">calendar_month</span>
+<input class="w-full bg-surface-container-lowest text-on-surface pl-11 pr-4 py-3 rounded-xl font-body-md text-body-md shadow-inner focus:outline-none focus:bg-surface-container-low transition-all disabled:opacity-40 disabled:cursor-not-allowed" id="duel-deadline" type="date"/>
+</div>
+</div>
+<button class="w-full mt-element-gap-xs py-3.5 px-element-gap-lg rounded-xl bg-primary hover:bg-primary-fixed-dim text-on-primary font-label-md text-label-md font-bold tracking-wide shadow-[0_12px_28px_-6px_rgba(245,166,35,0.35)] flex items-center justify-center gap-element-gap-sm transition-all active:scale-[0.99]" type="submit">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<span>Crear Duelo y Generar Código</span>
+</button>
+</form>
+<div class="lg:col-span-5 flex flex-col gap-element-gap-lg">
+<div class="bg-surface-container rounded-2xl p-card-padding-md shadow-xl flex flex-col items-center">
+<div class="w-full flex items-center justify-between mb-element-gap-md">
+<div class="flex items-center gap-element-gap-xs">
+<span class="material-symbols-outlined text-outline text-[18px]">auto_stories</span>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Previsualización del Libro</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm" id="preview-badge">En Vivo</span>
+</div>
+<div class="relative w-56 h-80 rounded-xl overflow-hidden shadow-[0_24px_48px_-10px_rgba(0,0,0,0.85)] flex flex-col justify-between p-element-gap-lg bg-surface-container-lowest select-none group">
+<div class="absolute inset-0 bg-cover bg-center transition-opacity duration-300 opacity-0" id="custom-cover-bg"></div>
+<div class="absolute inset-0 bg-gradient-to-br from-[#1b2230] via-[#121620] to-[#0a0d14] flex flex-col justify-between p-6" id="procedural-cover">
+<div class="absolute inset-0 opacity-15 bg-[radial-gradient(#ffc880_1px,transparent_1px)] [background-size:12px_12px]"></div>
+<div class="relative z-10 flex flex-col items-center text-center">
+<div class="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-primary text-[16px]">menu_book</span>
+</div>
+<div class="w-12 h-0.5 bg-primary/40 mb-3"></div>
+<h2 class="font-headline-md text-headline-sm text-primary font-bold line-clamp-3 leading-snug" id="card-preview-title">
+                  El Nombre del Viento
+                </h2>
+</div>
+<div class="relative z-10 flex flex-col items-center text-center">
+<div class="w-8 h-0.5 bg-outline/30 mb-2"></div>
+<p class="font-body-sm text-body-sm text-on-surface-variant font-medium" id="card-preview-author">
+                  Patrick Rothfuss
+                </p>
+<span class="font-label-sm text-label-sm text-outline mt-2 tracking-widest uppercase">Edición Torneo</span>
+</div>
+</div>
+<div class="absolute top-0 bottom-0 left-0 w-3.5 bg-gradient-to-r from-black/60 via-white/10 to-transparent pointer-events-none z-20"></div>
+<div class="absolute inset-0 shadow-[inset_0_0_15px_rgba(0,0,0,0.6)] pointer-events-none z-20"></div>
+</div>
+<div class="w-full mt-element-gap-lg grid grid-cols-2 gap-element-gap-sm bg-surface-container-lowest p-3 rounded-xl">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline">Meta declarada</span>
+<span class="font-stat-counter text-[18px] text-on-surface font-bold" id="preview-chapters-summary">74 Caps</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline">Formato</span>
+<span class="font-label-md text-label-md text-secondary font-semibold mt-1" id="preview-mode-summary">Capítulos</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-card-padding-sm rounded-xl flex items-start gap-element-gap-md shadow-sm">
+<div class="p-2 rounded-lg bg-surface-container-highest text-primary">
+<span class="material-symbols-outlined text-[20px]">military_tech</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-semibold">¿Cómo funciona el duelo?</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+              Al generar el código, tu oponente podrá unirse en cualquier momento. Ambos avanzarán registrando lecturas en su propio canal de progreso.
+            </p>
+</div>
+</div>
+</div>
+</div>
+<div class="hidden transition-all duration-500 ease-out mt-stack-gap-xl relative bg-surface-container rounded-2xl p-card-padding-lg shadow-[0_24px_64px_-8px_rgba(0,0,0,0.8)] overflow-hidden" id="success-modal">
+<div class="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-secondary/10 blur-3xl pointer-events-none"></div>
+<div class="flex flex-col md:flex-row items-center justify-between gap-element-gap-lg">
+<div class="flex items-center gap-element-gap-md">
+<div class="w-14 h-14 rounded-2xl bg-secondary-container/20 text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[32px]">verified</span>
+</div>
+<div class="flex flex-col text-left">
+<span class="font-label-sm text-label-sm text-secondary uppercase font-bold tracking-wider">¡Duelo Listo para Disputarse!</span>
+<h3 class="font-headline-lg text-headline-lg text-on-surface mt-0.5">¡Duelo Creado con Éxito!</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+              Envíaselo a tu rival para que acepte el reto y empiece la carrera literaria.
+            </p>
+</div>
+</div>
+<div class="flex flex-col items-center md:items-end w-full md:w-auto">
+<div class="relative flex items-center justify-between gap-element-gap-md px-element-gap-lg py-3 rounded-xl bg-surface-container-lowest shadow-inner w-full md:w-auto min-w-[220px]">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Código de Invitación</span>
+<span class="font-stat-counter text-stat-counter text-primary tracking-widest font-black" id="duel-code-display">RD-9482</span>
+</div>
+<button class="p-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center" id="copy-btn" onclick="window.copyDuelCode()" title="Copiar código" type="button">
+<span class="material-symbols-outlined text-[20px]" id="copy-icon">content_copy</span>
+</button>
+</div>
+<span class="opacity-0 transition-opacity font-label-sm text-label-sm text-secondary mt-1" id="copied-toast">¡Código copiado al portapapeles!</span>
+</div>
+</div>
+<div class="mt-element-gap-lg pt-element-gap-lg flex flex-wrap items-center justify-between gap-element-gap-md">
+<div class="flex items-center gap-element-gap-xs text-outline">
+<span class="material-symbols-outlined text-[16px]">info</span>
+<span class="font-body-sm text-body-sm">El enlace expira en 7 días si nadie acepta el desafío.</span>
+</div>
+<div class="flex items-center gap-element-gap-sm w-full sm:w-auto">
+<button class="flex-1 sm:flex-initial flex items-center justify-center gap-element-gap-xs px-element-gap-md py-2.5 rounded-xl bg-surface-container-highest hover:bg-surface-bright text-on-surface font-label-md text-label-md transition-colors" onclick="window.shareWhatsApp()" type="button">
+<span class="material-symbols-outlined text-secondary text-[18px]">share</span>
+<span>Compartir por WhatsApp / Enlace</span>
+</button>
+<a class="flex-1 sm:flex-initial flex items-center justify-center gap-element-gap-xs px-element-gap-md py-2.5 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-bold hover:bg-primary-fixed-dim transition-colors" data-path="mis-duelos" href="#">
+<span>Ver mis Duelos</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    let currentChapters = 74;
+    let currentMode = 'chapters';
+
+    window.adjustChapters = function(delta) {
+      currentChapters = Math.max(1, currentChapters + delta);
+      document.getElementById('chapter-count').textContent = currentChapters;
+      document.getElementById('preview-chapters-summary').textContent = currentChapters + ' Caps';
+    };
+
+    window.setChapters = function(val) {
+      currentChapters = val;
+      document.getElementById('chapter-count').textContent = currentChapters;
+      document.getElementById('preview-chapters-summary').textContent = currentChapters + ' Caps';
+    };
+
+    window.updatePreviewTitle = function(val) {
+      const el = document.getElementById('card-preview-title');
+      el.textContent = val.trim() ? val : 'Título del Libro';
+    };
+
+    window.updatePreviewAuthor = function(val) {
+      const el = document.getElementById('card-preview-author');
+      el.textContent = val.trim() ? val : 'Autor Desconocido';
+    };
+
+    window.selectMode = function(mode) {
+      currentMode = mode;
+      const btnChapters = document.getElementById('mode-chapters');
+      const btnPages = document.getElementById('mode-pages');
+      const summary = document.getElementById('preview-mode-summary');
+
+      if (mode === 'chapters') {
+        btnChapters.className = "flex items-center justify-center gap-element-gap-xs py-2.5 px-3 rounded-lg bg-surface-container-highest text-primary font-label-md text-label-md font-bold shadow transition-all";
+        btnPages.className = "flex items-center justify-center gap-element-gap-xs py-2.5 px-3 rounded-lg text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all";
+        summary.textContent = "Capítulos";
+      } else {
+        btnPages.className = "flex items-center justify-center gap-element-gap-xs py-2.5 px-3 rounded-lg bg-surface-container-highest text-secondary font-label-md text-label-md font-bold shadow transition-all";
+        btnChapters.className = "flex items-center justify-center gap-element-gap-xs py-2.5 px-3 rounded-lg text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all";
+        summary.textContent = "Porcentaje %";
+      }
+    };
+
+    window.toggleNoRush = function(checked) {
+      const deadlineInput = document.getElementById('duel-deadline');
+      deadlineInput.disabled = checked;
+      if (checked) {
+        deadlineInput.value = '';
+      }
+    };
+
+    window.handleCoverUpload = function(event) {
+      const file = event.target.files && event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const customBg = document.getElementById('custom-cover-bg');
+          const procedural = document.getElementById('procedural-cover');
+          customBg.style.backgroundImage = 'url(' + e.target.result + ')';
+          customBg.classList.remove('opacity-0');
+          customBg.classList.add('opacity-100');
+          procedural.classList.add('opacity-0');
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
+    window.submitDuel = function() {
+      const successModal = document.getElementById('success-modal');
+      successModal.classList.remove('hidden');
+      successModal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    window.copyDuelCode = function() {
+      const code = document.getElementById('duel-code-display').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const toast = document.getElementById('copied-toast');
+        const copyIcon = document.getElementById('copy-icon');
+        copyIcon.textContent = 'check';
+        toast.classList.remove('opacity-0');
+        setTimeout(() => {
+          copyIcon.textContent = 'content_copy';
+          toast.classList.add('opacity-0');
+        }, 2200);
+      });
+    };
+
+    window.shareWhatsApp = function() {
+      const code = document.getElementById('duel-code-display').textContent;
+      const title = document.getElementById('book-title').value || 'un libro';
+      const text = encodeURIComponent(`¡Te reto a leer "${title}" en ReadOff! Usa el código de duelo: ${code}`);
+      window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+    };
+  })();
+</script></div></main><footer class="w-full bg-surface-container-lowest py-margin-tablet"><div class="max-w-[1280px] mx-auto px-gutter-mobile md:px-gutter-tablet lg:px-gutter-desktop flex flex-col md:flex-row items-center justify-between gap-element-gap-md text-center md:text-left"><div class="flex items-center gap-element-gap-sm"><span class="font-headline-sm text-headline-sm text-primary">ReadOff</span><span class="font-body-sm text-body-sm text-outline">— Duelos literarios de alta intensidad</span></div><div class="font-body-sm text-body-sm text-outline">© 2024 ReadOff Inc. Todos los derechos reservados.</div></div></footer></body></html>
