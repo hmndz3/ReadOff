@@ -193,8 +193,8 @@ app.post('/api/duels', auth, upload.single('cover'), (req, res) => {
   const { title, author, genre, chapters, deadline } = req.body || {};
   const total = parseInt(chapters, 10);
   if (!title || !String(title).trim()) return res.status(400).json({ error: 'El título del libro es obligatorio' });
-  if (!Number.isInteger(total) || total < 1 || total > 500)
-    return res.status(400).json({ error: 'Los capítulos deben ser un número entre 1 y 500' });
+  if (!Number.isInteger(total) || total < 1 || total > 2500)
+    return res.status(400).json({ error: 'Los capítulos deben ser un número entre 1 y 2500' });
   const code = generateCode();
   const info = db
     .prepare(
