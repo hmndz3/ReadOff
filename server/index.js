@@ -336,14 +336,19 @@ app.post('/api/duels/:id/revert', auth, (req, res) => {
   res.json({ duel: duelPayload(updated, req.user.id) });
 });
 
-// Eliminar un duelo (solo el creador, solo si está esperando rival)
+// Eliminar un duelo. Cualquiera de los dos participantes puede hacerlo:
+// se borra para ambos junto con su progreso y sus comentarios (cascade).
 app.delete('/api/duels/:id', auth, (req, res) => {
   const duel = getMyDuel(req, res);
   if (!duel) return;
-  if (duel.creator_id !== req.user.id) return res.status(403).json({ error: 'Solo el creador puede eliminar el duelo' });
-  if (duel.status !== 'waiting') return res.status(400).json({ error: 'Solo puedes eliminar duelos sin rival' });
   db.prepare('DELETE FROM duels WHERE id = ?').run(duel.id);
-  res.json({ ok: true });
+  // La portada subida deja de tener dueño: la quitamos del disco.
+  if (duel.cover_file) {
+    try {
+      fs.unlinkSync(path.join(UPLOADS_DIR, duel.cover_file));
+    } catch {}
+  }
+  res.json({ ok: true, bookTitle: duel.book_title });
 });
 
 // ---------- Comentarios por capítulo ----------
