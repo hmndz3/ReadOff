@@ -6,7 +6,8 @@
 
 - **Login sencillo**: usuario + contraseña (sesión de 90 días).
 - **Duelos por código**: creas el duelo (título, autor, género, nº de capítulos, portada, fecha límite opcional) y compartes un código de 6 caracteres.
-- **Autoconfiguración desde chikari.moe**: pega la URL de una novela y se rellenan solos el título, autor, géneros, número de capítulos y la portada oficial.
+- **Lector integrado**: si el duelo está enlazado a una novela de chikari.moe, puedes leer capítulo por capítulo dentro de ReadOff, con ajustes de tipo de letra, tamaño, interlineado, ancho de columna y tema de lectura (oscuro / sepia / claro). **Al pasar al siguiente capítulo el anterior se marca solo**, así que ya no hace falta el botón ni una segunda ventana. Cada capítulo se descarga una única vez y queda en caché en tu servidor.
+- **Autoconfiguración desde chikari.moe**: pega la URL de una novela y se rellenan solos el título, autor, géneros, número de capítulos y la portada oficial. Si el duelo ya existía, puedes enlazarlo después desde la propia pantalla del duelo.
 - **Portada configurable**: sube JPG/PNG/WebP (hasta 5MB), tráela de chikari, o deja que se genere una portada elegante automáticamente.
 - **Progreso por capítulos**: cuadrícula interactiva (paginada en bloques de 100 para novelas largas), marca el siguiente capítulo leído y puedes revertir el último.
 - **Comentarios por capítulo**: notas cortas (máx. 280 caracteres, ilimitadas) entre los dos duelistas, con **anti-spoiler**: los comentarios sobre capítulos más adelantados que tu progreso llegan ocultos hasta que tocas para revelarlos.
@@ -54,5 +55,5 @@ Abre http://localhost:3000. Los datos se guardan en `data/` (SQLite + portadas).
 
 ## Notas
 
-- La autoconfiguración solo **consulta los datos públicos** de la ficha de una novela en chikari.moe (título, autor, géneros, nº de capítulos y portada) para ahorrarte escribirlos. No descarga ni almacena el texto de los capítulos: la lectura sigue siendo en su web.
-- Si algún día cambian su API, esa función dejaría de rellenar los campos, pero el duelo se puede seguir creando a mano con normalidad.
+- ReadOff usa la API pública de chikari.moe para traer la ficha de la novela y el texto de los capítulos que ya podrías leer en su web. Es una herramienta **de uso personal** para los dos duelistas: el contenido pertenece a sus autores y traductores, y lo que se guarda en caché es solo lo que ustedes leen.
+- Si algún día cambian su API, el lector y la autoconfiguración dejarían de funcionar, pero los duelos y el marcado manual de capítulos seguirían intactos.
