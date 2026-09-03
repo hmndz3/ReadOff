@@ -476,6 +476,7 @@ app.get('/api/profile', auth, (req, res) => {
     prev = day;
   }
 
+  
   res.json({
     user: { id: me.id, username: me.username, displayName: me.display_name, memberSince: me.created_at },
     stats: {
