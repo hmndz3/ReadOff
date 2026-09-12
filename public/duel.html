@@ -120,6 +120,27 @@ function blocksHTML(d) {
   return `<div class="flex items-center gap-1 overflow-x-auto pb-element-gap-sm mb-element-gap-sm border-b border-surface-container-highest/40" id="block-tabs">${chips}</div>`;
 }
 
+/* Chip de fecha límite: muestra cuánto falta (o cuánto lleva vencida) y
+   abre el selector al pulsarlo. Sin fecha, ofrece ponerla. */
+function deadlineChip(d) {
+  const info = deadlineInfo(d.deadline);
+  if (!info) {
+    return `<button id="btn-deadline" type="button" class="px-2.5 py-1 rounded-full bg-surface-container hover:bg-surface-container-high text-outline hover:text-on-surface font-sans text-label-sm flex items-center gap-1.5 transition-all">
+      <span translate="no" class="material-symbols-outlined text-[14px]">event</span> Poner fecha límite
+    </button>`;
+  }
+  const estilo = {
+    vencida: 'bg-error-container/25 text-error',
+    hoy: 'bg-error-container/20 text-error',
+    urgente: 'bg-primary-container/20 text-primary',
+    ok: 'bg-surface-container text-on-surface-variant',
+  }[info.estado];
+  return `<button id="btn-deadline" type="button" title="Cambiar fecha límite" class="px-2.5 py-1 rounded-full ${estilo} font-sans text-label-sm flex items-center gap-1.5 hover:opacity-80 transition-all">
+    <span translate="no" class="material-symbols-outlined text-[14px]">${info.estado === 'vencida' || info.estado === 'hoy' ? 'event_busy' : 'event'}</span>
+    Fecha límite: ${fmtDate(d.deadline)} · ${info.texto}
+  </button>`;
+}
+
 function chapterCell(d, n) {
   const my = d.myStats.chaptersRead;
   const rivalAt = d.rivalStats ? d.rivalStats.chaptersRead : 0;
@@ -232,9 +253,10 @@ function render(d, activity) {
             <span class="px-2.5 py-1 rounded-full bg-primary-container/15 text-primary font-sans text-label-sm font-bold">Capítulo ${my.chaptersRead} de ${d.totalChapters} (${my.pct}%)</span>
             <span class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-sans text-label-sm flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full ${d.status === 'finished' ? 'bg-outline' : 'bg-secondary animate-pulse'}"></span> ${d.status === 'waiting' ? 'Esperando rival' : d.status === 'finished' ? 'Finalizado' : 'En curso — Día ' + dayNumber(d)}</span>
             ${d.genre ? `<span class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-sans text-label-sm">${esc(d.genre)}</span>` : ''}
+            ${deadlineChip(d)}
           </div>
           <h1 class="font-serif text-headline-xl md:text-display-hero text-on-surface tracking-tight mt-2 truncate">${esc(d.bookTitle)}</h1>
-          <p class="font-sans text-body-md text-on-surface-variant mt-1">${d.author ? `Por <span class="text-secondary font-semibold">${esc(d.author)}</span> • ` : ''}Edición ${d.totalChapters} Capítulos${d.deadline ? ` • Fecha límite: ${fmtDate(d.deadline)}` : ''}</p>
+          <p class="font-sans text-body-md text-on-surface-variant mt-1">${d.author ? `Por <span class="text-secondary font-semibold">${esc(d.author)}</span> • ` : ''}Edición ${d.totalChapters} Capítulos</p>
         </div>
         <div class="flex items-center gap-element-gap-sm self-start md:self-center">
           <button id="btn-copy2" class="p-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant transition-all active:scale-95" type="button" aria-label="Copiar código"><span translate="no" class="material-symbols-outlined align-middle text-[20px]">content_copy</span></button>
@@ -362,6 +384,22 @@ function render(d, activity) {
   if (revertBtn) revertBtn.addEventListener('click', async () => {
     try { await api(`/api/duels/${d.id}/revert`, { method: 'POST' }); toast('Último capítulo revertido', 'ok'); load(); }
     catch (err) { toast(err.message); }
+  });
+
+  // Cambiar o quitar la fecha límite
+  document.getElementById('btn-deadline').addEventListener('click', async () => {
+    const valor = await editDateDialog({
+      title: d.deadline ? 'Cambiar fecha límite' : 'Poner fecha límite',
+      message: 'Es una meta compartida: sirve de referencia para los dos y no cierra el duelo por sí sola.',
+      value: d.deadline || '',
+      allowClear: !!d.deadline,
+    });
+    if (valor === null) return;
+    try {
+      await api(`/api/duels/${d.id}/deadline`, { method: 'POST', body: { deadline: valor } });
+      toast(valor ? `Fecha límite: ${fmtDate(valor)}` : 'Fecha límite quitada', 'ok');
+      load();
+    } catch (err) { toast(err.message); }
   });
 
   // Eliminar el duelo (se borra para ambos duelistas)

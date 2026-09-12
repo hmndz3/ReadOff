@@ -106,6 +106,10 @@ const EN_DICT = {
   'Cancelar': 'Cancel', 'Sí, eliminar': 'Yes, delete', 'Eliminar duelo': 'Delete duel',
   'Para confirmar, escribe:': 'To confirm, type:',
   'Sin lecturas recientes': 'No recent reading',
+  'Poner fecha límite': 'Set deadline', 'Cambiar fecha límite': 'Change deadline',
+  'Quitar fecha': 'Remove date', 'Guardar': 'Save', 'Fecha límite quitada': 'Deadline removed',
+  'Es una meta compartida: sirve de referencia para los dos y no cierra el duelo por sí sola.':
+    'It is a shared goal: a reference for both of you, and it does not close the duel on its own.',
   'Progreso del capítulo': 'Chapter progress',
   'Se borrará el duelo junto con tu progreso y tus comentarios. No se puede deshacer.':
     'The duel will be deleted along with your progress and comments. This cannot be undone.',
@@ -163,7 +167,9 @@ const EN_RX = [
   [/^Antes que (.+)$/, 'Before $1'],
   [/^Después que (.+) — ¡acelera!$/, 'After $1 — speed up!'],
   [/^Ritmo: (.+)$/, 'Pace: $1'],
-  [/^Últimos (d+) días$/, 'Last $1 days'],
+  [/^Últimos ([0-9]+) días$/, 'Last $1 days'],
+  [/^Fecha límite: (.+) · (.+)$/, 'Deadline: $1 · $2'],
+  [/^Fecha límite: (.+)$/, 'Deadline: $1'],
   [/^(.+) a tu ritmo$/, '$1 at your pace'],
   [/^(.+) · antes que (.+)$/, '$1 · ahead of $2'],
   [/^(.+) · después que (.+)$/, '$1 · behind $2'],
@@ -355,6 +361,73 @@ function confirmDialog({ title, message, confirmText = 'Eliminar', danger = true
     document.addEventListener('keydown', onKey);
     document.body.appendChild(overlay);
     (input || overlay.querySelector('[data-act="cancel"]')).focus();
+  });
+}
+
+/* Estado de una fecha límite respecto a hoy (en hora local). */
+function deadlineInfo(isoDay) {
+  if (!isoDay) return null;
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const fin = new Date(isoDay + 'T00:00:00');
+  const dias = Math.round((fin - hoy) / 86400000);
+  const en = currentLang() === 'en';
+  if (dias < 0) {
+    const n = Math.abs(dias);
+    return { dias, estado: 'vencida', texto: en ? `overdue by ${n} day${n === 1 ? '' : 's'}` : `vencida hace ${n} día${n === 1 ? '' : 's'}` };
+  }
+  if (dias === 0) return { dias, estado: 'hoy', texto: en ? 'due today' : 'vence hoy' };
+  if (dias <= 3)
+    return { dias, estado: 'urgente', texto: en ? `${dias} day${dias === 1 ? '' : 's'} left` : dias === 1 ? 'queda 1 día' : `quedan ${dias} días` };
+  return { dias, estado: 'ok', texto: en ? `${dias} days left` : `quedan ${dias} días` };
+}
+
+/* Diálogo para elegir una fecha. Devuelve 'YYYY-MM-DD', '' si se quita, o null si se cancela. */
+function editDateDialog({ title, message, value = '', allowClear = true }) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 z-[200] flex items-center justify-center p-gutter-mobile bg-black/70 backdrop-blur-sm';
+    overlay.innerHTML = `
+      <div class="w-full max-w-md rounded-xl bg-surface-container-low shadow-2xl overflow-hidden" role="dialog" aria-modal="true">
+        <div class="h-1 bg-primary-container"></div>
+        <div class="p-card-padding-md flex flex-col gap-element-gap-md">
+          <div class="flex items-start gap-element-gap-md">
+            <div class="w-11 h-11 shrink-0 rounded-lg bg-primary-container/15 flex items-center justify-center">
+              <span translate="no" class="material-symbols-outlined text-primary text-[24px]">event</span>
+            </div>
+            <div class="min-w-0">
+              <h2 data-el="title" class="font-serif text-headline-sm text-on-surface"></h2>
+              <p data-el="message" class="font-sans text-body-sm text-on-surface-variant mt-1"></p>
+            </div>
+          </div>
+          <input data-el="input" type="date"
+            class="w-full rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-3 font-sans text-body-md text-on-surface outline-none focus:border-primary-container focus:ring-[3px] focus:ring-primary-container/20 transition-all">
+          <div class="flex gap-element-gap-sm justify-end pt-1 flex-wrap">
+            ${allowClear ? '<button data-act="clear" class="px-4 py-2.5 rounded-lg text-error hover:bg-error-container/20 font-sans text-label-md transition-all active:scale-95 mr-auto" type="button">Quitar fecha</button>' : ''}
+            <button data-act="cancel" class="px-4 py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-sans text-label-md transition-all active:scale-95" type="button">Cancelar</button>
+            <button data-act="ok" class="px-4 py-2.5 rounded-lg bg-primary-container text-on-primary-container hover:bg-tertiary-fixed-dim font-sans text-label-md font-bold transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none" type="button">Guardar</button>
+          </div>
+        </div>
+      </div>`;
+    overlay.querySelector('[data-el="title"]').textContent = title;
+    overlay.querySelector('[data-el="message"]').textContent = message;
+    const input = overlay.querySelector('[data-el="input"]');
+    const okBtn = overlay.querySelector('[data-act="ok"]');
+    input.value = value || '';
+    okBtn.disabled = !input.value;
+    input.addEventListener('input', () => { okBtn.disabled = !input.value; });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && input.value) close(input.value); });
+
+    const close = (val) => { overlay.remove(); document.removeEventListener('keydown', onKey); resolve(val); };
+    const onKey = (e) => { if (e.key === 'Escape') close(null); };
+    overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => close(null));
+    okBtn.addEventListener('click', () => { if (input.value) close(input.value); });
+    const clearBtn = overlay.querySelector('[data-act="clear"]');
+    if (clearBtn) clearBtn.addEventListener('click', () => close(''));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(null); });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(overlay);
+    input.focus();
   });
 }
 
