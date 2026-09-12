@@ -114,9 +114,32 @@ function generateCode() {
   throw new Error('No se pudo generar un código');
 }
 
-function daysBetween(fromIso, toDate) {
-  const from = new Date(fromIso.replace(' ', 'T') + 'Z');
-  return Math.max(1, Math.ceil((toDate - from) / 86400000));
+const DAY_MS = 86400000;
+const PACE_WINDOW_DAYS = 14; // ventana movil para medir el ritmo actual
+
+function toMs(iso) {
+  return new Date(iso.replace(' ', 'T') + 'Z').getTime();
+}
+
+// Ritmo de lectura en capitulos/dia.
+// Se mide sobre la actividad real del lector (desde su primera lectura) y no
+// sobre el tiempo que el duelo lleva abierto, para no penalizar a quien se une
+// tarde. Con lecturas recientes usa una ventana movil, que refleja el ritmo
+// con el que se va ahora; si lleva tiempo sin leer, cae al promedio historico.
+function paceOf(rows, nowMs) {
+  if (!rows.length) return { pace: 0, basis: null };
+  const times = rows.map((r) => toMs(r.read_at));
+  const first = Math.min(...times);
+  // Minimo de un dia: en las primeras horas no hay base para extrapolar.
+  const activeDays = Math.max(1, (nowMs - first) / DAY_MS);
+  const recent = times.filter((t) => t >= nowMs - PACE_WINDOW_DAYS * DAY_MS).length;
+  if (recent > 0) return { pace: recent / Math.min(PACE_WINDOW_DAYS, activeDays), basis: 'recent' };
+  return { pace: rows.length / activeDays, basis: 'overall' };
+}
+
+// Ritmos bajos necesitan mas precision para que la proyeccion sea verificable.
+function roundPace(p) {
+  return p >= 1 ? Math.round(p * 10) / 10 : Math.round(p * 100) / 100;
 }
 
 function userStats(duel, userId) {
@@ -125,10 +148,8 @@ function userStats(duel, userId) {
     .all(duel.id, userId);
   const count = rows.length;
   const pct = duel.total_chapters ? Math.round((count / duel.total_chapters) * 100) : 0;
-  const sinceIso = duel.started_at || duel.created_at;
-  const endDate = duel.finished_at ? new Date(duel.finished_at.replace(' ', 'T') + 'Z') : new Date();
-  const days = daysBetween(sinceIso, endDate);
-  const pace = count / days;
+  const nowMs = duel.finished_at ? toMs(duel.finished_at) : Date.now();
+  const { pace, basis: paceBasis } = paceOf(rows, nowMs);
 
   // Racha: días consecutivos con lectura, terminando hoy o ayer (UTC).
   const daySet = new Set(rows.map((r) => r.read_at.slice(0, 10)));
@@ -143,13 +164,24 @@ function userStats(duel, userId) {
 
   // Proyección de fin
   let projection = null;
+  let daysLeft = null;
   const remaining = duel.total_chapters - count;
   if (remaining > 0 && pace > 0) {
-    const p = new Date(Date.now() + (remaining / pace) * 86400000);
-    projection = p.toISOString().slice(0, 10);
+    daysLeft = remaining / pace;
+    projection = new Date(Date.now() + daysLeft * DAY_MS).toISOString().slice(0, 10);
   }
   const lastRead = rows.length ? rows[rows.length - 1].read_at : null;
-  return { chaptersRead: count, pct, pace: Math.round(pace * 10) / 10, streak, projection, lastRead };
+  return {
+    chaptersRead: count,
+    pct,
+    pace: roundPace(pace),
+    paceBasis,
+    paceWindowDays: PACE_WINDOW_DAYS,
+    daysLeft: daysLeft === null ? null : Math.round(daysLeft),
+    streak,
+    projection,
+    lastRead,
+  };
 }
 
 function publicUser(u) {
