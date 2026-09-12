@@ -368,6 +368,25 @@ app.post('/api/duels/:id/revert', auth, (req, res) => {
   res.json({ duel: duelPayload(updated, req.user.id) });
 });
 
+// Cambiar o quitar la fecha límite. Cualquiera de los dos participantes puede.
+app.post('/api/duels/:id/deadline', auth, (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  const raw = (req.body || {}).deadline;
+  // Cadena vacía o null la quita.
+  if (!raw) {
+    db.prepare('UPDATE duels SET deadline = NULL WHERE id = ?').run(duel.id);
+    return res.json({ deadline: null });
+  }
+  const value = String(raw).trim();
+  if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)) return res.status(400).json({ error: 'Fecha no válida' });
+  const d = new Date(value + 'T00:00:00Z');
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== value)
+    return res.status(400).json({ error: 'Fecha no válida' });
+  db.prepare('UPDATE duels SET deadline = ? WHERE id = ?').run(value, duel.id);
+  res.json({ deadline: value });
+});
+
 // Eliminar un duelo. Cualquiera de los dos participantes puede hacerlo:
 // se borra para ambos junto con su progreso y sus comentarios (cascade).
 app.delete('/api/duels/:id', auth, (req, res) => {
