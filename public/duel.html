@@ -206,9 +206,18 @@ function render(d, activity) {
       }).join('')
     : '<p class="font-sans text-body-sm text-outline py-4 text-center">Aún no hay lecturas registradas. ¡Marca tu primer capítulo!</p>';
 
+  const falta = humanDuration(my.daysLeft);
   const projHint = my.projection
-    ? (rv && rv.projection ? (my.projection <= rv.projection ? `Antes que ${esc(d.rival.displayName.split(' ')[0])}` : `Después que ${esc(d.rival.displayName.split(' ')[0])} — ¡acelera!`) : 'A tu ritmo actual')
+    ? (rv && rv.projection
+        ? `${falta} · ${my.projection <= rv.projection ? `antes que ${esc(d.rival.displayName.split(' ')[0])}` : `después que ${esc(d.rival.displayName.split(' ')[0])}`}`
+        : `${falta} a tu ritmo`)
     : finishedMine ? '¡Libro terminado!' : 'Marca capítulos para calcular';
+  // De dónde sale el ritmo, para que el número se pueda contrastar.
+  const paceHint = my.paceBasis === 'overall'
+    ? 'Sin lecturas recientes'
+    : my.paceBasis === 'recent'
+    ? `Últimos ${my.paceWindowDays} días`
+    : 'Marca capítulos para calcular';
 
   document.getElementById('content').innerHTML = `
     ${banner(d)}
@@ -242,7 +251,7 @@ function render(d, activity) {
           ${rv !== null
             ? statCard('Ventaja', 'crown', (lead > 0 ? '+' : '') + lead + ' Caps', lead > 0 ? 'Liderando la carrera' : lead < 0 ? 'Toca remontar' : 'Empate total')
             : statCard('Ventaja', 'crown', '—', 'Sin rival todavía')}
-          ${statCard('Ritmo', 'speed', my.pace + ' caps/día', my.pace >= 1 ? 'Ritmo sólido y constante' : 'Puedes apretar un poco', 'text-secondary')}
+          ${statCard('Ritmo', 'speed', my.pace + ' caps/día', paceHint, 'text-secondary')}
           ${statCard('Racha', 'local_fire_department', my.streak + ' día' + (my.streak === 1 ? '' : 's'), my.streak > 0 ? 'Sin perder ningún turno' : 'Lee hoy para encenderla')}
           ${statCard('Meta estimada', 'flag', my.projection ? fmtDate(my.projection) : finishedMine ? '¡Hecho!' : '—', projHint, 'text-secondary')}
         </div>

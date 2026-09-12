@@ -105,6 +105,8 @@ const EN_DICT = {
   'Cargando duelo…': 'Loading duel…', 'Cargando perfil…': 'Loading profile…', 'Volver a mis duelos': 'Back to my duels',
   'Cancelar': 'Cancel', 'Sí, eliminar': 'Yes, delete', 'Eliminar duelo': 'Delete duel',
   'Para confirmar, escribe:': 'To confirm, type:',
+  'Sin lecturas recientes': 'No recent reading',
+  'Progreso del capítulo': 'Chapter progress',
   'Se borrará el duelo junto con tu progreso y tus comentarios. No se puede deshacer.':
     'The duel will be deleted along with your progress and comments. This cannot be undone.',
   'Enlazar con chikari.moe para leer aquí': 'Link with chikari.moe to read here',
@@ -161,6 +163,10 @@ const EN_RX = [
   [/^Antes que (.+)$/, 'Before $1'],
   [/^Después que (.+) — ¡acelera!$/, 'After $1 — speed up!'],
   [/^Ritmo: (.+)$/, 'Pace: $1'],
+  [/^Últimos (d+) días$/, 'Last $1 days'],
+  [/^(.+) a tu ritmo$/, '$1 at your pace'],
+  [/^(.+) · antes que (.+)$/, '$1 · ahead of $2'],
+  [/^(.+) · después que (.+)$/, '$1 · behind $2'],
   [/^¿Eliminar «(.+)»\?$/, 'Delete “$1”?'],
   [/^«(.+)» eliminado$/, '“$1” deleted'],
   [/^Se borrará el duelo para ti y para (.+), junto con el progreso y los comentarios de ambos\. No se puede deshacer\.$/,
@@ -366,7 +372,23 @@ function timeAgo(iso) {
 function fmtDate(isoDay) {
   if (!isoDay) return '—';
   const d = new Date(isoDay + 'T12:00:00');
-  return d.toLocaleDateString('es', { day: 'numeric', month: 'short' });
+  const opts = { day: 'numeric', month: 'short' };
+  // Sin el año, una fecha de 2029 se leía como "12 ago" y parecía de este año.
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+  return d.toLocaleDateString(currentLang() === 'en' ? 'en' : 'es', opts);
+}
+
+/* Duración aproximada en lenguaje natural, para dar contexto a una fecha lejana. */
+function humanDuration(days) {
+  if (days === null || days === undefined) return '';
+  if (days < 1) return currentLang() === 'en' ? 'today' : 'hoy';
+  if (days < 45) return `~${Math.round(days)} ${currentLang() === 'en' ? 'days' : 'días'}`;
+  if (days < 365) {
+    const m = Math.round(days / 30);
+    return `~${m} ${currentLang() === 'en' ? 'months' : 'meses'}`;
+  }
+  const y = Math.round((days / 365) * 10) / 10;
+  return `~${y} ${currentLang() === 'en' ? 'years' : 'años'}`;
 }
 
 /* Portada: imagen subida o portada generada estilo cuero */
