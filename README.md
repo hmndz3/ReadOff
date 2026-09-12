@@ -14,6 +14,7 @@
 - **Comentarios por capítulo**: notas cortas (máx. 280 caracteres, ilimitadas) entre los dos duelistas, con **anti-spoiler**: los comentarios sobre capítulos más adelantados que tu progreso llegan ocultos hasta que tocas para revelarlos.
 - **Estadísticas en vivo**: ventaja, ritmo (caps/día), racha de días, fecha estimada de fin, actividad del duelo, posición del rival.
 - **Victoria automática**: el primero en marcar el capítulo final se corona campeón.
+- **Fecha límite editable**: es una meta compartida y orientativa, no cierra el duelo por sí sola. El chip de la cabecera indica cuánto falta (o cuánto lleva vencida, en rojo) y al pulsarlo se cambia o se quita. Cualquiera de los dos duelistas puede ajustarla.
 - **Eliminar duelos**: desde la tarjeta del dashboard o desde la pantalla del duelo. Para evitar borrados accidentales hay que **escribir el título del libro** para habilitar el botón. Borra el duelo para ambos duelistas junto con el progreso, los comentarios y la portada.
 - **Perfil**: victorias, derrotas, capítulos totales, mayor racha e historial de duelos.
 - **Modo claro y oscuro** 🌙☀️ y **dos idiomas** (español / inglés), ambos con un clic en el header y recordados en tu navegador.
