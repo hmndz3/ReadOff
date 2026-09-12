@@ -7,6 +7,7 @@
 - **Login sencillo**: usuario + contraseña (sesión de 90 días).
 - **Duelos por código**: creas el duelo (título, autor, género, nº de capítulos, portada, fecha límite opcional) y compartes un código de 6 caracteres.
 - **Lector integrado**: si el duelo está enlazado a una novela de chikari.moe, puedes leer capítulo por capítulo dentro de ReadOff, con ajustes de tipo de letra, tamaño, interlineado, ancho de columna y tema de lectura (oscuro / sepia / claro). **Al pasar al siguiente capítulo el anterior se marca solo**, así que ya no hace falta el botón ni una segunda ventana. Cada capítulo se descarga una única vez y queda en caché en tu servidor.
+- **Dos barras de progreso** en el lector: la ámbar avanza con el libro completo y la cian con el capítulo que estás leyendo, con el porcentaje junto al número de capítulo.
 - **Autoconfiguración desde chikari.moe**: pega la URL de una novela y se rellenan solos el título, autor, géneros, número de capítulos y la portada oficial. Si el duelo ya existía, puedes enlazarlo después desde la propia pantalla del duelo.
 - **Portada configurable**: sube JPG/PNG/WebP (hasta 5MB), tráela de chikari, o deja que se genere una portada elegante automáticamente.
 - **Progreso por capítulos**: cuadrícula interactiva (paginada en bloques de 100 para novelas largas), marca el siguiente capítulo leído y puedes revertir el último.
@@ -54,6 +55,11 @@ Abre http://localhost:3000. Los datos se guardan en `data/` (SQLite + portadas).
 - **Backend**: Node.js + Express + SQLite (`better-sqlite3`), JWT en cookie httpOnly, `bcryptjs`, `multer` para portadas.
 - **Frontend**: HTML + Tailwind (CDN) + JS vanilla, design system "Nocturne Salon" (Playfair Display + Plus Jakarta Sans), con paleta clara y oscura en variables CSS.
 - Los diseños originales de Stitch están en [`designs/`](designs/).
+
+## Cómo se calculan las estadísticas
+
+- **Ritmo**: capítulos por día medidos sobre tu actividad real de lectura, desde tu primera lectura del duelo y no desde que el duelo se creó (así no penaliza a quien se une tarde). Si has leído en los últimos 14 días se usa esa ventana móvil, que refleja el ritmo con el que vas ahora; si llevas más tiempo parado, cae al promedio histórico. El primer día el divisor mínimo es un día, para no extrapolar un ritmo irreal a partir de unas pocas horas.
+- **Meta estimada**: capítulos que te faltan divididos entre ese ritmo. La tarjeta muestra la duración aproximada (`~4 meses`, `~2.9 años`) junto a la fecha, y la fecha incluye el año cuando no cae en el año en curso.
 
 ## Notas
 
