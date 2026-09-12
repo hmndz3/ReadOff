@@ -45,13 +45,16 @@
       <span translate="no" class="material-symbols-outlined align-middle">text_fields</span>
     </button>
   </div>
-  <div class="h-1 bg-surface-container-lowest">
+  <div class="h-1 bg-surface-container-lowest" title="Progreso del libro">
     <div class="h-full bg-gradient-to-r from-tertiary-container to-primary transition-all duration-300" id="progress-bar" style="width:0%"></div>
+  </div>
+  <div class="h-1 bg-surface-container-lowest/50" title="Progreso del capítulo">
+    <div class="h-full bg-secondary-container" id="chapter-bar" style="width:0%"></div>
   </div>
 </header>
 
 <!-- Panel de ajustes -->
-<div id="settings" class="hidden fixed top-14 left-0 right-0 z-40 bg-surface-container-low/98 backdrop-blur-xl border-b border-surface-container-highest/50 shadow-2xl">
+<div id="settings" class="hidden fixed top-16 left-0 right-0 z-40 bg-surface-container-low/98 backdrop-blur-xl border-b border-surface-container-highest/50 shadow-2xl">
   <div class="max-w-[1100px] mx-auto px-gutter-mobile py-card-padding-sm flex flex-col gap-element-gap-lg">
 
     <div class="flex items-center justify-between gap-element-gap-md flex-wrap">
@@ -105,7 +108,7 @@
 </div>
 
 <!-- Lectura -->
-<main id="reader" class="min-h-screen pt-14">
+<main id="reader" class="min-h-screen pt-16">
   <div class="mx-auto px-gutter-mobile md:px-gutter-tablet py-stack-gap-xl" id="reader-inner" style="max-width:760px">
 
     <div id="loading" class="flex items-center justify-center gap-2 py-24 rd-muted">
@@ -181,6 +184,7 @@ function applyPrefs() {
   mark('.opt-w', 'w', prefs.w);
   mark('.opt-rt', 'rt', prefs.rt);
   savePrefs();
+  if (typeof remedirYActualizar === 'function') setTimeout(remedirYActualizar, 0);
 }
 
 document.getElementById('btn-settings').addEventListener('click', () =>
@@ -204,6 +208,48 @@ function renderBody(text) {
   });
 }
 
+/* Progreso dentro del capítulo: 0% al empezar, 100% cuando el final del
+   artículo llega al borde inferior de la ventana.
+   Las medidas del artículo se cachean: sólo cambian al cargar un capítulo,
+   al tocar la tipografía o al redimensionar, así el scroll no fuerza layout. */
+let artTop = 0;
+let artAlto = 0;
+
+function medirArticulo() {
+  const art = document.getElementById('chapter-wrap');
+  if (!art || art.classList.contains('hidden')) { artAlto = 0; return; }
+  const rect = art.getBoundingClientRect();
+  artTop = rect.top + window.scrollY;
+  artAlto = rect.height;
+}
+
+const HEADER_ALTO = 64; // barra superior fija (56px + las dos barras de 4px)
+
+function updateChapterProgress() {
+  const bar = document.getElementById('chapter-bar');
+  if (!bar || !artAlto) return;
+  // 0% con el capítulo sin empezar y 100% cuando su última línea queda a la
+  // vista. El recorrido se mide en scroll, no en "cuánto cabe en pantalla",
+  // para que abrir un capítulo marque cero y terminarlo marque cien.
+  const inicio = Math.max(0, artTop - HEADER_ALTO);
+  const fin = artTop + artAlto - window.innerHeight;
+  const recorrido = fin - inicio;
+  const pct = recorrido <= 0 ? 100 : Math.min(100, Math.max(0, ((window.scrollY - inicio) / recorrido) * 100));
+  bar.style.width = pct + '%';
+  const lbl = document.getElementById('chapter-pct');
+  if (lbl) lbl.textContent = Math.round(pct) + '%';
+}
+
+function remedirYActualizar() {
+  medirArticulo();
+  updateChapterProgress();
+}
+
+// Sin requestAnimationFrame a propósito: se pausa con la pestaña en segundo
+// plano y dejaría la barra congelada al volver.
+window.addEventListener('scroll', updateChapterProgress, { passive: true });
+window.addEventListener('resize', remedirYActualizar);
+
 async function loadChapter(n, push = true) {
   document.getElementById('loading').classList.remove('hidden');
   document.getElementById('chapter-wrap').classList.add('hidden');
@@ -216,7 +262,8 @@ async function loadChapter(n, push = true) {
     current = chapter.number;
 
     document.getElementById('book-title').textContent = duel.bookTitle;
-    document.getElementById('chapter-label').textContent = `Capítulo ${chapter.number} de ${duel.totalChapters}`;
+    document.getElementById('chapter-label').innerHTML =
+      `Capítulo ${chapter.number} de ${duel.totalChapters} · <span id="chapter-pct" class="text-secondary font-semibold">0%</span>`;
     document.getElementById('chapter-kicker').textContent = `Capítulo ${chapter.number}`;
     document.getElementById('chapter-title').textContent = chapter.title || `Capítulo ${chapter.number}`;
     renderBody(chapter.body);
@@ -239,6 +286,9 @@ async function loadChapter(n, push = true) {
     document.getElementById('nav-bottom').classList.add('flex');
     applyPrefs();
     window.scrollTo({ top: 0 });
+    document.getElementById('chapter-bar').style.width = '0%';
+    // Tras pintar: el alto definitivo depende de la tipografía ya aplicada.
+    setTimeout(remedirYActualizar, 0);
     if (push) history.pushState({ n: chapter.number }, '', `/leer?duelo=${duelId}&cap=${chapter.number}`);
     document.title = `Cap. ${chapter.number} — ${duel.bookTitle}`;
   } catch (err) {
