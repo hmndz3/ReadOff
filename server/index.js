@@ -8,6 +8,7 @@ const cookieParser = require('cookie-parser');
 const multer = require('multer');
 
 const { db, DATA_DIR, UPLOADS_DIR } = require('./db');
+const fuentes = require('./sources');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -207,6 +208,9 @@ function duelPayload(duel, meId) {
     totalChapters: duel.total_chapters,
     coverUrl: duel.cover_file ? '/uploads/' + duel.cover_file : null,
     sourceSlug: duel.source_slug || null,
+    esSource: duel.es_start_url
+      ? { url: duel.es_start_url, ...fuentes.estadoIndice(duel.source_slug || String(duel.id)) }
+      : null,
     deadline: duel.deadline,
     status: duel.status,
     winnerId: duel.winner_id,
@@ -546,6 +550,102 @@ async function fetchChapter(slug, number) {
   return db.prepare('SELECT * FROM chapters WHERE slug = ? AND number = ?').get(slug, number);
 }
 
+// Identificador del caché en español: mismo almacén que el inglés, con el slug
+// prefijado para que las dos versiones de un capítulo convivan sin chocar.
+function slugEs(duel) {
+  return 'es:' + (duel.source_slug || String(duel.id));
+}
+
+async function fetchChapterEs(duel, number) {
+  const clave = slugEs(duel);
+  const cached = db.prepare('SELECT * FROM chapters WHERE slug = ? AND number = ?').get(clave, number);
+  if (cached) return cached;
+  const slug = duel.source_slug || String(duel.id);
+  const fila = fuentes.urlDeCapitulo(slug, number);
+  if (!fila) {
+    const est = fuentes.estadoIndice(slug);
+    throw new Error(
+      est.corriendo
+        ? `El índice en español va por el capítulo ${est.ultimo}. Espera un momento y vuelve a intentarlo.`
+        : 'Ese capítulo todavía no está en el índice en español.'
+    );
+  }
+  const pag = await fuentes.leerPaginaEs(fila.url);
+  if (!pag.body) throw new Error('No se pudo extraer el texto de ese capítulo en español');
+  db.prepare(
+    `INSERT OR REPLACE INTO chapters (slug, number, title, body, next_number, prev_number)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(clave, number, pag.title || fila.title || '', pag.body, number + 1, number > 1 ? number - 1 : null);
+  return db.prepare('SELECT * FROM chapters WHERE slug = ? AND number = ?').get(clave, number);
+}
+
+// Ajustar el total de capítulos del duelo (p. ej. para igualarlo a lo que
+// existe en ambos idiomas). No puede quedar por debajo de lo ya leído.
+app.post('/api/duels/:id/total', auth, (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  const total = parseInt((req.body || {}).total, 10);
+  if (!Number.isInteger(total) || total < 1 || total > 2500)
+    return res.status(400).json({ error: 'Los capítulos deben ser un número entre 1 y 2500' });
+  const leido = db.prepare('SELECT MAX(chapter) AS n FROM progress WHERE duel_id = ?').get(duel.id).n || 0;
+  if (total < leido)
+    return res.status(400).json({ error: `No puede ser menor que el capítulo ${leido}, que ya está marcado como leído` });
+  db.prepare('UPDATE duels SET total_chapters = ? WHERE id = ?').run(total, duel.id);
+  // Si alguien ya estaba en la nueva meta, el duelo queda ganado.
+  const ganador = db
+    .prepare('SELECT user_id FROM progress WHERE duel_id = ? AND chapter = ? LIMIT 1')
+    .get(duel.id, total);
+  if (ganador && duel.status === 'active') {
+    db.prepare("UPDATE duels SET status = 'finished', winner_id = ?, finished_at = datetime('now') WHERE id = ?")
+      .run(ganador.user_id, duel.id);
+  }
+  const updated = db.prepare('SELECT * FROM duels WHERE id = ?').get(duel.id);
+  res.json({ duel: duelPayload(updated, req.user.id) });
+});
+
+// Enlazar la lectura en español y arrancar la construcción del índice
+app.post('/api/duels/:id/es-source', auth, async (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  const url = (req.body || {}).url;
+  if (!url) {
+    db.prepare('UPDATE duels SET es_start_url = NULL WHERE id = ?').run(duel.id);
+    return res.json({ esSource: null });
+  }
+  if (!fuentes.esUrlValida(url))
+    return res.status(400).json({ error: 'Pega la URL de un capítulo de novelaenespanol.com' });
+  if (fuentes.numeroDeUrl(url) !== 1)
+    return res.status(400).json({ error: 'Tiene que ser la URL del capítulo 1, desde ahí se recorre el resto' });
+  let pag;
+  try {
+    pag = await fuentes.leerPaginaEs(url);
+  } catch (e) {
+    return res.status(502).json({ error: e.message });
+  }
+  if (!pag.body) return res.status(502).json({ error: 'No se pudo extraer el texto de esa página' });
+  db.prepare('UPDATE duels SET es_start_url = ? WHERE id = ?').run(url, duel.id);
+  const slug = duel.source_slug || String(duel.id);
+  fuentes.construirIndice(slug, url, duel.total_chapters);
+  res.json({ ok: true, titulo: pag.title, estado: fuentes.estadoIndice(slug) });
+});
+
+// Estado del índice, y reanudarlo si se quedó a medias
+app.get('/api/duels/:id/es-index', auth, (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  const slug = duel.source_slug || String(duel.id);
+  res.json({ enlazado: !!duel.es_start_url, estado: fuentes.estadoIndice(slug), total: duel.total_chapters });
+});
+
+app.post('/api/duels/:id/es-index/resume', auth, (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  if (!duel.es_start_url) return res.status(400).json({ error: 'Este duelo no tiene lectura en español enlazada' });
+  const slug = duel.source_slug || String(duel.id);
+  fuentes.construirIndice(slug, duel.es_start_url, duel.total_chapters);
+  res.json({ estado: fuentes.estadoIndice(slug) });
+});
+
 app.get('/api/duels/:id/chapters/:n', auth, async (req, res) => {
   const duel = getMyDuel(req, res);
   if (!duel) return;
@@ -554,8 +654,9 @@ app.get('/api/duels/:id/chapters/:n', auth, async (req, res) => {
   const n = parseInt(req.params.n, 10);
   if (!Number.isInteger(n) || n < 1 || n > duel.total_chapters)
     return res.status(400).json({ error: 'Capítulo fuera de rango' });
+  const enEspanol = req.query.lang === 'es' && !!duel.es_start_url;
   try {
-    const c = await fetchChapter(duel.source_slug, n);
+    const c = enEspanol ? await fetchChapterEs(duel, n) : await fetchChapter(duel.source_slug, n);
     const myRead = db
       .prepare('SELECT MAX(chapter) AS last FROM progress WHERE duel_id = ? AND user_id = ?')
       .get(duel.id, req.user.id).last || 0;
@@ -566,6 +667,7 @@ app.get('/api/duels/:id/chapters/:n', auth, async (req, res) => {
         body: c.body,
         hasNext: n < duel.total_chapters,
         hasPrev: n > 1,
+        lang: enEspanol ? 'es' : 'en',
       },
       duel: {
         id: duel.id,
@@ -573,6 +675,8 @@ app.get('/api/duels/:id/chapters/:n', auth, async (req, res) => {
         totalChapters: duel.total_chapters,
         status: duel.status,
         myRead,
+        hasEs: !!duel.es_start_url,
+        esIndexed: duel.es_start_url ? fuentes.estadoIndice(duel.source_slug || String(duel.id)).ultimo : 0,
       },
     });
   } catch (e) {
