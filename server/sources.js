@@ -100,17 +100,82 @@ async function leerPaginaEs(url, { reintentos = 0, timeoutMs = 12000 } = {}) {
   return { title, body: parrafos.join('\n\n'), next };
 }
 
+/* ---------- skynovels.net ----------
+   Tiene API propia: el índice entero llega en una sola petición y cada
+   capítulo se pide por su id. Ni cadenas que recorrer, ni esperas. */
+const SKY_SOURCE = 'skynovels';
+const SKY_API = 'https://api.skynovels.net/api';
+
+function skyNovelId(url) {
+  const m = String(url).match(/skynovels\.net\/novelas\/(\d+)/i);
+  return m ? m[1] : null;
+}
+
+/* Qué adaptador le corresponde a una URL, mirando el dominio real. */
+function fuenteDeUrl(url) {
+  let host;
+  try {
+    host = new URL(String(url)).hostname;
+  } catch {
+    return null;
+  }
+  if (/(^|\.)skynovels\.net$/i.test(host)) return SKY_SOURCE;
+  if (/(^|\.)novelaenespanol\.com$/i.test(host)) return ES_SOURCE;
+  return null;
+}
+
+async function skyPedir(ruta) {
+  const r = await fetch(SKY_API + ruta, { headers: UA, signal: AbortSignal.timeout(15000) });
+  if (!r.ok) throw new Error(`skynovels respondió ${r.status}`);
+  return r.json();
+}
+
+/* Descarga el índice completo de una vez y lo guarda. */
+async function skyConstruirIndice(slug, novelId, hasta) {
+  const j = await skyPedir(`/novel-chapters/${novelId}`);
+  const novela = Array.isArray(j.novel) ? j.novel[0] : j.novel;
+  const caps = (novela && novela.chapters) || [];
+  if (!caps.length) throw new Error('Esa novela no tiene capítulos en skynovels');
+  let guardados = 0;
+  const guardar = db.transaction((lista) => {
+    for (const c of lista) {
+      const n = Number(c.chp_number);
+      // Lo que pasa del total son las notas de volumen, que no son capítulos.
+      if (!Number.isFinite(n) || n < 1 || n > hasta) continue;
+      insIdx.run(SKY_SOURCE, slug, n, String(c.id), c.chp_index_title || '');
+      guardados++;
+    }
+  });
+  guardar(caps);
+  return { total: caps.length, guardados, titulo: novela.nvl_title || '' };
+}
+
+async function skyLeerCapitulo(chapterId) {
+  const d = await skyPedir(`/chapters/${chapterId}`);
+  const ch = d.chapter || d;
+  // Llega como texto plano con saltos de línea; se limpia por si trae etiquetas.
+  const cuerpo = String(ch.chp_content || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .split(/\n+/)
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .join('\n\n');
+  return { title: ch.chp_index_title || '', body: cuerpo };
+}
+
 /* ---------- Índice de direcciones ---------- */
 const selUrl = db.prepare('SELECT url, title FROM source_index WHERE source = ? AND slug = ? AND number = ?');
 const insIdx = db.prepare('INSERT OR REPLACE INTO source_index (source, slug, number, url, title) VALUES (?, ?, ?, ?, ?)');
 const maxIdx = db.prepare('SELECT MAX(number) AS n, COUNT(*) AS c FROM source_index WHERE source = ? AND slug = ?');
 
-function urlDeCapitulo(slug, number) {
-  return selUrl.get(ES_SOURCE, slug, number) || null;
+function urlDeCapitulo(slug, number, source) {
+  return selUrl.get(source || ES_SOURCE, slug, number) || null;
 }
 
-function estadoIndice(slug) {
-  const r = maxIdx.get(ES_SOURCE, slug);
+function estadoIndice(slug, source) {
+  const r = maxIdx.get(source || ES_SOURCE, slug);
   const job = trabajos.get(slug);
   return {
     indexados: r.c || 0,
@@ -178,7 +243,7 @@ async function construirIndice(slug, startUrl, hasta) {
   return estadoIndice(slug);
 }
 
-module.exports = { ES_SOURCE, esUrlValida, numeroDeUrl, leerPaginaEs, urlDeCapitulo, estadoIndice, construirIndice };
+module.exports = { ES_SOURCE, SKY_SOURCE, esUrlValida, numeroDeUrl, leerPaginaEs, urlDeCapitulo, estadoIndice, construirIndice, fuenteDeUrl, skyNovelId, skyConstruirIndice, skyLeerCapitulo };
 
 /* Al arrancar, retoma los índices que quedaron a medias. El proceso puede
    reiniciarse (un despliegue nuevo, por ejemplo) y el índice tarda horas. */

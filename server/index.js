@@ -209,7 +209,11 @@ function duelPayload(duel, meId) {
     coverUrl: duel.cover_file ? '/uploads/' + duel.cover_file : null,
     sourceSlug: duel.source_slug || null,
     esSource: duel.es_start_url
-      ? { url: duel.es_start_url, ...fuentes.estadoIndice(duel.source_slug || String(duel.id)) }
+      ? {
+          url: duel.es_start_url,
+          fuente: fuentes.fuenteDeUrl(duel.es_start_url),
+          ...fuentes.estadoIndice(duel.source_slug || String(duel.id), fuentes.fuenteDeUrl(duel.es_start_url)),
+        }
       : null,
     deadline: duel.deadline,
     status: duel.status,
@@ -564,16 +568,18 @@ async function fetchChapterEs(duel, number) {
   const cached = db.prepare('SELECT * FROM chapters WHERE slug = ? AND number = ?').get(clave, number);
   if (cached) return cached;
   const slug = duel.source_slug || String(duel.id);
-  const fila = fuentes.urlDeCapitulo(slug, number);
+  const fuente = fuentes.fuenteDeUrl(duel.es_start_url);
+  const fila = fuentes.urlDeCapitulo(slug, number, fuente);
   if (!fila) {
-    const est = fuentes.estadoIndice(slug);
+    const est = fuentes.estadoIndice(slug, fuente);
     throw new Error(
       est.corriendo
         ? `El índice en español va por el capítulo ${est.ultimo}. Espera un momento y vuelve a intentarlo.`
         : 'Ese capítulo todavía no está en el índice en español.'
     );
   }
-  const pag = await fuentes.leerPaginaEs(fila.url);
+  const pag =
+    fuente === fuentes.SKY_SOURCE ? await fuentes.skyLeerCapitulo(fila.url) : await fuentes.leerPaginaEs(fila.url);
   if (!pag.body) throw new Error('No se pudo extraer el texto de ese capítulo en español');
   db.prepare(
     `INSERT OR REPLACE INTO chapters (slug, number, title, body, next_number, prev_number)
@@ -611,12 +617,29 @@ app.post('/api/duels/:id/es-source', auth, async (req, res) => {
   const duel = getMyDuel(req, res);
   if (!duel) return;
   const url = (req.body || {}).url;
+  const slug = duel.source_slug || String(duel.id);
   if (!url) {
     db.prepare('UPDATE duels SET es_start_url = NULL WHERE id = ?').run(duel.id);
     return res.json({ esSource: null });
   }
-  if (!fuentes.esUrlValida(url))
-    return res.status(400).json({ error: 'Pega la URL de un capítulo de novelaenespanol.com' });
+  const fuente = fuentes.fuenteDeUrl(url);
+  if (!fuente) return res.status(400).json({ error: 'Pega la URL de la novela en skynovels.net' });
+
+  // skynovels tiene API: el índice completo llega en una sola petición.
+  if (fuente === fuentes.SKY_SOURCE) {
+    const novelId = fuentes.skyNovelId(url);
+    if (!novelId)
+      return res.status(400).json({ error: 'Esa URL no lleva el identificador de la novela (debe ser .../novelas/N/...)' });
+    try {
+      const r = await fuentes.skyConstruirIndice(slug, novelId, duel.total_chapters);
+      db.prepare('UPDATE duels SET es_start_url = ? WHERE id = ?').run(url, duel.id);
+      return res.json({ ok: true, titulo: r.titulo, indexados: r.guardados, estado: fuentes.estadoIndice(slug, fuente) });
+    } catch (e) {
+      return res.status(502).json({ error: e.message });
+    }
+  }
+
+  // El resto de fuentes hay que recorrerlas capítulo a capítulo.
   if (fuentes.numeroDeUrl(url) !== 1)
     return res.status(400).json({ error: 'Tiene que ser la URL del capítulo 1, desde ahí se recorre el resto' });
   let pag;
@@ -627,7 +650,6 @@ app.post('/api/duels/:id/es-source', auth, async (req, res) => {
   }
   if (!pag.body) return res.status(502).json({ error: 'No se pudo extraer el texto de esa página' });
   db.prepare('UPDATE duels SET es_start_url = ? WHERE id = ?').run(url, duel.id);
-  const slug = duel.source_slug || String(duel.id);
   fuentes.construirIndice(slug, url, duel.total_chapters);
   res.json({ ok: true, titulo: pag.title, estado: fuentes.estadoIndice(slug) });
 });
@@ -694,7 +716,9 @@ app.get('/api/duels/:id/chapters/:n', auth, async (req, res) => {
         status: duel.status,
         myRead,
         hasEs: !!duel.es_start_url,
-        esIndexed: duel.es_start_url ? fuentes.estadoIndice(duel.source_slug || String(duel.id)).ultimo : 0,
+        esIndexed: duel.es_start_url
+          ? fuentes.estadoIndice(duel.source_slug || String(duel.id), fuentes.fuenteDeUrl(duel.es_start_url)).ultimo
+          : 0,
       },
     });
   } catch (e) {

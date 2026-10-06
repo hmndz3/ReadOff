@@ -432,12 +432,12 @@ function render(d, activity) {
   // Fuentes de lectura
   const btnEsAdd = document.getElementById('btn-es-add');
   if (btnEsAdd) btnEsAdd.addEventListener('click', async () => {
-    const url = prompt('Pega la URL del capítulo 1 en novelaenespanol.com (desde ahí se indexa el resto)');
+    const url = prompt('Pega la URL de la novela en skynovels.net (ej. https://www.skynovels.net/novelas/1/el-senor-de-los-misterios)');
     if (!url) return;
     toast('Comprobando la página…', 'ok');
     try {
       const r = await api(`/api/duels/${d.id}/es-source`, { method: 'POST', body: { url } });
-      toast(`Enlazado: ${r.titulo}. Indexando en segundo plano…`, 'ok');
+      toast(r.indexados ? `Enlazado: ${r.titulo} · ${r.indexados} capítulos listos` : `Enlazado: ${r.titulo}. Indexando…`, 'ok');
       load();
     } catch (err) { toast(err.message); }
   });
