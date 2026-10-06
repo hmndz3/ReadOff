@@ -73,8 +73,24 @@ CREATE TABLE IF NOT EXISTS chapters (
 );
 `);
 
+// Índice de direcciones por fuente. Hace falta cuando las URLs de los capítulos
+// no se pueden construir a partir del número (el sitio las forma con el título).
+db.exec(`
+CREATE TABLE IF NOT EXISTS source_index (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  number INTEGER NOT NULL,
+  url TEXT NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  UNIQUE(source, slug, number)
+);
+`);
+
 // Vínculo opcional entre un duelo y una novela de la fuente externa
 const duelCols = db.prepare('PRAGMA table_info(duels)').all().map((c) => c.name);
 if (!duelCols.includes('source_slug')) db.exec('ALTER TABLE duels ADD COLUMN source_slug TEXT');
+// Lectura en español: URL del primer capítulo, desde la que se recorre la cadena.
+if (!duelCols.includes('es_start_url')) db.exec('ALTER TABLE duels ADD COLUMN es_start_url TEXT');
 
 module.exports = { db, DATA_DIR, UPLOADS_DIR };
