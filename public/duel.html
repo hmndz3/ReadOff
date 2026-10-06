@@ -120,6 +120,19 @@ function blocksHTML(d) {
   return `<div class="flex items-center gap-1 overflow-x-auto pb-element-gap-sm mb-element-gap-sm border-b border-surface-container-highest/40" id="block-tabs">${chips}</div>`;
 }
 
+/* Texto del estado del índice en español. El sitio limita el ritmo, así que
+   puede quedarse en pausa un rato largo: conviene decirlo con claridad. */
+function estadoEsTexto(es, total) {
+  if (!es.corriendo) {
+    return es.ultimo >= total ? `completo (${es.indexados} capítulos)` : `${es.ultimo} de ${total} · detenido`;
+  }
+  if (es.esperandoHasta) {
+    const h = new Date(es.esperandoHasta).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+    return `${es.ultimo} de ${total} · en pausa hasta las ${h}`;
+  }
+  return `indexando ${es.ultimo} de ${total}`;
+}
+
 /* Fuentes de lectura del duelo: inglés (chikari) y, si está enlazada,
    español, con el avance del índice de direcciones. */
 function fuentesHTML(d) {
@@ -137,7 +150,7 @@ function fuentesHTML(d) {
       ${es
         ? `<span class="px-2.5 py-1 rounded-full ${es.corriendo ? 'bg-primary-container/15 text-primary' : 'bg-surface-container text-on-surface-variant'} flex items-center gap-1.5">
              <span class="w-1.5 h-1.5 rounded-full ${es.corriendo ? 'bg-primary animate-pulse' : 'bg-secondary'}"></span>
-             Español · ${es.corriendo ? `indexando ${es.ultimo} de ${d.totalChapters}` : `${es.indexados} capítulos listos`}
+             Español · ${estadoEsTexto(es, d.totalChapters)}
            </span>
            ${!es.corriendo && es.ultimo < d.totalChapters ? '<button id="btn-es-resume" type="button" class="text-secondary hover:underline">Continuar índice</button>' : ''}`
         : `<button id="btn-es-add" type="button" class="px-2.5 py-1 rounded-full bg-surface-container hover:bg-surface-container-high text-secondary flex items-center gap-1.5 transition-all">

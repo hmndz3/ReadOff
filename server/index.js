@@ -782,4 +782,8 @@ for (const [route, file] of Object.entries(pages)) {
   app.get(route, (req, res) => res.sendFile(path.join(__dirname, '..', 'public', file)));
 }
 
-app.listen(PORT, () => console.log(`ReadOff corriendo en http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`ReadOff corriendo en http://localhost:${PORT}`);
+  // Los índices en español tardan horas; si el proceso se reinició, se retoman.
+  fuentes.reanudarPendientes();
+});

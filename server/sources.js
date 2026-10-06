@@ -8,12 +8,13 @@ const ES_SOURCE = 'novelaenespanol';
 const UA = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
 };
-// Ritmo de indexación. El sitio responde 503 si se le piden muchas páginas
-// seguidas, así que se va despacio, por tramos cortos y con esperas crecientes
-// cuando corta. El índice se construye una vez y no hay ninguna prisa.
-const PAUSA_MS = 5000;
-const LOTE_POR_TANDA = 40;
-const REINTENTOS = 3;
+// Ritmo de indexación. El sitio limita el tráfico automático: cuando se pasa
+// responde 503 con "Retry-After: 3600", es decir, "vuelve en una hora". Así que
+// se va muy despacio y, si corta, se espera exactamente lo que pide. El índice
+// tarda, pero avanza solo y sin molestar al sitio.
+const PAUSA_MS = 60000; // una página por minuto
+const ESPERA_503_POR_DEFECTO = 3600000;
+const REINTENTOS = 2;
 
 function esUrlValida(u) {
   try {
@@ -62,8 +63,17 @@ async function leerPaginaEs(url, { reintentos = 0, timeoutMs = 12000 } = {}) {
     if (r.ok) break;
     if (r.status === 404) throw new Error('Ese capítulo no existe en la fuente en español');
     const frenado = r.status === 503 || r.status === 429;
-    if (!frenado || intento >= reintentos)
-      throw new Error(`La web en español respondió ${r.status}${frenado ? ' (nos está limitando el ritmo)' : ''}`);
+    if (!frenado || intento >= reintentos) {
+      const err = new Error(
+        `La web en español respondió ${r.status}${frenado ? ' (nos está limitando el ritmo)' : ''}`
+      );
+      if (frenado) {
+        // El propio servidor dice cuánto hay que esperar.
+        const ra = parseInt(r.headers.get('retry-after') || '', 10);
+        err.esperar = Number.isFinite(ra) ? Math.min(ra * 1000, 2 * ESPERA_503_POR_DEFECTO) : ESPERA_503_POR_DEFECTO;
+      }
+      throw err;
+    }
     await new Promise((x) => setTimeout(x, 10000 * (intento + 1)));
   }
   const html = await r.text();
@@ -107,16 +117,33 @@ function estadoIndice(slug) {
     ultimo: r.n || 0,
     corriendo: !!job && job.corriendo,
     error: job ? job.error : null,
+    esperandoHasta: job && job.esperandoHasta ? job.esperandoHasta : null,
   };
 }
 
 const trabajos = new Map();
+const MAX_PAUSAS_SEGUIDAS = 12; // ~12 h de espera antes de darse por vencido
+
+/* Lee una página aguantando los frenazos del sitio: si responde 503 con
+   "Retry-After", espera lo que pide y vuelve a intentarlo. */
+async function leerConPausa(job, url) {
+  for (let pausas = 0; ; pausas++) {
+    try {
+      return await leerPaginaEs(url, { reintentos: REINTENTOS, timeoutMs: 20000 });
+    } catch (e) {
+      if (!e.esperar || pausas >= MAX_PAUSAS_SEGUIDAS) throw e;
+      job.esperandoHasta = Date.now() + e.esperar;
+      await new Promise((r) => setTimeout(r, e.esperar));
+      job.esperandoHasta = null;
+    }
+  }
+}
 
 /* Recorre la cadena de capítulos guardando cada dirección. Reanudable: si ya
    hay capítulos indexados, sigue desde el último en vez de empezar de cero. */
 async function construirIndice(slug, startUrl, hasta) {
   if (trabajos.get(slug)?.corriendo) return estadoIndice(slug);
-  const job = { corriendo: true, error: null };
+  const job = { corriendo: true, error: null, esperandoHasta: null };
   trabajos.set(slug, job);
 
   (async () => {
@@ -127,21 +154,19 @@ async function construirIndice(slug, startUrl, hasta) {
       if (ultimo > 0) {
         const fila = urlDeCapitulo(slug, ultimo);
         if (fila) {
-          const pag = await leerPaginaEs(fila.url, { reintentos: REINTENTOS, timeoutMs: 20000 });
+          const pag = await leerConPausa(job, fila.url);
           if (!pag.next) { job.corriendo = false; return; }
           url = pag.next;
           n = ultimo + 1;
         }
       }
-      let hechos = 0;
-      while (url && n <= hasta && hechos < LOTE_POR_TANDA) {
-        const pag = await leerPaginaEs(url, { reintentos: REINTENTOS, timeoutMs: 20000 });
+      while (url && n <= hasta) {
+        const pag = await leerConPausa(job, url);
         const num = numeroDeUrl(url) || n;
         insIdx.run(ES_SOURCE, slug, num, url, pag.title);
-        hechos++;
         n = num + 1;
         url = pag.next;
-        if (url && n <= hasta && hechos < LOTE_POR_TANDA) await new Promise((r) => setTimeout(r, PAUSA_MS));
+        if (url && n <= hasta) await new Promise((r) => setTimeout(r, PAUSA_MS));
       }
     } catch (e) {
       job.error = e.message;
@@ -154,3 +179,20 @@ async function construirIndice(slug, startUrl, hasta) {
 }
 
 module.exports = { ES_SOURCE, esUrlValida, numeroDeUrl, leerPaginaEs, urlDeCapitulo, estadoIndice, construirIndice };
+
+/* Al arrancar, retoma los índices que quedaron a medias. El proceso puede
+   reiniciarse (un despliegue nuevo, por ejemplo) y el índice tarda horas. */
+function reanudarPendientes() {
+  try {
+    const filas = db
+      .prepare("SELECT id, source_slug, es_start_url, total_chapters FROM duels WHERE es_start_url IS NOT NULL")
+      .all();
+    for (const d of filas) {
+      const slug = d.source_slug || String(d.id);
+      const est = estadoIndice(slug);
+      if (est.ultimo < d.total_chapters) construirIndice(slug, d.es_start_url, d.total_chapters);
+    }
+  } catch {}
+}
+
+module.exports.reanudarPendientes = reanudarPendientes;
