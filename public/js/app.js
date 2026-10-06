@@ -106,6 +106,8 @@ const EN_DICT = {
   'Cancelar': 'Cancel', 'Sí, eliminar': 'Yes, delete', 'Eliminar duelo': 'Delete duel',
   'Para confirmar, escribe:': 'To confirm, type:',
   'Sin lecturas recientes': 'No recent reading',
+  'Fuentes de lectura': 'Reading sources', 'Añadir lectura en español': 'Add Spanish version',
+  'Continuar índice': 'Resume index', 'Inglés · chikari.moe': 'English · chikari.moe',
   'Poner fecha límite': 'Set deadline', 'Cambiar fecha límite': 'Change deadline',
   'Quitar fecha': 'Remove date', 'Guardar': 'Save', 'Fecha límite quitada': 'Deadline removed',
   'Es una meta compartida: sirve de referencia para los dos y no cierra el duelo por sí sola.':
@@ -168,6 +170,9 @@ const EN_RX = [
   [/^Después que (.+) — ¡acelera!$/, 'After $1 — speed up!'],
   [/^Ritmo: (.+)$/, 'Pace: $1'],
   [/^Últimos ([0-9]+) días$/, 'Last $1 days'],
+  [/^Meta: ([0-9]+) capítulos$/, 'Goal: $1 chapters'],
+  [/^Español · ([0-9]+) capítulos listos$/, 'Spanish · $1 chapters ready'],
+  [/^Español · indexando ([0-9]+) de ([0-9]+)$/, 'Spanish · indexing $1 of $2'],
   [/^Fecha límite: (.+) · (.+)$/, 'Deadline: $1 · $2'],
   [/^Fecha límite: (.+)$/, 'Deadline: $1'],
   [/^(.+) a tu ritmo$/, '$1 at your pace'],
