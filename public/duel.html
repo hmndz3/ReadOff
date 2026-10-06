@@ -172,7 +172,7 @@ function playerCard(d, mine) {
   const u = mine ? d.me : d.rival;
   const s = mine ? d.myStats : d.rivalStats;
   const accent = mine ? 'primary' : 'secondary';
-  const barCls = mine ? 'bg-gradient-to-r from-tertiary-container to-primary' : 'bg-secondary-container';
+  const barCls = mine ? 'bg-primary-container' : 'bg-secondary-container';
   if (!u) {
     return `<div class="flex-1 rounded-xl bg-surface-container p-card-padding-sm flex flex-col items-center justify-center gap-element-gap-sm text-center min-h-[150px]">
       <span translate="no" class="material-symbols-outlined text-outline text-[30px]">person_search</span>
