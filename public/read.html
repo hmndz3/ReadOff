@@ -278,6 +278,13 @@ async function loadChapter(n, push = true) {
     document.getElementById('chapter-title').textContent = chapter.title || `Capítulo ${chapter.number}`;
     renderBody(chapter.body);
 
+    // Si el español no se pudo servir, volvemos a inglés para no reintentar
+    // (y esperar) en cada capítulo.
+    if (chapter.avisoEs) {
+      ponerLangLectura('en');
+      toast('Español no disponible: ' + chapter.avisoEs + '. Mostrando el inglés.');
+    }
+
     const btnLang = document.getElementById('btn-lang-src');
     btnLang.classList.toggle('hidden', !duel.hasEs);
     // Muestra el idioma al que cambiarías, no el actual.

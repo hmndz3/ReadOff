@@ -539,7 +539,10 @@ app.post('/api/duels/:id/source', auth, async (req, res) => {
 async function fetchChapter(slug, number) {
   const cached = db.prepare('SELECT * FROM chapters WHERE slug = ? AND number = ?').get(slug, number);
   if (cached) return cached;
-  const r = await fetch(`${CHIKARI}/api/novels/${slug}/chapters/${number}/read`, { headers: UA });
+  const r = await fetch(`${CHIKARI}/api/novels/${slug}/chapters/${number}/read`, {
+    headers: UA,
+    signal: AbortSignal.timeout(15000),
+  });
   if (!r.ok) throw new Error(r.status === 404 ? 'Ese capítulo no existe todavía' : 'No se pudo obtener el capítulo');
   const c = await r.json();
   if (c.locked) throw new Error(c.lock_reason || 'Ese capítulo aún no está disponible');
@@ -654,9 +657,23 @@ app.get('/api/duels/:id/chapters/:n', auth, async (req, res) => {
   const n = parseInt(req.params.n, 10);
   if (!Number.isInteger(n) || n < 1 || n > duel.total_chapters)
     return res.status(400).json({ error: 'Capítulo fuera de rango' });
-  const enEspanol = req.query.lang === 'es' && !!duel.es_start_url;
+  const pedidoEnEspanol = req.query.lang === 'es' && !!duel.es_start_url;
+  let enEspanol = pedidoEnEspanol;
+  let avisoEs = null;
   try {
-    const c = enEspanol ? await fetchChapterEs(duel, n) : await fetchChapter(duel.source_slug, n);
+    let c;
+    if (pedidoEnEspanol) {
+      try {
+        c = await fetchChapterEs(duel, n);
+      } catch (e) {
+        // Mejor el capítulo en inglés con un aviso que una página en blanco.
+        avisoEs = e.message;
+        enEspanol = false;
+        c = await fetchChapter(duel.source_slug, n);
+      }
+    } else {
+      c = await fetchChapter(duel.source_slug, n);
+    }
     const myRead = db
       .prepare('SELECT MAX(chapter) AS last FROM progress WHERE duel_id = ? AND user_id = ?')
       .get(duel.id, req.user.id).last || 0;
@@ -668,6 +685,7 @@ app.get('/api/duels/:id/chapters/:n', auth, async (req, res) => {
         hasNext: n < duel.total_chapters,
         hasPrev: n > 1,
         lang: enEspanol ? 'es' : 'en',
+        avisoEs,
       },
       duel: {
         id: duel.id,

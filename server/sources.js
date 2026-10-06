@@ -45,18 +45,26 @@ function decodificar(s) {
 }
 
 /* Descarga una página de capítulo y devuelve título, texto y enlace al siguiente. */
-async function leerPaginaEs(url, reintentos = REINTENTOS) {
+/* Los reintentos largos sólo valen para la indexación en segundo plano. En una
+   petición del lector hay que fallar rápido: más vale un aviso que una página
+   cargando eternamente. Por eso todo fetch lleva timeout. */
+async function leerPaginaEs(url, { reintentos = 0, timeoutMs = 12000 } = {}) {
   if (!esUrlValida(url)) throw new Error('URL no válida');
   let r;
   for (let intento = 0; ; intento++) {
-    r = await fetch(url, { headers: UA });
+    try {
+      r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(timeoutMs) });
+    } catch (e) {
+      if (intento >= reintentos) throw new Error('La web en español no respondió a tiempo');
+      await new Promise((x) => setTimeout(x, 10000 * (intento + 1)));
+      continue;
+    }
     if (r.ok) break;
     if (r.status === 404) throw new Error('Ese capítulo no existe en la fuente en español');
-    // 503/429: el sitio nos está frenando. Esperamos cada vez más antes de insistir.
     const frenado = r.status === 503 || r.status === 429;
     if (!frenado || intento >= reintentos)
       throw new Error(`La web en español respondió ${r.status}${frenado ? ' (nos está limitando el ritmo)' : ''}`);
-    await new Promise((x) => setTimeout(x, 15000 * (intento + 1)));
+    await new Promise((x) => setTimeout(x, 10000 * (intento + 1)));
   }
   const html = await r.text();
 
@@ -119,7 +127,7 @@ async function construirIndice(slug, startUrl, hasta) {
       if (ultimo > 0) {
         const fila = urlDeCapitulo(slug, ultimo);
         if (fila) {
-          const pag = await leerPaginaEs(fila.url);
+          const pag = await leerPaginaEs(fila.url, { reintentos: REINTENTOS, timeoutMs: 20000 });
           if (!pag.next) { job.corriendo = false; return; }
           url = pag.next;
           n = ultimo + 1;
@@ -127,7 +135,7 @@ async function construirIndice(slug, startUrl, hasta) {
       }
       let hechos = 0;
       while (url && n <= hasta && hechos < LOTE_POR_TANDA) {
-        const pag = await leerPaginaEs(url);
+        const pag = await leerPaginaEs(url, { reintentos: REINTENTOS, timeoutMs: 20000 });
         const num = numeroDeUrl(url) || n;
         insIdx.run(ES_SOURCE, slug, num, url, pag.title);
         hechos++;
