@@ -120,48 +120,6 @@ function blocksHTML(d) {
   return `<div class="flex items-center gap-1 overflow-x-auto pb-element-gap-sm mb-element-gap-sm border-b border-surface-container-highest/40" id="block-tabs">${chips}</div>`;
 }
 
-/* Texto del estado del índice en español. El sitio limita el ritmo, así que
-   puede quedarse en pausa un rato largo: conviene decirlo con claridad. */
-function estadoEsTexto(es, total) {
-  if (!es.corriendo) {
-    return es.ultimo >= total ? `completo (${es.indexados} capítulos)` : `${es.ultimo} de ${total} · detenido`;
-  }
-  if (es.esperandoHasta) {
-    const h = new Date(es.esperandoHasta).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
-    return `${es.ultimo} de ${total} · en pausa hasta las ${h}`;
-  }
-  return `indexando ${es.ultimo} de ${total}`;
-}
-
-/* Fuentes de lectura del duelo: inglés (chikari) y, si está enlazada,
-   español, con el avance del índice de direcciones. */
-function fuentesHTML(d) {
-  if (!d.sourceSlug) return '';
-  const es = d.esSource;
-  return `<div class="mt-element-gap-md pt-element-gap-md border-t border-surface-container-highest/40 flex flex-col gap-element-gap-sm">
-    <div class="flex items-center justify-between gap-2 flex-wrap">
-      <span class="font-sans text-label-sm text-outline uppercase tracking-widest">Fuentes de lectura</span>
-      <button id="btn-total" type="button" class="font-sans text-body-sm text-secondary hover:underline">Meta: ${d.totalChapters} capítulos</button>
-    </div>
-    <div class="flex items-center gap-element-gap-sm flex-wrap font-sans text-body-sm">
-      <span class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant flex items-center gap-1.5">
-        <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Inglés · chikari.moe
-      </span>
-      ${es
-        ? `<span class="px-2.5 py-1 rounded-full ${es.corriendo ? 'bg-primary-container/15 text-primary' : 'bg-surface-container text-on-surface-variant'} flex items-center gap-1.5">
-             <span class="w-1.5 h-1.5 rounded-full ${es.corriendo ? 'bg-primary animate-pulse' : 'bg-secondary'}"></span>
-             Español · ${estadoEsTexto(es, d.totalChapters)}
-           </span>
-           ${!es.corriendo && es.ultimo < d.totalChapters ? '<button id="btn-es-resume" type="button" class="text-secondary hover:underline">Continuar índice</button>' : ''}
-           <button id="btn-es-remove" type="button" class="text-outline hover:text-error hover:underline">Quitar</button>`
-        : `<button id="btn-es-add" type="button" class="px-2.5 py-1 rounded-full bg-surface-container hover:bg-surface-container-high text-secondary flex items-center gap-1.5 transition-all">
-             <span translate="no" class="material-symbols-outlined text-[14px]">translate</span> Añadir lectura en español
-           </button>`}
-    </div>
-    ${es && es.error ? `<span class="font-sans text-body-sm text-error">El índice se interrumpió: ${esc(es.error)}</span>` : ''}
-  </div>`;
-}
-
 /* Chip de fecha límite: muestra cuánto falta (o cuánto lleva vencida) y
    abre el selector al pulsarlo. Sin fecha, ofrece ponerla. */
 function deadlineChip(d) {
@@ -214,7 +172,7 @@ function playerCard(d, mine) {
   const u = mine ? d.me : d.rival;
   const s = mine ? d.myStats : d.rivalStats;
   const accent = mine ? 'primary' : 'secondary';
-  const barCls = mine ? 'bg-primary-container' : 'bg-secondary-container';
+  const barCls = mine ? 'bg-gradient-to-r from-tertiary-container to-primary' : 'bg-secondary-container';
   if (!u) {
     return `<div class="flex-1 rounded-xl bg-surface-container p-card-padding-sm flex flex-col items-center justify-center gap-element-gap-sm text-center min-h-[150px]">
       <span translate="no" class="material-symbols-outlined text-outline text-[30px]">person_search</span>
@@ -399,7 +357,6 @@ function render(d, activity) {
               : `<button id="btn-link-source" class="font-sans text-body-sm text-secondary hover:underline flex items-center gap-1.5" type="button"><span translate="no" class="material-symbols-outlined text-[16px]">link</span> Enlazar con chikari.moe para leer aquí</button>`}
             ${my.chaptersRead > 0 ? `<button id="btn-revert" class="font-sans text-label-md text-primary hover:underline" type="button">Revertir último capítulo</button>` : ''}
           </div>
-          ${fuentesHTML(d)}
         </div>
       </div>
     </div>`;
@@ -427,55 +384,6 @@ function render(d, activity) {
   if (revertBtn) revertBtn.addEventListener('click', async () => {
     try { await api(`/api/duels/${d.id}/revert`, { method: 'POST' }); toast('Último capítulo revertido', 'ok'); load(); }
     catch (err) { toast(err.message); }
-  });
-
-  // Fuentes de lectura
-  const btnEsAdd = document.getElementById('btn-es-add');
-  if (btnEsAdd) btnEsAdd.addEventListener('click', async () => {
-    const url = prompt('Pega la URL de la novela en skynovels.net (ej. https://www.skynovels.net/novelas/1/el-senor-de-los-misterios)');
-    if (!url) return;
-    toast('Comprobando la página…', 'ok');
-    try {
-      const r = await api(`/api/duels/${d.id}/es-source`, { method: 'POST', body: { url } });
-      toast(r.indexados ? `Enlazado: ${r.titulo} · ${r.indexados} capítulos listos` : `Enlazado: ${r.titulo}. Indexando…`, 'ok');
-      load();
-    } catch (err) { toast(err.message); }
-  });
-
-  const btnEsRemove = document.getElementById('btn-es-remove');
-  if (btnEsRemove) btnEsRemove.addEventListener('click', async () => {
-    const ok = await confirmDialog({
-      title: '¿Quitar la lectura en español?',
-      message: 'Se deja de indexar y el lector vuelve a servir sólo el inglés. El índice ya descargado se conserva por si la vuelves a enlazar.',
-      confirmText: 'Sí, quitar',
-    });
-    if (!ok) return;
-    try {
-      await api(`/api/duels/${d.id}/es-source`, { method: 'POST', body: {} });
-      toast('Lectura en español quitada', 'ok');
-      load();
-    } catch (err) { toast(err.message); }
-  });
-
-  const btnEsResume = document.getElementById('btn-es-resume');
-  if (btnEsResume) btnEsResume.addEventListener('click', async () => {
-    try {
-      await api(`/api/duels/${d.id}/es-index/resume`, { method: 'POST' });
-      toast('Continuando el índice…', 'ok');
-      load();
-    } catch (err) { toast(err.message); }
-  });
-
-  const btnTotal = document.getElementById('btn-total');
-  if (btnTotal) btnTotal.addEventListener('click', async () => {
-    const v = prompt('Número total de capítulos del duelo:', String(d.totalChapters));
-    if (v === null) return;
-    try {
-      await api(`/api/duels/${d.id}/total`, { method: 'POST', body: { total: parseInt(v, 10) } });
-      toast(`Meta ajustada a ${parseInt(v, 10)} capítulos`, 'ok');
-      gridPage = null;
-      load();
-    } catch (err) { toast(err.message); }
   });
 
   // Cambiar o quitar la fecha límite

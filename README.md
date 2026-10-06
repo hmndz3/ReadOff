@@ -7,8 +7,6 @@
 - **Login sencillo**: usuario + contraseña (sesión de 90 días).
 - **Duelos por código**: creas el duelo (título, autor, género, nº de capítulos, portada, fecha límite opcional) y compartes un código de 6 caracteres.
 - **Lector integrado**: si el duelo está enlazado a una novela de chikari.moe, puedes leer capítulo por capítulo dentro de ReadOff, con ajustes de tipo de letra, tamaño, interlineado, ancho de columna y tema de lectura (oscuro / sepia / claro). **Al pasar al siguiente capítulo el anterior se marca solo**, así que ya no hace falta el botón ni una segunda ventana. Cada capítulo se descarga una única vez y queda en caché en tu servidor.
-- **Lectura en español**: un duelo puede enlazar, además de chikari, la versión en español de skynovels.net, y cada lector elige su idioma desde el propio lector; el progreso se sigue comparando por número de capítulo. skynovels expone una API propia, así que el índice completo se descarga en una sola petición y cada capítulo se cachea al leerlo. Los capítulos por encima del total del duelo (notas de volumen) se descartan solos.
-- **Meta de capítulos ajustable**: desde el panel de fuentes, sin poder bajarla por debajo de lo ya leído.
 - **Dos barras de progreso** en el lector: la ámbar avanza con el libro completo y la cian con el capítulo que estás leyendo, con el porcentaje junto al número de capítulo.
 - **Autoconfiguración desde chikari.moe**: pega la URL de una novela y se rellenan solos el título, autor, géneros, número de capítulos y la portada oficial. Si el duelo ya existía, puedes enlazarlo después desde la propia pantalla del duelo.
 - **Portada configurable**: sube JPG/PNG/WebP (hasta 5MB), tráela de chikari, o deja que se genere una portada elegante automáticamente.

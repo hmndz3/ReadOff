@@ -41,13 +41,12 @@
       <p class="font-serif text-headline-sm text-on-surface truncate leading-tight" id="book-title">…</p>
       <p class="font-sans text-label-sm text-outline truncate" id="chapter-label">Cargando…</p>
     </div>
-    <button id="btn-lang-src" class="hidden shrink-0 px-2.5 py-1.5 rounded-lg font-sans text-label-sm font-bold text-secondary hover:bg-surface-container-high transition-all" type="button" aria-label="Idioma del capítulo">ES</button>
     <button id="btn-settings" class="shrink-0 p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all" aria-label="Ajustes de lectura" type="button">
       <span translate="no" class="material-symbols-outlined align-middle">text_fields</span>
     </button>
   </div>
   <div class="h-1 bg-surface-container-lowest" title="Progreso del libro">
-    <div class="h-full bg-primary-container transition-all duration-300" id="progress-bar" style="width:0%"></div>
+    <div class="h-full bg-gradient-to-r from-tertiary-container to-primary transition-all duration-300" id="progress-bar" style="width:0%"></div>
   </div>
   <div class="h-1 bg-surface-container-lowest/50" title="Progreso del capítulo">
     <div class="h-full bg-secondary-container" id="chapter-bar" style="width:0%"></div>
@@ -198,15 +197,6 @@ document.querySelectorAll('.opt-rt').forEach((b) => b.addEventListener('click', 
 document.getElementById('size-minus').addEventListener('click', () => { prefs.size = Math.max(14, prefs.size - 1); applyPrefs(); });
 document.getElementById('size-plus').addEventListener('click', () => { prefs.size = Math.min(28, prefs.size + 1); applyPrefs(); });
 
-/* ---------- Idioma del capítulo (independiente del idioma de la interfaz) ---------- */
-const LANG_KEY = 'readerLang';
-function langLectura() {
-  try { return localStorage.getItem(LANG_KEY) === 'es' ? 'es' : 'en'; } catch { return 'en'; }
-}
-function ponerLangLectura(v) {
-  try { localStorage.setItem(LANG_KEY, v); } catch {}
-}
-
 /* ---------- Carga de capítulos ---------- */
 function renderBody(text) {
   const body = document.getElementById('chapter-body');
@@ -267,7 +257,7 @@ async function loadChapter(n, push = true) {
   document.getElementById('error-box').classList.add('hidden');
   document.getElementById('error-box').classList.remove('flex');
   try {
-    const { chapter, duel } = await api(`/api/duels/${duelId}/chapters/${n}?lang=${langLectura()}`);
+    const { chapter, duel } = await api(`/api/duels/${duelId}/chapters/${n}`);
     duelInfo = duel;
     current = chapter.number;
 
@@ -277,19 +267,6 @@ async function loadChapter(n, push = true) {
     document.getElementById('chapter-kicker').textContent = `Capítulo ${chapter.number}`;
     document.getElementById('chapter-title').textContent = chapter.title || `Capítulo ${chapter.number}`;
     renderBody(chapter.body);
-
-    // Si el español no se pudo servir, volvemos a inglés para no reintentar
-    // (y esperar) en cada capítulo.
-    if (chapter.avisoEs) {
-      ponerLangLectura('en');
-      toast('Español no disponible: ' + chapter.avisoEs + '. Mostrando el inglés.');
-    }
-
-    const btnLang = document.getElementById('btn-lang-src');
-    btnLang.classList.toggle('hidden', !duel.hasEs);
-    // Muestra el idioma al que cambiarías, no el actual.
-    btnLang.textContent = chapter.lang === 'es' ? 'EN' : 'ES';
-    btnLang.title = chapter.lang === 'es' ? 'Leer en inglés' : 'Leer en español';
 
     document.getElementById('progress-bar').style.width = Math.round((chapter.number / duel.totalChapters) * 100) + '%';
     document.getElementById('btn-prev').disabled = !chapter.hasPrev;
@@ -340,11 +317,6 @@ document.getElementById('btn-next').addEventListener('click', async () => {
   else window.location.href = '/duelo?id=' + duelId;
 });
 document.getElementById('btn-prev').addEventListener('click', () => { if (current > 1) loadChapter(current - 1); });
-
-document.getElementById('btn-lang-src').addEventListener('click', () => {
-  ponerLangLectura(langLectura() === 'es' ? 'en' : 'es');
-  loadChapter(current, false);
-});
 
 window.addEventListener('popstate', (e) => {
   const n = (e.state && e.state.n) || parseInt(new URLSearchParams(location.search).get('cap'), 10) || 1;

@@ -38,7 +38,7 @@ function metric(label, icon, value, unit, barPct, barNote, accent) {
     </div>
     <div class="flex flex-col gap-1.5">
       <div class="flex justify-between font-sans text-label-sm text-on-surface-variant"><span>${barNote[0]}</span><span class="font-bold">${barNote[1]}</span></div>
-      <div class="w-full h-1.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full ${accent === 'text-secondary' ? 'bg-secondary-container' : accent === 'text-error' ? 'bg-error-container' : 'bg-primary-container'}" style="width:${barPct}%"></div></div>
+      <div class="w-full h-1.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full ${accent === 'text-secondary' ? 'bg-secondary-container' : accent === 'text-error' ? 'bg-error-container' : 'bg-gradient-to-r from-tertiary-container to-primary'}" style="width:${barPct}%"></div></div>
     </div>
   </div>`;
 }

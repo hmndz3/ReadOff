@@ -120,7 +120,7 @@ function duelCard(d) {
             <span class="text-primary font-bold flex items-center gap-1"><span translate="no" class="material-symbols-outlined text-[14px]">person</span> Tú (Cap. ${my.chaptersRead}/${d.totalChapters})</span>
             <span class="text-primary font-bold">${my.pct}%</span>
           </div>
-          <div class="w-full h-2.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full bg-primary-container transition-all duration-500" style="width:${my.pct}%"></div></div>
+          <div class="w-full h-2.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-tertiary-container to-primary transition-all duration-500" style="width:${my.pct}%"></div></div>
         </div>
         <div class="flex flex-col gap-1">
           <div class="flex justify-between font-sans text-label-sm">
@@ -132,7 +132,7 @@ function duelCard(d) {
       </div>`
     : `<div class="flex flex-col gap-1 bg-surface-container/60 p-3 rounded-lg">
         <div class="flex justify-between font-sans text-label-sm"><span class="text-primary font-bold">Tu avance</span><span class="text-primary font-bold">${my.pct}%</span></div>
-        <div class="w-full h-2.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full bg-primary-container" style="width:${my.pct}%"></div></div>
+        <div class="w-full h-2.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-tertiary-container to-primary" style="width:${my.pct}%"></div></div>
       </div>`;
 
   const activity = rv.lastRead
