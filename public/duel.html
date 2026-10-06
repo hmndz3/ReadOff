@@ -152,7 +152,8 @@ function fuentesHTML(d) {
              <span class="w-1.5 h-1.5 rounded-full ${es.corriendo ? 'bg-primary animate-pulse' : 'bg-secondary'}"></span>
              Español · ${estadoEsTexto(es, d.totalChapters)}
            </span>
-           ${!es.corriendo && es.ultimo < d.totalChapters ? '<button id="btn-es-resume" type="button" class="text-secondary hover:underline">Continuar índice</button>' : ''}`
+           ${!es.corriendo && es.ultimo < d.totalChapters ? '<button id="btn-es-resume" type="button" class="text-secondary hover:underline">Continuar índice</button>' : ''}
+           <button id="btn-es-remove" type="button" class="text-outline hover:text-error hover:underline">Quitar</button>`
         : `<button id="btn-es-add" type="button" class="px-2.5 py-1 rounded-full bg-surface-container hover:bg-surface-container-high text-secondary flex items-center gap-1.5 transition-all">
              <span translate="no" class="material-symbols-outlined text-[14px]">translate</span> Añadir lectura en español
            </button>`}
@@ -437,6 +438,21 @@ function render(d, activity) {
     try {
       const r = await api(`/api/duels/${d.id}/es-source`, { method: 'POST', body: { url } });
       toast(`Enlazado: ${r.titulo}. Indexando en segundo plano…`, 'ok');
+      load();
+    } catch (err) { toast(err.message); }
+  });
+
+  const btnEsRemove = document.getElementById('btn-es-remove');
+  if (btnEsRemove) btnEsRemove.addEventListener('click', async () => {
+    const ok = await confirmDialog({
+      title: '¿Quitar la lectura en español?',
+      message: 'Se deja de indexar y el lector vuelve a servir sólo el inglés. El índice ya descargado se conserva por si la vuelves a enlazar.',
+      confirmText: 'Sí, quitar',
+    });
+    if (!ok) return;
+    try {
+      await api(`/api/duels/${d.id}/es-source`, { method: 'POST', body: {} });
+      toast('Lectura en español quitada', 'ok');
       load();
     } catch (err) { toast(err.message); }
   });
