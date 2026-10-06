@@ -124,9 +124,27 @@ function fuenteDeUrl(url) {
   return null;
 }
 
+// Cloudflare es más estricto con el tráfico que no viene de un navegador, y
+// Railway sale por IPs de centro de datos. Mandamos las mismas cabeceras que
+// envía la propia web de skynovels al llamar a su API.
+const SKY_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+  Accept: 'application/json, text/plain, */*',
+  'Accept-Language': 'es-ES,es;q=0.9',
+  Origin: 'https://www.skynovels.net',
+  Referer: 'https://www.skynovels.net/',
+};
+
 async function skyPedir(ruta) {
-  const r = await fetch(SKY_API + ruta, { headers: UA, signal: AbortSignal.timeout(15000) });
-  if (!r.ok) throw new Error(`skynovels respondió ${r.status}`);
+  const r = await fetch(SKY_API + ruta, { headers: SKY_HEADERS, signal: AbortSignal.timeout(15000) });
+  if (!r.ok) {
+    const pista =
+      r.status === 403
+        ? 'skynovels bloqueó la petición (403). Suele pasar cuando la hace un servidor y no un navegador.'
+        : `skynovels respondió ${r.status}`;
+    throw new Error(pista);
+  }
   return r.json();
 }
 
