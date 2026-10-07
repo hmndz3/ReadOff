@@ -569,3 +569,26 @@ async function requireAuth(activeNav) {
     throw new Error('redirect');
   }
 }
+
+/* Los iconos son ligaduras de la fuente Material Symbols. Si la red o una
+   extensión del navegador bloquean Google Fonts, el navegador pinta el nombre
+   del icono ("check_circle", "crown"...) como texto y descuadra la interfaz.
+   Se comprueba al terminar de cargar las fuentes y, si falta, se ocultan. */
+function vigilarFuenteIconos() {
+  const comprobar = () => {
+    let hay = true;
+    try {
+      hay = document.fonts.check('24px "Material Symbols Outlined"');
+    } catch {
+      hay = true; // navegador sin la API: mejor no tocar nada
+    }
+    document.documentElement.classList.toggle('sin-iconos', !hay);
+  };
+  if (document.fonts && document.fonts.ready) {
+    // Tras fonts.ready la comprobación ya es fiable; el margen evita falsos avisos.
+    document.fonts.ready.then(() => setTimeout(comprobar, 200));
+  } else {
+    setTimeout(comprobar, 3000);
+  }
+}
+document.addEventListener('DOMContentLoaded', vigilarFuenteIconos);
