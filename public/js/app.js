@@ -179,6 +179,7 @@ const EN_RX = [
     'The duel will be deleted for you and for $1, along with both progress and comments. This cannot be undone.'],
   [/^Leer Cap\. (\d+)$/, 'Read Ch. $1'],
   [/^Marcar Cap\. (\d+)$/, 'Mark Ch. $1'],
+  [/^Capítulo (\d+) de (\d+) ·$/, 'Chapter $1 of $2 ·'], // cabecera del lector, el % va en su propio span
   [/^Capítulo (\d+) de (\d+)$/, 'Chapter $1 of $2'],
   [/^Al pasar al capítulo (\d+) se registrará tu lectura hasta el (\d+)\.$/, 'Moving to chapter $1 will log your reading up to $2.'],
   [/^Ya tienes registrados (\d+) capítulos\.$/, 'You already have $1 chapters logged.'],
@@ -464,6 +465,35 @@ function humanDuration(days) {
   return `~${y} ${currentLang() === 'en' ? 'years' : 'años'}`;
 }
 
+/* Zona horaria del navegador. El servidor guarda read_at en UTC, así que sin
+   esto las rachas y los resúmenes semanales se corren un día para quien lee de
+   noche. Se manda al entrar y en cada carga en la que no coincida. */
+function browserTz() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; }
+}
+
+/* Minutos a texto corto: "48 min", "3,2 h". El ~ lo pone quien llama, según si
+   el dato se midió o se estimó. */
+function fmtMinutes(min) {
+  const { valor, unidad } = fmtMinutesParts(min);
+  return `${valor} ${unidad}`;
+}
+
+/* Igual que fmtMinutes pero separado, para las tarjetas que pintan el número
+   grande y la unidad pequeña al lado (si no, "~12,5 h" parte en dos líneas). */
+function fmtMinutesParts(min) {
+  const m = Math.max(0, Math.round(Number(min) || 0));
+  if (m < 60) return { valor: String(m), unidad: 'min' };
+  const h = Math.round((m / 60) * 10) / 10;
+  return { valor: currentLang() === 'en' ? String(h) : String(h).replace('.', ','), unidad: 'h' };
+}
+
+/* Nombre del día a partir de una clave 'YYYY-MM-DD' (mediodía para esquivar
+   cualquier desfase de zona al parsear). */
+function dayName(isoDay, style = 'short') {
+  return new Date(isoDay + 'T12:00:00').toLocaleDateString(currentLang() === 'en' ? 'en' : 'es', { weekday: style });
+}
+
 /* Portada: imagen subida o portada generada estilo cuero */
 function coverHTML(duel, cls = '') {
   if (duel.coverUrl) {
@@ -563,6 +593,11 @@ async function requireAuth(activeNav) {
   try {
     const { user } = await api('/api/me');
     mountHeader(activeNav, user);
+    // La sesión dura 90 días: quien ya estaba dentro no vuelve a pasar por el
+    // login, así que la zona se sincroniza aquí. Si falla no pasa nada: las
+    // estadísticas seguirían en UTC hasta la próxima carga.
+    const tz = browserTz();
+    if (user.tz !== tz) api('/api/me/tz', { method: 'POST', body: { tz } }).catch(() => {});
     return user;
   } catch {
     window.location.href = '/';

@@ -208,6 +208,73 @@ function renderBody(text) {
   });
 }
 
+/* ---------- Tiempo de lectura real ----------
+   Solo se cuenta el tiempo con la pestaña visible y con actividad reciente, así
+   que el total subestima antes que inflar: una pestaña abierta toda la noche no
+   suma. Se guarda por tramos para no perder la sesión si el navegador muere. */
+const TICK_MS = 5000;
+const IDLE_MS = 120000; // sin scroll ni toques se deja de contar
+const FLUSH_MS = 120000; // cada dos minutos de lectura se manda el tramo
+const MIN_ENVIO_MS = 5000; // abrir y cerrar el capítulo no es una lectura
+
+let sesion = { cap: null, activeMs: 0, words: 0, scrollPct: 0, ultimaActividad: 0 };
+
+function marcarActividad() {
+  sesion.ultimaActividad = Date.now();
+}
+['scroll', 'touchstart', 'keydown', 'pointerdown', 'wheel'].forEach((ev) =>
+  window.addEventListener(ev, marcarActividad, { passive: true })
+);
+
+function enviarSesion(conBeacon) {
+  const { cap, activeMs, words, scrollPct } = sesion;
+  if (cap === null || activeMs < MIN_ENVIO_MS) return;
+  sesion.activeMs = 0; // este tramo ya queda contabilizado
+  const cuerpo = { chapter: cap, activeMs, words, scrollPct: Math.round(scrollPct) };
+  const url = `/api/duels/${duelId}/reading-session`;
+  if (conBeacon && navigator.sendBeacon) {
+    // Al ocultar o cerrar la pestaña un fetch normal se cancela; el beacon no.
+    try {
+      navigator.sendBeacon(url, new Blob([JSON.stringify(cuerpo)], { type: 'application/json' }));
+      return;
+    } catch {} // sin beacon se intenta igual por fetch
+  }
+  api(url, { method: 'POST', body: cuerpo }).catch(() => {});
+}
+
+function iniciarSesion(numero, texto) {
+  enviarSesion(false); // cierra el capítulo anterior
+  sesion = {
+    cap: numero,
+    activeMs: 0,
+    words: String(texto || '').split(/\s+/).filter(Boolean).length,
+    scrollPct: 0,
+    ultimaActividad: Date.now(),
+  };
+}
+
+let ultimoScrollY = 0;
+setInterval(() => {
+  if (sesion.cap === null || document.visibilityState !== 'visible') return;
+  // No se depende solo del evento de scroll: si la posición cambió, hubo
+  // lectura, aunque el navegador no haya emitido el evento. De paso se
+  // refresca el avance del capítulo por si el evento tampoco llegó.
+  if (window.scrollY !== ultimoScrollY) {
+    ultimoScrollY = window.scrollY;
+    marcarActividad();
+    updateChapterProgress();
+  }
+  if (Date.now() - sesion.ultimaActividad > IDLE_MS) return;
+  sesion.activeMs += TICK_MS;
+  if (sesion.activeMs >= FLUSH_MS) enviarSesion(false);
+}, TICK_MS);
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') enviarSesion(true);
+  else marcarActividad(); // al volver no se cobra el tiempo que estuvo oculta
+});
+window.addEventListener('pagehide', () => enviarSesion(true));
+
 /* Progreso dentro del capítulo: 0% al empezar, 100% cuando el final del
    artículo llega al borde inferior de la ventana.
    Las medidas del artículo se cachean: sólo cambian al cargar un capítulo,
@@ -238,6 +305,7 @@ function updateChapterProgress() {
   bar.style.width = pct + '%';
   const lbl = document.getElementById('chapter-pct');
   if (lbl) lbl.textContent = Math.round(pct) + '%';
+  if (pct > sesion.scrollPct) sesion.scrollPct = pct; // lo mas lejos que se llego
 }
 
 function remedirYActualizar() {
@@ -262,8 +330,12 @@ async function loadChapter(n, push = true) {
     current = chapter.number;
 
     document.getElementById('book-title').textContent = duel.bookTitle;
+    iniciarSesion(chapter.number, chapter.body);
+    // Minutos estimados con el ritmo del propio lector cuando ya hay medidas
+    // suyas; si no, con 240 ppm.
+    const minutos = Math.max(1, Math.round(sesion.words / (duel.wpm || 240)));
     document.getElementById('chapter-label').innerHTML =
-      `Capítulo ${chapter.number} de ${duel.totalChapters} · <span id="chapter-pct" class="text-secondary font-semibold">0%</span>`;
+      `Capítulo ${chapter.number} de ${duel.totalChapters} · <span id="chapter-pct" class="text-secondary font-semibold">0%</span> · ~${minutos} min`;
     document.getElementById('chapter-kicker').textContent = `Capítulo ${chapter.number}`;
     document.getElementById('chapter-title').textContent = chapter.title || `Capítulo ${chapter.number}`;
     renderBody(chapter.body);

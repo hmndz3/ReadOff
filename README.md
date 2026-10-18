@@ -13,6 +13,8 @@
 - **Progreso por capítulos**: cuadrícula interactiva (paginada en bloques de 100 para novelas largas), marca el siguiente capítulo leído y puedes revertir el último.
 - **Comentarios por capítulo**: notas cortas (máx. 280 caracteres, ilimitadas) entre los dos duelistas, con **anti-spoiler**: los comentarios sobre capítulos más adelantados que tu progreso llegan ocultos hasta que tocas para revelarlos.
 - **Estadísticas en vivo**: ventaja, ritmo (caps/día), racha de días, fecha estimada de fin, actividad del duelo, posición del rival.
+- **Resumen semanal y estadísticas personales**: capítulos y horas de la semana con la variación respecto a la anterior, racha actual y récord, minutos por capítulo, tus palabras por minuto, mapa de calor de los últimos 6 meses, tu día favorito y tu franja horaria de lectura. El lector **mide el tiempo real** de cada capítulo (solo con la pestaña visible y con actividad reciente); lo que no pasó por el lector se estima por conteo de palabras y se marca con `~`.
+- **Minutos estimados en el lector**: cada capítulo muestra cuánto te va a llevar (`~7 min`), calculado con tu propio ritmo de lectura.
 - **Victoria automática**: el primero en marcar el capítulo final se corona campeón.
 - **Fecha límite editable**: es una meta compartida y orientativa, no cierra el duelo por sí sola. El chip de la cabecera indica cuánto falta (o cuánto lleva vencida, en rojo) y al pulsarlo se cambia o se quita. Cualquiera de los dos duelistas puede ajustarla.
 - **Eliminar duelos**: desde la tarjeta del dashboard o desde la pantalla del duelo. Para evitar borrados accidentales hay que **escribir el título del libro** para habilitar el botón. Borra el duelo para ambos duelistas junto con el progreso, los comentarios y la portada.
@@ -61,6 +63,22 @@ Abre http://localhost:3000. Los datos se guardan en `data/` (SQLite + portadas).
 
 - **Ritmo**: capítulos por día medidos sobre tu actividad real de lectura, desde tu primera lectura del duelo y no desde que el duelo se creó (así no penaliza a quien se une tarde). Si has leído en los últimos 14 días se usa esa ventana móvil, que refleja el ritmo con el que vas ahora; si llevas más tiempo parado, cae al promedio histórico. El primer día el divisor mínimo es un día, para no extrapolar un ritmo irreal a partir de unas pocas horas.
 - **Meta estimada**: capítulos que te faltan divididos entre ese ritmo. La tarjeta muestra la duración aproximada (`~4 meses`, `~2.9 años`) junto a la fecha, y la fecha incluye el año cuando no cae en el año en curso.
+- **Días y rachas en tu zona horaria**: las lecturas se guardan en UTC, así que agruparlas por día UTC corría un día la lectura nocturna (leer a las 19:00 en México contaba como el día siguiente). Ahora cada cuenta guarda su zona (`users.tz`, detectada por el navegador) y los días, las semanas, las rachas y la hora de lectura se calculan con el reloj que viste tú.
+- **Tiempo leído**: el lector mide el tiempo real de cada capítulo. Solo cuenta con la pestaña visible y con scroll o toques en los últimos 2 minutos, y se guarda por tramos, así que **subestima antes que inflar**: una pestaña abierta toda la noche no suma. Se envía con `sendBeacon` al ocultar o cerrar la pestaña, de modo que no se pierde el último tramo.
+- **Minutos medidos vs. estimados**: los capítulos que pasaron por el lector tienen tiempo real. Los que marcaste a mano se estiman por conteo de palabras del capítulo en caché (≈6 caracteres por palabra), a tu propio ritmo de palabras por minuto si ya hay al menos 3 sesiones medidas, o a 240 ppm si todavía no. **En la interfaz, un `~` delante del número significa que ese dato está estimado**; sin `~`, está medido.
+- **Palabras por minuto**: salen de tus sesiones de más de un minuto con conteo de palabras. Se descartan los valores fuera de 60–1200 ppm por si alguna sesión quedó mal cerrada.
+
+## Estadísticas disponibles
+
+En **Mi Perfil**, bajo *Tu Semana de Lectura*:
+
+- Capítulos y tiempo de esta semana, con la variación respecto a la semana pasada.
+- Racha actual y récord histórico.
+- Minutos por capítulo y tus palabras por minuto.
+- Mapa de calor de los últimos 6 meses (una columna por semana, de lunes a domingo).
+- Tu día de la semana favorito y la franja horaria en la que más lees.
+
+En **Mis Duelos**, un bloque *Esta semana* con capítulos, horas y racha, que solo aparece cuando ya hay lectura registrada.
 
 ## Notas
 

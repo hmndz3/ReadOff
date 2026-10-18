@@ -149,6 +149,7 @@ document.getElementById('form').addEventListener('submit', async (e) => {
     const body = {
       username: document.getElementById('username').value,
       password: document.getElementById('password').value,
+      tz: browserTz(),
     };
     if (mode === 'register') body.displayName = document.getElementById('displayName').value;
     await api('/api/auth/' + mode, { method: 'POST', body });

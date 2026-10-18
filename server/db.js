@@ -59,6 +59,23 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 CREATE INDEX IF NOT EXISTS idx_comments_duel ON comments(duel_id, created_at);
 
+-- Sesiones de lectura: tiempo real medido en el lector. Solo cuenta el tiempo
+-- con la pestaña visible y con actividad reciente, asi que active_ms siempre
+-- subestima antes que inflar. Un capitulo puede tener varias sesiones.
+CREATE TABLE IF NOT EXISTS reading_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  duel_id INTEGER NOT NULL REFERENCES duels(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  chapter INTEGER NOT NULL,
+  started_at TEXT NOT NULL,
+  ended_at TEXT NOT NULL,
+  active_ms INTEGER NOT NULL,
+  scroll_pct INTEGER,
+  words INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON reading_sessions(user_id, started_at);
+CREATE INDEX IF NOT EXISTS idx_sessions_chapter ON reading_sessions(user_id, duel_id, chapter);
+
 -- Caché local de capítulos: cada capítulo se descarga de la fuente una sola vez.
 CREATE TABLE IF NOT EXISTS chapters (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,5 +93,11 @@ CREATE TABLE IF NOT EXISTS chapters (
 // Vínculo opcional entre un duelo y una novela de la fuente externa
 const duelCols = db.prepare('PRAGMA table_info(duels)').all().map((c) => c.name);
 if (!duelCols.includes('source_slug')) db.exec('ALTER TABLE duels ADD COLUMN source_slug TEXT');
+
+// Zona horaria del lector (nombre IANA). read_at se guarda en UTC, asi que sin
+// esto una lectura de las 19:00 en Mexico cae en el dia siguiente y descuadra
+// las rachas y los resumenes semanales de quien lee de noche.
+const userCols = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name);
+if (!userCols.includes('tz')) db.exec("ALTER TABLE users ADD COLUMN tz TEXT NOT NULL DEFAULT 'UTC'");
 
 module.exports = { db, DATA_DIR, UPLOADS_DIR };

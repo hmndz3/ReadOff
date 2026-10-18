@@ -41,13 +41,31 @@ function auth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'No has iniciado sesión' });
   try {
     const payload = jwt.verify(token, SECRET);
-    const user = db.prepare('SELECT id, username, display_name, created_at FROM users WHERE id = ?').get(payload.id);
+    const user = db.prepare('SELECT id, username, display_name, created_at, tz FROM users WHERE id = ?').get(payload.id);
     if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
     req.user = user;
     next();
   } catch {
     return res.status(401).json({ error: 'Sesión inválida' });
   }
+}
+
+// Solo se acepta un nombre IANA que el ICU de Node reconozca; cualquier otra
+// cosa cae en UTC antes de tocar la base.
+function safeTz(value) {
+  const tz = String(value || '').trim();
+  if (!tz || tz.length > 64) return null;
+  try {
+    new Intl.DateTimeFormat('en-CA', { timeZone: tz });
+    return tz;
+  } catch {
+    return null;
+  }
+}
+
+function saveTz(userId, value) {
+  const tz = safeTz(value);
+  if (tz) db.prepare('UPDATE users SET tz = ? WHERE id = ?').run(tz, userId);
 }
 
 // ---------- Auth routes ----------
@@ -62,7 +80,9 @@ app.post('/api/auth/register', (req, res) => {
   if (exists) return res.status(409).json({ error: 'Ese usuario ya existe' });
   const hash = bcrypt.hashSync(String(password), 10);
   const name = String(displayName || '').trim() || uname;
-  const info = db.prepare('INSERT INTO users (username, display_name, password_hash) VALUES (?, ?, ?)').run(uname, name, hash);
+  const info = db
+    .prepare('INSERT INTO users (username, display_name, password_hash, tz) VALUES (?, ?, ?, ?)')
+    .run(uname, name, hash, safeTz((req.body || {}).tz) || 'UTC');
   const user = { id: info.lastInsertRowid, username: uname, display_name: name };
   setAuthCookie(res, user);
   res.json({ user: { id: user.id, username: user.username, displayName: user.display_name } });
@@ -74,6 +94,7 @@ app.post('/api/auth/login', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(uname);
   if (!user || !bcrypt.compareSync(String(password || ''), user.password_hash))
     return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+  saveTz(user.id, (req.body || {}).tz);
   setAuthCookie(res, user);
   res.json({ user: { id: user.id, username: user.username, displayName: user.display_name } });
 });
@@ -84,7 +105,18 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 app.get('/api/me', auth, (req, res) => {
-  res.json({ user: { id: req.user.id, username: req.user.username, displayName: req.user.display_name } });
+  res.json({
+    user: { id: req.user.id, username: req.user.username, displayName: req.user.display_name, tz: req.user.tz || 'UTC' },
+  });
+});
+
+// La sesión dura 90 días, así que quien ya estaba dentro no vuelve a pasar por
+// el login: el cliente manda su zona aquí en cuanto detecta que no coincide.
+app.post('/api/me/tz', auth, (req, res) => {
+  const tz = safeTz((req.body || {}).tz);
+  if (!tz) return res.status(400).json({ error: 'Zona horaria no válida' });
+  db.prepare('UPDATE users SET tz = ? WHERE id = ?').run(tz, req.user.id);
+  res.json({ tz });
 });
 
 // ---------- Covers ----------
@@ -121,6 +153,81 @@ function toMs(iso) {
   return new Date(iso.replace(' ', 'T') + 'Z').getTime();
 }
 
+// ---------- Dias locales ----------
+// read_at se guarda en UTC. Agrupar por dia UTC corre un dia la lectura
+// nocturna (las 19:00 en Mexico ya son del dia siguiente en UTC), asi que
+// rachas, semanas y horas se calculan con el reloj que vio el lector.
+const _fmtCache = new Map();
+function partsFormatter(tz) {
+  let f = _fmtCache.get(tz);
+  if (f) return f;
+  const opts = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' };
+  try {
+    f = new Intl.DateTimeFormat('en-CA', { timeZone: tz, ...opts });
+  } catch {
+    f = new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', ...opts }); // tz guardada invalida
+  }
+  _fmtCache.set(tz, f);
+  return f;
+}
+
+// { day: 'YYYY-MM-DD', hour: 0-23 } en la zona del lector.
+function localParts(ms, tz) {
+  const p = {};
+  for (const part of partsFormatter(tz).formatToParts(ms)) p[part.type] = part.value;
+  return { day: `${p.year}-${p.month}-${p.day}`, hour: parseInt(p.hour, 10) % 24 };
+}
+
+function localDay(iso, tz) {
+  return localParts(toMs(iso), tz).day;
+}
+
+function todayLocal(tz) {
+  return localParts(Date.now(), tz).day;
+}
+
+// Dia de la semana con lunes = 0, a partir de una clave 'YYYY-MM-DD'.
+function weekdayOf(dayKey) {
+  return (new Date(dayKey + 'T00:00:00Z').getUTCDay() + 6) % 7;
+}
+
+function shiftDay(dayKey, days) {
+  const d = new Date(dayKey + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Lunes de la semana a la que pertenece el dia.
+function weekStart(dayKey) {
+  return shiftDay(dayKey, -weekdayOf(dayKey));
+}
+
+// Racha de dias consecutivos con lectura, terminando hoy o ayer.
+function streakFrom(daySet, tz) {
+  const today = todayLocal(tz);
+  let cursor = daySet.has(today) ? today : shiftDay(today, -1);
+  let streak = 0;
+  while (daySet.has(cursor)) {
+    streak++;
+    cursor = shiftDay(cursor, -1);
+  }
+  return streak;
+}
+
+// Racha mas larga de la historia.
+function recordStreakOf(daySet) {
+  const days = [...daySet].sort();
+  let best = 0;
+  let run = 0;
+  let prev = null;
+  for (const day of days) {
+    run = prev && shiftDay(prev, 1) === day ? run + 1 : 1;
+    if (run > best) best = run;
+    prev = day;
+  }
+  return best;
+}
+
 // Ritmo de lectura en capitulos/dia.
 // Se mide sobre la actividad real del lector (desde su primera lectura) y no
 // sobre el tiempo que el duelo lleva abierto, para no penalizar a quien se une
@@ -142,7 +249,13 @@ function roundPace(p) {
   return p >= 1 ? Math.round(p * 10) / 10 : Math.round(p * 100) / 100;
 }
 
-function userStats(duel, userId) {
+function tzOf(userId) {
+  const row = db.prepare('SELECT tz FROM users WHERE id = ?').get(userId);
+  return (row && row.tz) || 'UTC';
+}
+
+function userStats(duel, userId, tz) {
+  const zone = tz || tzOf(userId);
   const rows = db
     .prepare('SELECT chapter, read_at FROM progress WHERE duel_id = ? AND user_id = ? ORDER BY chapter')
     .all(duel.id, userId);
@@ -151,16 +264,10 @@ function userStats(duel, userId) {
   const nowMs = duel.finished_at ? toMs(duel.finished_at) : Date.now();
   const { pace, basis: paceBasis } = paceOf(rows, nowMs);
 
-  // Racha: días consecutivos con lectura, terminando hoy o ayer (UTC).
-  const daySet = new Set(rows.map((r) => r.read_at.slice(0, 10)));
-  let streak = 0;
-  const d = new Date();
-  const todayKey = d.toISOString().slice(0, 10);
-  if (!daySet.has(todayKey)) d.setUTCDate(d.getUTCDate() - 1);
-  while (daySet.has(d.toISOString().slice(0, 10))) {
-    streak++;
-    d.setUTCDate(d.getUTCDate() - 1);
-  }
+  // Racha: días consecutivos con lectura, terminando hoy o ayer, en la zona
+  // del lector (no en UTC, que corre un día la lectura nocturna).
+  const daySet = new Set(rows.map((r) => localDay(r.read_at, zone)));
+  const streak = streakFrom(daySet, zone);
 
   // Proyección de fin
   let projection = null;
@@ -195,8 +302,8 @@ function duelPayload(duel, meId) {
   const me = iAmCreator ? creator : opponent;
   const rival = iAmCreator ? opponent : creator;
 
-  const myStats = me ? userStats(duel, me.id) : null;
-  const rivalStats = rival ? userStats(duel, rival.id) : null;
+  const myStats = me ? userStats(duel, me.id, me.tz) : null;
+  const rivalStats = rival ? userStats(duel, rival.id, rival.tz) : null;
 
   return {
     id: duel.id,
@@ -257,7 +364,7 @@ app.get('/api/duels/code/:code', auth, (req, res) => {
   const duel = db.prepare('SELECT * FROM duels WHERE code = ?').get(code);
   if (!duel) return res.status(404).json({ error: 'No existe ningún duelo con ese código' });
   const creator = db.prepare('SELECT * FROM users WHERE id = ?').get(duel.creator_id);
-  const creatorStats = userStats(duel, duel.creator_id);
+  const creatorStats = userStats(duel, duel.creator_id, creator && creator.tz);
   res.json({
     duel: {
       id: duel.id,
@@ -573,6 +680,7 @@ app.get('/api/duels/:id/chapters/:n', auth, async (req, res) => {
         totalChapters: duel.total_chapters,
         status: duel.status,
         myRead,
+        wpm: wpmOf(req.user.id).value, // para estimar los minutos del capítulo
       },
     });
   } catch (e) {
@@ -607,6 +715,215 @@ app.post('/api/duels/:id/read-upto', auth, (req, res) => {
   res.json({ duel: duelPayload(updated, req.user.id) });
 });
 
+// ---------- Tiempo de lectura medido ----------
+const MAX_SESSION_MS = 4 * 3600 * 1000; // más que esto es basura o un reloj roto
+const MIN_SESSION_MS = 5000; // abrir y cerrar el capítulo no es una lectura
+
+// El lector manda aquí el tiempo que estuvo leyendo de verdad: solo cuenta con
+// la pestaña visible y con scroll o toques recientes, así que subestima antes
+// que inflar. Llega por sendBeacon al cerrar o al ocultar la pestaña.
+app.post('/api/duels/:id/reading-session', auth, (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  const b = req.body || {};
+  const chapter = parseInt(b.chapter, 10);
+  if (!Number.isInteger(chapter) || chapter < 1 || chapter > duel.total_chapters)
+    return res.status(400).json({ error: 'Capítulo fuera de rango' });
+
+  const activeMs = Math.round(Number(b.activeMs));
+  if (!Number.isFinite(activeMs) || activeMs < MIN_SESSION_MS) return res.json({ stored: false });
+  const ms = Math.min(activeMs, MAX_SESSION_MS);
+
+  const pct = Math.round(Number(b.scrollPct));
+  const scrollPct = Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : null;
+  const w = Math.round(Number(b.words));
+  const words = Number.isFinite(w) && w > 0 && w < 200000 ? w : null;
+
+  // Las marcas de tiempo son del servidor: el reloj del cliente no es fiable.
+  // started_at se deriva del tiempo activo, así que es el inicio de la lectura
+  // efectiva, no el momento en que se abrió la pestaña.
+  const now = Date.now();
+  const iso = (t) => new Date(t).toISOString().slice(0, 19).replace('T', ' ');
+  db.prepare(
+    `INSERT INTO reading_sessions (duel_id, user_id, chapter, started_at, ended_at, active_ms, scroll_pct, words)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(duel.id, req.user.id, chapter, iso(now - ms), iso(now), ms, scrollPct, words);
+  res.json({ stored: true });
+});
+
+// ---------- Estadísticas ----------
+const CHARS_PER_WORD = 6; // medido sobre el caché: ~13.900 caracteres ≈ ~2.300 palabras
+const DEFAULT_WPM = 240;
+const FALLBACK_CHARS = 13900;
+const HEATMAP_WEEKS = 26; // medio año: con menos columnas las celdas salen enormes
+const MIN_WPM_SAMPLES = 3;
+
+// Palabras por minuto reales del lector, a partir de las sesiones medidas. Con
+// pocas muestras no es fiable, así que se usa el valor por defecto; se descartan
+// los extremos por si alguna sesión quedó mal cerrada.
+function wpmOf(userId) {
+  const row = db
+    .prepare(
+      `SELECT SUM(words) AS words, SUM(active_ms) AS ms, COUNT(*) AS n
+       FROM reading_sessions WHERE user_id = ? AND words > 0 AND active_ms >= 60000`
+    )
+    .get(userId);
+  if (!row || row.n < MIN_WPM_SAMPLES || !row.ms) return { value: DEFAULT_WPM, measured: false };
+  const value = Math.round(row.words / (row.ms / 60000));
+  if (value < 60 || value > 1200) return { value: DEFAULT_WPM, measured: false };
+  return { value, measured: true };
+}
+
+app.get('/api/stats', auth, (req, res) => {
+  const tz = req.user.tz || 'UTC';
+  const userId = req.user.id;
+
+  // Una fila por capítulo leído, con el tamaño del capítulo si está en caché.
+  const rows = db
+    .prepare(
+      `SELECT p.duel_id, p.chapter, p.read_at, d.source_slug, length(c.body) AS body_len
+       FROM progress p
+       JOIN duels d ON d.id = p.duel_id
+       LEFT JOIN chapters c ON c.slug = d.source_slug AND c.number = p.chapter
+       WHERE p.user_id = ?
+       ORDER BY p.read_at`
+    )
+    .all(userId);
+
+  // Tiempo medido por capítulo (un capítulo puede tener varias sesiones).
+  const measured = new Map();
+  for (const s of db
+    .prepare(
+      'SELECT duel_id, chapter, SUM(active_ms) AS ms FROM reading_sessions WHERE user_id = ? GROUP BY duel_id, chapter'
+    )
+    .all(userId))
+    measured.set(s.duel_id + ':' + s.chapter, s.ms);
+
+  const lectorWpm = wpmOf(userId);
+  const wpm = lectorWpm.value;
+
+  // Para estimar capítulos que no pasaron por el lector: media de la novela y,
+  // si tampoco la hay, media global del caché.
+  const slugAvg = new Map();
+  for (const r of db.prepare('SELECT slug, AVG(length(body)) AS avg FROM chapters GROUP BY slug').all())
+    slugAvg.set(r.slug, r.avg);
+  const globalAvg = db.prepare('SELECT AVG(length(body)) AS avg FROM chapters').get().avg || FALLBACK_CHARS;
+
+  function minutesOf(row) {
+    const ms = measured.get(row.duel_id + ':' + row.chapter);
+    if (ms) return { minutes: ms / 60000, measured: true };
+    const chars = row.body_len || slugAvg.get(row.source_slug) || globalAvg;
+    return { minutes: chars / CHARS_PER_WORD / wpm, measured: false };
+  }
+
+  const byDay = new Map();
+  const byWeek = new Map();
+  const weekday = Array.from({ length: 7 }, () => ({ chapters: 0, minutes: 0 }));
+  const hours = Array.from({ length: 24 }, () => 0);
+  let totalMinutes = 0;
+  let totalMeasured = 0;
+
+  const bucket = (map, key, extra = {}) => {
+    let b = map.get(key);
+    if (!b) {
+      b = { chapters: 0, minutes: 0, measuredChapters: 0, ...extra };
+      map.set(key, b);
+    }
+    return b;
+  };
+
+  for (const row of rows) {
+    const { day, hour } = localParts(toMs(row.read_at), tz);
+    const { minutes, measured: isMeasured } = minutesOf(row);
+    totalMinutes += minutes;
+    if (isMeasured) totalMeasured++;
+
+    const d = bucket(byDay, day);
+    d.chapters++;
+    d.minutes += minutes;
+    if (isMeasured) d.measuredChapters++;
+
+    const w = bucket(byWeek, weekStart(day));
+    w.chapters++;
+    w.minutes += minutes;
+    if (isMeasured) w.measuredChapters++;
+
+    const wd = weekday[weekdayOf(day)];
+    wd.chapters++;
+    wd.minutes += minutes;
+    hours[hour]++;
+  }
+
+  const round1 = (n) => Math.round(n * 10) / 10;
+  const pctOf = (part, whole) => (whole ? Math.round((part / whole) * 100) : 0);
+  const summary = (b, extra = {}) =>
+    b
+      ? { chapters: b.chapters, minutes: Math.round(b.minutes), measuredPct: pctOf(b.measuredChapters, b.chapters), ...extra }
+      : { chapters: 0, minutes: 0, measuredPct: 0, ...extra };
+
+  const today = todayLocal(tz);
+  const thisWeek = weekStart(today);
+  const prevWeek = shiftDay(thisWeek, -7);
+
+  // Variación semanal: null cuando la semana pasada fue cero, porque un
+  // porcentaje sobre cero no dice nada.
+  const change = (now, before) => (before > 0 ? Math.round(((now - before) / before) * 100) : null);
+  const cur = byWeek.get(thisWeek);
+  const prev = byWeek.get(prevWeek);
+
+  // Rejilla completa de 12 semanas (incluye los días en cero) para que el
+  // cliente la pinte sin rellenar huecos.
+  const heatFrom = shiftDay(thisWeek, -7 * (HEATMAP_WEEKS - 1));
+  const days = [];
+  let heatMax = 0;
+  for (let i = 0; i < HEATMAP_WEEKS * 7; i++) {
+    const day = shiftDay(heatFrom, i);
+    const b = byDay.get(day);
+    const chapters = b ? b.chapters : 0;
+    if (chapters > heatMax) heatMax = chapters;
+    days.push({ day, chapters, minutes: b ? Math.round(b.minutes) : 0, future: day > today });
+  }
+
+  let bestDay = null;
+  for (const [day, b] of byDay) if (!bestDay || b.chapters > bestDay.chapters) bestDay = { day, ...b };
+  let bestWeek = null;
+  for (const [start, b] of byWeek) if (!bestWeek || b.chapters > bestWeek.chapters) bestWeek = { start, ...b };
+
+  const daySet = new Set(byDay.keys());
+  const perChapterMeasured = totalMeasured >= MIN_WPM_SAMPLES && totalMeasured / (rows.length || 1) >= 0.5;
+
+  res.json({
+    tz,
+    week: { start: thisWeek, ...summary(cur) },
+    prevWeek: { start: prevWeek, ...summary(prev) },
+    delta: {
+      chapters: change(cur ? cur.chapters : 0, prev ? prev.chapters : 0),
+      minutes: change(cur ? cur.minutes : 0, prev ? prev.minutes : 0),
+    },
+    heatmap: { from: heatFrom, to: today, weeks: HEATMAP_WEEKS, max: heatMax, days },
+    byWeekday: weekday.map((b, i) => ({ weekday: i, chapters: b.chapters, minutes: Math.round(b.minutes) })),
+    byHour: hours.map((chapters, hour) => ({ hour, chapters })),
+    best: {
+      day: bestDay ? { day: bestDay.day, ...summary(bestDay) } : null,
+      week: bestWeek ? { start: bestWeek.start, ...summary(bestWeek) } : null,
+    },
+    streak: { current: streakFrom(daySet, tz), record: recordStreakOf(daySet) },
+    perChapter: {
+      minutes: rows.length ? round1(totalMinutes / rows.length) : 0,
+      measured: perChapterMeasured,
+      samples: totalMeasured,
+    },
+    wpm: lectorWpm,
+    totals: {
+      chapters: rows.length,
+      minutes: Math.round(totalMinutes),
+      hours: round1(totalMinutes / 60),
+      measuredPct: pctOf(totalMeasured, rows.length),
+      activeDays: daySet.size,
+    },
+  });
+});
+
 // ---------- Perfil ----------
 app.get('/api/profile', auth, (req, res) => {
   const me = req.user;
@@ -618,22 +935,18 @@ app.get('/api/profile', auth, (req, res) => {
   const losses = finished.length - wins;
   const totalChapters = db.prepare('SELECT COUNT(*) AS c FROM progress WHERE user_id = ?').get(me.id).c;
 
-  // Mayor racha global (días consecutivos con al menos un capítulo leído)
-  const days = db
-    .prepare("SELECT DISTINCT substr(read_at, 1, 10) AS day FROM progress WHERE user_id = ? ORDER BY day")
-    .all(me.id)
-    .map((r) => r.day);
-  let longestStreak = 0;
-  let current = 0;
-  let prev = null;
-  for (const day of days) {
-    if (prev && new Date(day) - new Date(prev) === 86400000) current++;
-    else current = 1;
-    longestStreak = Math.max(longestStreak, current);
-    prev = day;
-  }
+  // Mayor racha global (días consecutivos con al menos un capítulo leído),
+  // contada en la zona del lector igual que las rachas de cada duelo.
+  const zone = me.tz || 'UTC';
+  const daySet = new Set(
+    db
+      .prepare('SELECT read_at FROM progress WHERE user_id = ?')
+      .all(me.id)
+      .map((r) => localDay(r.read_at, zone))
+  );
+  const longestStreak = recordStreakOf(daySet);
 
-  
+
   res.json({
     user: { id: me.id, username: me.username, displayName: me.display_name, memberSince: me.created_at },
     stats: {

@@ -43,6 +43,173 @@ function metric(label, icon, value, unit, barPct, barNote, accent) {
   </div>`;
 }
 
+/* ---------- Estadísticas de lectura ---------- */
+
+/* Los minutos pueden venir medidos en el lector o estimados por conteo de
+   palabras. El ~ distingue lo uno de lo otro: sin él, el dato es medido. */
+function aprox(valor, measuredPct) {
+  // En cero no hay nada que estimar, así que el ~ sobra.
+  const sinDato = parseFloat(String(valor).replace(',', '.')) === 0;
+  return (measuredPct >= 100 || sinDato ? '' : '~') + valor;
+}
+
+/* Los textos con números se arman por idioma: el diccionario por regex de
+   app.js es para cadenas fijas y aquí casi todo lleva cifras dentro. */
+const EN = currentLang() === 'en';
+const DIAS = EN
+  ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+  : ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const INICIALES = EN ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+function chipDelta(pct) {
+  if (pct === null || pct === undefined)
+    return `<span class="font-sans text-label-sm text-outline">${EN ? 'no reference' : 'sin referencia'}</span>`;
+  if (pct === 0)
+    return `<span class="font-sans text-label-sm text-on-surface-variant">${EN ? 'same as last week' : 'igual que la semana pasada'}</span>`;
+  const sube = pct > 0;
+  const color = sube ? 'text-primary' : 'text-error';
+  return `<span class="inline-flex items-center gap-0.5 font-sans text-label-sm font-bold ${color}">
+    <span translate="no" class="material-symbols-outlined text-[16px]">${sube ? 'trending_up' : 'trending_down'}</span>
+    ${sube ? '+' : ''}${pct}% ${EN ? 'vs. last week' : 'vs. semana pasada'}</span>`;
+}
+
+function tarjetaSemana(label, icon, valor, unidad, pie, accent) {
+  return `<div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-lg flex flex-col gap-element-gap-sm">
+    <div class="flex items-center justify-between">
+      <span class="font-sans text-label-md text-on-surface-variant">${label}</span>
+      <span translate="no" class="material-symbols-outlined ${accent} text-[20px]">${icon}</span>
+    </div>
+    <div class="flex items-baseline gap-1.5">
+      <span class="font-sans font-extrabold text-[36px] leading-none ${accent}">${valor}</span>
+      <span class="font-sans text-body-sm text-outline">${unidad}</span>
+    </div>
+    <div class="min-h-[20px]">${pie}</div>
+  </div>`;
+}
+
+/* Rejilla de 12 semanas: una columna por semana, de lunes a domingo. El array
+   llega ordenado día a día desde un lunes, así que grid-flow-col lo coloca solo. */
+function heatmap(h) {
+  const nivel = (ch) => {
+    if (!ch) return 0;
+    const r = ch / Math.max(1, h.max);
+    return r > 0.75 ? 4 : r > 0.5 ? 3 : r > 0.25 ? 2 : 1;
+  };
+  const opacidad = [0, 0.2, 0.42, 0.7, 1];
+  const celdas = h.days
+    .map((d) => {
+      if (d.future) return `<div class="rounded-[3px] aspect-square"></div>`;
+      const n = nivel(d.chapters);
+      const fondo = n === 0 ? 'bg-surface-container-high' : 'bg-primary-container';
+      const titulo = `${d.day}: ${d.chapters} cap${d.chapters === 1 ? '' : 's'}${d.minutes ? ' · ' + fmtMinutes(d.minutes) : ''}`;
+      return `<div class="rounded-[3px] aspect-square ${fondo}" style="${n ? 'opacity:' + opacidad[n] : ''}" title="${titulo}"></div>`;
+    })
+    .join('');
+  const etiquetas = INICIALES.map(
+    (d) => `<span class="font-sans text-[10px] text-outline leading-none h-full flex items-center">${d}</span>`
+  ).join('');
+  return `<div class="flex gap-1.5">
+    <div class="grid grid-rows-[repeat(7,1fr)] gap-[3px] shrink-0 pr-0.5">${etiquetas}</div>
+    <div class="grid grid-rows-[repeat(7,1fr)] grid-flow-col gap-[3px] flex-1 min-w-0">${celdas}</div>
+  </div>`;
+}
+
+function barras(items, max, etiqueta, accent = 'bg-primary-container') {
+  return items
+    .map((it) => {
+      const pct = max ? Math.round((it.valor / max) * 100) : 0;
+      return `<div class="flex items-center gap-element-gap-sm">
+        <span class="font-sans text-label-sm text-on-surface-variant w-10 shrink-0">${etiqueta(it)}</span>
+        <div class="flex-1 h-2 rounded-full bg-surface-container-high overflow-hidden min-w-0">
+          <div class="h-full rounded-full ${accent}" style="width:${pct}%"></div>
+        </div>
+        <span class="font-sans text-label-sm text-on-surface font-semibold w-8 shrink-0 text-right">${it.valor}</span>
+      </div>`;
+    })
+    .join('');
+}
+
+function statsBlock(s) {
+  const semana = fmtMinutesParts(s.week.minutes);
+  const porCap = fmtMinutesParts(s.perChapter.minutes);
+  const maxDia = Math.max(1, ...s.byWeekday.map((w) => w.chapters));
+  const maxHora = Math.max(1, ...s.byHour.map((h) => h.chapters));
+  const mejorDiaSemana = s.byWeekday.reduce((a, b) => (b.chapters > a.chapters ? b : a), s.byWeekday[0]);
+  const horaPico = s.byHour.reduce((a, b) => (b.chapters > a.chapters ? b : a), s.byHour[0]);
+
+  // Las horas solo se agrupan en bloques de 3 para que quepan en móvil.
+  const bloques = [];
+  for (let i = 0; i < 24; i += 3) {
+    bloques.push({
+      valor: s.byHour.slice(i, i + 3).reduce((n, h) => n + h.chapters, 0),
+      desde: i,
+    });
+  }
+
+  return `
+    <div class="flex items-center gap-2 mb-element-gap-lg">
+      <span translate="no" class="material-symbols-outlined text-primary text-[22px]">insights</span>
+      <h2 class="font-serif text-headline-md text-on-surface">${EN ? 'Your Reading Week' : 'Tu Semana de Lectura'}</h2>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-gutter-tablet mb-element-gap-lg">
+      ${tarjetaSemana(EN ? 'Chapters' : 'Capítulos', 'auto_stories', s.week.chapters, EN ? 'this week' : 'esta semana', chipDelta(s.delta.chapters), 'text-primary')}
+      ${tarjetaSemana(EN ? 'Time read' : 'Tiempo leído', 'schedule', aprox(semana.valor, s.week.measuredPct), semana.unidad + (EN ? ' this week' : ' esta semana'), chipDelta(s.delta.minutes), 'text-secondary')}
+      ${tarjetaSemana(EN ? 'Current streak' : 'Racha actual', 'local_fire_department', s.streak.current, EN ? (s.streak.current === 1 ? 'day' : 'days') : s.streak.current === 1 ? 'día' : 'días', `<span class="font-sans text-label-sm text-outline">${EN ? 'Record' : 'Récord'}: ${s.streak.record} ${EN ? (s.streak.record === 1 ? 'day' : 'days') : s.streak.record === 1 ? 'día' : 'días'}</span>`, 'text-primary')}
+      ${tarjetaSemana(EN ? 'Per chapter' : 'Por capítulo', 'timer', aprox(porCap.valor, s.perChapter.measured ? 100 : 0), porCap.unidad + (EN ? ' on average' : ' de media'), `<span class="font-sans text-label-sm text-outline">${s.wpm.measured ? s.wpm.value + (EN ? ' words/min' : ' palabras/min') : (EN ? 'estimated at ' : 'estimado a ') + s.wpm.value + (EN ? ' wpm' : ' ppm')}</span>`, 'text-secondary')}
+    </div>
+
+    <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-lg mb-element-gap-lg">
+      <div class="flex items-center justify-between gap-2 mb-element-gap-md flex-wrap">
+        <h3 class="font-serif text-headline-sm text-on-surface">${EN ? 'Last 6 months' : 'Últimos 6 meses'}</h3>
+        <div class="flex items-center gap-1.5">
+          <span class="font-sans text-label-sm text-outline">${EN ? 'less' : 'menos'}</span>
+          ${[0, 1, 2, 3, 4].map((n) => `<div class="w-3 h-3 rounded-[3px] ${n === 0 ? 'bg-surface-container-high' : 'bg-primary-container'}" style="${n ? 'opacity:' + [0, 0.2, 0.42, 0.7, 1][n] : ''}"></div>`).join('')}
+          <span class="font-sans text-label-sm text-outline">${EN ? 'more' : 'más'}</span>
+        </div>
+      </div>
+      ${heatmap(s.heatmap)}
+      <p class="font-sans text-label-sm text-outline mt-element-gap-md">
+        ${
+          EN
+            ? `${s.totals.chapters} chapters across ${s.totals.activeDays} reading days · ${aprox(fmtMinutes(s.totals.minutes), s.totals.measuredPct)} in total`
+            : `${s.totals.chapters} capítulos en ${s.totals.activeDays} días de lectura · ${aprox(fmtMinutes(s.totals.minutes), s.totals.measuredPct)} en total`
+        }
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter-tablet mb-stack-gap-xl">
+      <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-lg flex flex-col gap-element-gap-md">
+        <h3 class="font-serif text-headline-sm text-on-surface">${EN ? 'Your favourite day' : 'Tu día favorito'}</h3>
+        <div class="flex flex-col gap-element-gap-sm">
+          ${barras(s.byWeekday.map((w, i) => ({ valor: w.chapters, i })), maxDia, (it) => DIAS[it.i].slice(0, 3))}
+        </div>
+        <p class="font-sans text-label-sm text-outline">
+          ${
+            !mejorDiaSemana.chapters
+              ? EN ? 'Not enough history yet.' : 'Aún no hay suficiente historial.'
+              : EN
+              ? `You read most on ${DIAS[mejorDiaSemana.weekday]}s.`
+              : `Lees más los ${DIAS[mejorDiaSemana.weekday].toLowerCase()}.`
+          }
+        </p>
+      </div>
+      <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-lg flex flex-col gap-element-gap-md">
+        <h3 class="font-serif text-headline-sm text-on-surface">${EN ? 'When you read' : 'A qué hora lees'}</h3>
+        <div class="flex flex-col gap-element-gap-sm">
+          ${barras(bloques, Math.max(1, ...bloques.map((b) => b.valor)), (it) => String(it.desde).padStart(2, '0') + 'h', 'bg-secondary-container')}
+        </div>
+        <p class="font-sans text-label-sm text-outline">
+          ${
+            !horaPico.chapters
+              ? EN ? 'Not enough history yet.' : 'Aún no hay suficiente historial.'
+              : (EN ? 'Your peak hour is ' : 'Tu hora pico es a las ') + String(horaPico.hour).padStart(2, '0') + ':00.'
+          }
+        </p>
+      </div>
+    </div>`;
+}
+
 function duelRow(d) {
   const won = d.iWon;
   return `<a href="/duelo?id=${d.id}" class="flex items-center gap-element-gap-md rounded-xl bg-surface-container-low hover:bg-surface-container p-card-padding-sm shadow-lg transition-all group">
@@ -63,7 +230,11 @@ function duelRow(d) {
 
 (async () => {
   await requireAuth('perfil');
-  const { user, stats, finishedDuels } = await api('/api/profile');
+  // Las estadísticas son un extra: si fallan, el perfil se pinta igual.
+  const [{ user, stats, finishedDuels }, lectura] = await Promise.all([
+    api('/api/profile'),
+    api('/api/stats').catch(() => null),
+  ]);
   const memberSince = new Date(user.memberSince.replace(' ', 'T') + 'Z')
     .toLocaleDateString('es', { month: 'long', year: 'numeric' });
 
@@ -108,6 +279,9 @@ function duelRow(d) {
       ${metric('Capítulos Leídos', 'auto_stories', stats.totalChapters.toLocaleString('es'), 'caps', Math.min(100, stats.totalChapters), ['Duelos totales', stats.totalDuels + ''], 'text-secondary')}
       ${metric('Mayor Racha', 'local_fire_department', stats.longestStreak, 'días seguidos', Math.min(100, stats.longestStreak * 5), ['Días con lectura', 'récord personal'], 'text-primary')}
     </div>
+
+    <!-- Estadísticas de lectura -->
+    ${lectura ? statsBlock(lectura) : ''}
 
     <!-- Duelos finalizados -->
     <div class="flex items-center justify-between mb-element-gap-lg">

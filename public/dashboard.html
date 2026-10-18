@@ -48,6 +48,9 @@
     </div>
 
     <!-- Filtros -->
+    <!-- Resumen de la semana (se rellena solo si hay lectura registrada) -->
+    <div id="semana" class="hidden mb-stack-gap-xl"></div>
+
     <div class="flex items-center gap-1 overflow-x-auto py-1 pb-element-gap-lg border-b border-surface-container-highest/60 mb-element-gap-lg" id="tabs"></div>
 
     <!-- Grid de duelos -->
@@ -231,6 +234,67 @@ function render() {
   );
 }
 
+/* Resumen de la semana: lo primero que se ve al entrar. El tiempo lleva ~
+   cuando no todos los capítulos de la semana se midieron en el lector. */
+function bloqueSemana(s) {
+  const EN = currentLang() === 'en';
+  const t = fmtMinutesParts(s.week.minutes);
+  // En cero no hay nada que estimar, así que el ~ sobra.
+  const aprox = s.week.minutes === 0 || s.week.measuredPct >= 100 ? '' : '~';
+  const delta = s.delta.chapters;
+  // delta llega en null cuando la semana pasada fue cero: puede ser la primera
+  // semana o, con la de ahora también a cero, una pausa de varias semanas.
+  const pie =
+    delta === null && s.week.chapters === 0
+      ? EN
+        ? 'No reading logged this week yet'
+        : 'Aún no has registrado lectura esta semana'
+      : delta === null
+      ? EN
+        ? 'Your first week with logged reading'
+        : 'Tu primera semana con lectura registrada'
+      : delta === 0
+      ? EN
+        ? 'Same pace as last week'
+        : 'Mismo ritmo que la semana pasada'
+      : delta > 0
+      ? EN
+        ? `You're ${delta}% above last week`
+        : `Vas un ${delta}% por encima de la semana pasada`
+      : EN
+      ? `You're ${-delta}% below last week`
+      : `Vas un ${-delta}% por debajo de la semana pasada`;
+
+  const dato = (valor, unidad, icon, accent) => `
+    <div class="flex items-center gap-element-gap-md">
+      <div class="w-11 h-11 rounded-lg bg-surface-container-high flex items-center justify-center shrink-0">
+        <span translate="no" class="material-symbols-outlined ${accent} text-[22px]">${icon}</span>
+      </div>
+      <div class="flex flex-col leading-none gap-1">
+        <span class="font-sans font-extrabold text-[28px] leading-none ${accent}">${valor}</span>
+        <span class="font-sans text-label-sm text-outline">${unidad}</span>
+      </div>
+    </div>`;
+
+  return `<div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-lg flex flex-col gap-element-gap-md">
+    <div class="flex items-center justify-between gap-2 flex-wrap">
+      <div class="flex items-center gap-element-gap-sm">
+        <span translate="no" class="material-symbols-outlined text-primary text-[20px]">insights</span>
+        <h2 class="font-serif text-headline-sm text-on-surface">${EN ? 'This week' : 'Esta semana'}</h2>
+      </div>
+      <a href="/perfil" class="font-sans text-label-md text-secondary hover:underline flex items-center gap-1">
+        ${EN ? 'View stats' : 'Ver estadísticas'} <span translate="no" class="material-symbols-outlined text-[16px]">arrow_forward</span>
+      </a>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-element-gap-lg">
+      ${dato(s.week.chapters, EN ? (s.week.chapters === 1 ? 'chapter read' : 'chapters read') : s.week.chapters === 1 ? 'capítulo leído' : 'capítulos leídos', 'auto_stories', 'text-primary')}
+      ${dato(aprox + t.valor, t.unidad === 'h' ? (EN ? 'hours of reading' : 'horas de lectura') : EN ? 'minutes of reading' : 'minutos de lectura', 'schedule', 'text-secondary')}
+      ${dato(s.streak.current, EN ? 'day streak' : s.streak.current === 1 ? 'día de racha' : 'días de racha', 'local_fire_department', 'text-primary')}
+    </div>
+    <p class="font-sans text-label-sm text-outline">${pie}</p>
+  </div>`;
+}
+
 (async () => {
   const user = await requireAuth('duelos');
   const borrado = new URLSearchParams(location.search).get('eliminado');
@@ -239,8 +303,15 @@ function render() {
     history.replaceState({}, '', '/duelos');
   }
   document.getElementById('greeting').textContent = `¡Hola de nuevo, ${user.displayName.split(' ')[0]}!`;
-  const { duels } = await api('/api/duels');
+  // Las estadísticas son un extra: si fallan, el dashboard se pinta igual.
+  const [{ duels }, lectura] = await Promise.all([api('/api/duels'), api('/api/stats').catch(() => null)]);
   allDuels = duels;
+  // Sin nada leído el bloque sobra: se queda oculto en vez de mostrar ceros.
+  if (lectura && lectura.totals.chapters > 0) {
+    const caja = document.getElementById('semana');
+    caja.innerHTML = bloqueSemana(lectura);
+    caja.classList.remove('hidden');
+  }
   const active = duels.filter((d) => d.status === 'active').length;
   const sub = document.getElementById('subtitle').querySelector('span:last-child');
   if (active > 0) sub.innerHTML = `Tienes <strong class="text-on-surface font-semibold">${active} duelo${active === 1 ? '' : 's'} activo${active === 1 ? '' : 's'}</strong>. ¡A leer se ha dicho!`;
