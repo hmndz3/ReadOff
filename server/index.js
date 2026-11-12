@@ -756,6 +756,7 @@ const CHARS_PER_WORD = 6; // medido sobre el caché: ~13.900 caracteres ≈ ~2.3
 const DEFAULT_WPM = 240;
 const FALLBACK_CHARS = 13900;
 const HEATMAP_WEEKS = 26; // medio año: con menos columnas las celdas salen enormes
+const WEEKLY_WEEKS = 8; // historial semanal: dos meses caben sin scroll en móvil
 const MIN_WPM_SAMPLES = 3;
 
 // Palabras por minuto reales del lector, a partir de las sesiones medidas. Con
@@ -819,7 +820,7 @@ app.get('/api/stats', auth, (req, res) => {
   const byDay = new Map();
   const byWeek = new Map();
   const weekday = Array.from({ length: 7 }, () => ({ chapters: 0, minutes: 0 }));
-  const hours = Array.from({ length: 24 }, () => 0);
+  const hours = Array.from({ length: 24 }, () => ({ chapters: 0, minutes: 0 }));
   let totalMinutes = 0;
   let totalMeasured = 0;
 
@@ -851,7 +852,9 @@ app.get('/api/stats', auth, (req, res) => {
     const wd = weekday[weekdayOf(day)];
     wd.chapters++;
     wd.minutes += minutes;
-    hours[hour]++;
+    const h = hours[hour];
+    h.chapters++;
+    h.minutes += minutes;
   }
 
   const round1 = (n) => Math.round(n * 10) / 10;
@@ -884,6 +887,14 @@ app.get('/api/stats', auth, (req, res) => {
     days.push({ day, chapters, minutes: b ? Math.round(b.minutes) : 0, future: day > today });
   }
 
+  // Historial de las últimas semanas, con los ceros incluidos: el cliente las
+  // pinta en fila sin tener que rellenar huecos.
+  const weekly = [];
+  for (let i = WEEKLY_WEEKS - 1; i >= 0; i--) {
+    const start = shiftDay(thisWeek, -7 * i);
+    weekly.push({ start, end: shiftDay(start, 6), ...summary(byWeek.get(start)) });
+  }
+
   let bestDay = null;
   for (const [day, b] of byDay) if (!bestDay || b.chapters > bestDay.chapters) bestDay = { day, ...b };
   let bestWeek = null;
@@ -902,7 +913,8 @@ app.get('/api/stats', auth, (req, res) => {
     },
     heatmap: { from: heatFrom, to: today, weeks: HEATMAP_WEEKS, max: heatMax, days },
     byWeekday: weekday.map((b, i) => ({ weekday: i, chapters: b.chapters, minutes: Math.round(b.minutes) })),
-    byHour: hours.map((chapters, hour) => ({ hour, chapters })),
+    byHour: hours.map((b, hour) => ({ hour, chapters: b.chapters, minutes: Math.round(b.minutes) })),
+    weekly,
     best: {
       day: bestDay ? { day: bestDay.day, ...summary(bestDay) } : null,
       week: bestWeek ? { start: bestWeek.start, ...summary(bestWeek) } : null,

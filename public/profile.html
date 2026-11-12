@@ -61,6 +61,13 @@ const DIAS = EN
   : ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const INICIALES = EN ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
+/* En español solo sábado y domingo cambian en plural: "los lunes", pero
+   "los domingos". */
+function diaPlural(i) {
+  const d = DIAS[i].toLowerCase();
+  return d.endsWith('s') ? d : d + 's';
+}
+
 function chipDelta(pct) {
   if (pct === null || pct === undefined)
     return `<span class="font-sans text-label-sm text-outline">${EN ? 'no reference' : 'sin referencia'}</span>`;
@@ -169,37 +176,177 @@ function pintarHeatmap(h) {
   if (titulo) titulo.textContent = textoPeriodo(semanas);
 }
 
-function barras(items, max, etiqueta, accent = 'bg-primary-container') {
-  return items
-    .map((it) => {
-      const pct = max ? Math.round((it.valor / max) * 100) : 0;
+/* Reloj de 24 horas: cada hora es un radio que crece con lo leído en esa
+   franja. En barras horizontales no se veía el ciclo del día; en círculo la
+   madrugada, la mañana y la noche quedan donde uno las espera. */
+const RELOJ = { cx: 120, cy: 120, r0: 46, r1: 104, rEtiqueta: 119 };
+
+function relojHoras(byHour) {
+  const { cx, cy, r0, r1, rEtiqueta } = RELOJ;
+  const max = Math.max(1, ...byHour.map((h) => h.chapters));
+  const total = byHour.reduce((n, h) => n + h.chapters, 0);
+  const pico = byHour.reduce((a, b) => (b.chapters > a.chapters ? b : a), byHour[0]);
+  // Las 00:00 arriba y el día avanzando en el sentido de las agujas.
+  const ang = (h) => ((h * 15 - 90) * Math.PI) / 180;
+  const px = (h, r) => [cx + r * Math.cos(ang(h)), cy + r * Math.sin(ang(h))];
+  const linea = (h, desde, hasta, color, op) => {
+    const [x1, y1] = px(h, desde);
+    const [x2, y2] = px(h, hasta);
+    return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${color}" stroke-width="7" stroke-linecap="round" opacity="${op}"/>`;
+  };
+
+  const radios = byHour
+    .map((h) => {
+      const ratio = h.chapters / max;
+      const largo = r0 + 3 + (r1 - r0 - 3) * ratio;
+      const [tx, ty] = px(h.hour, largo);
+      const hh = String(h.hour).padStart(2, '0');
+      const caps = EN ? (h.chapters === 1 ? 'chapter' : 'chapters') : h.chapters === 1 ? 'capítulo' : 'capítulos';
+      const titulo = `${hh}:00 · ${h.chapters} ${caps}${h.minutes ? ' · ' + fmtMinutes(h.minutes) : ''}`;
+      return `<g>
+        ${linea(h.hour, r0 + 3, r1, 'rgb(var(--tk-surface-container-high))', 1)}
+        ${h.chapters ? linea(h.hour, r0 + 3, largo, 'rgb(var(--tk-secondary-container))', (0.45 + 0.55 * ratio).toFixed(2)) : ''}
+        ${h.chapters && h.hour === pico.hour ? `<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="3.4" fill="rgb(var(--tk-secondary))"/>` : ''}
+        <title>${titulo}</title>
+      </g>`;
+    })
+    .join('');
+
+  const marcas = [0, 3, 6, 9, 12, 15, 18, 21]
+    .map((h) => {
+      const [x, y] = px(h, rEtiqueta);
+      return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="700" fill="rgb(var(--tk-outline))">${String(h).padStart(2, '0')}</text>`;
+    })
+    .join('');
+
+  const centro = total
+    ? `<text x="${cx}" y="${cy - 14}" text-anchor="middle" font-size="9" font-weight="700" letter-spacing="0.8" fill="rgb(var(--tk-outline))">${EN ? 'PEAK HOUR' : 'HORA PICO'}</text>
+       <text x="${cx}" y="${cy + 9}" text-anchor="middle" font-size="24" font-weight="800" fill="rgb(var(--tk-secondary))">${String(pico.hour).padStart(2, '0')}:00</text>
+       <text x="${cx}" y="${cy + 26}" text-anchor="middle" font-size="10" fill="rgb(var(--tk-outline))">${pico.chapters} ${EN ? 'ch' : 'caps'}</text>`
+    : `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="11" fill="rgb(var(--tk-outline))">${EN ? 'No data yet' : 'Aún sin datos'}</text>`;
+
+  return `<svg viewBox="-8 -8 256 256" class="w-full max-w-[280px] mx-auto" font-family="Plus Jakarta Sans, sans-serif">
+    <circle cx="${cx}" cy="${cy}" r="${r0 - 4}" fill="rgb(var(--tk-surface-container))"/>
+    ${radios}
+    ${marcas}
+    ${centro}
+  </svg>`;
+}
+
+/* Las cuatro franjas del día con su peso: el reloj enseña la forma y esto
+   pone el número. */
+function franjasHTML(byHour) {
+  const total = byHour.reduce((n, h) => n + h.chapters, 0);
+  const franjas = [
+    { label: EN ? 'Late night' : 'Madrugada', icono: 'bedtime', desde: 0 },
+    { label: EN ? 'Morning' : 'Mañana', icono: 'wb_twilight', desde: 6 },
+    { label: EN ? 'Afternoon' : 'Tarde', icono: 'light_mode', desde: 12 },
+    { label: EN ? 'Evening' : 'Noche', icono: 'dark_mode', desde: 18 },
+  ];
+  return `<div class="grid grid-cols-4 gap-1.5">
+    ${franjas
+      .map((f) => {
+        const caps = byHour.slice(f.desde, f.desde + 6).reduce((n, h) => n + h.chapters, 0);
+        const pct = total ? Math.round((caps / total) * 100) : 0;
+        return `<div class="rounded-lg bg-surface-container-high/60 px-1 py-2 flex flex-col items-center gap-0.5">
+          <span translate="no" class="material-symbols-outlined text-secondary text-[16px]">${f.icono}</span>
+          <span class="font-sans text-label-sm text-on-surface font-bold">${pct}%</span>
+          <span class="font-sans text-[10px] leading-tight text-outline text-center">${f.label}</span>
+        </div>`;
+      })
+      .join('')}
+  </div>`;
+}
+
+/* Días de la semana en columnas: el día fuerte se ve por altura y queda
+   marcado con su nombre resaltado. */
+function columnasDias(byWeekday) {
+  const max = Math.max(1, ...byWeekday.map((d) => d.chapters));
+  const mejor = byWeekday.reduce((a, b) => (b.chapters > a.chapters ? b : a), byWeekday[0]);
+  return `<div class="flex items-end gap-1 sm:gap-1.5 flex-1 min-h-[180px]">
+    ${byWeekday
+      .map((d, i) => {
+        const pct = Math.round((d.chapters / max) * 100);
+        const esMejor = d.chapters > 0 && i === mejor.weekday;
+        const titulo = `${DIAS[i]}: ${d.chapters} ${EN ? 'ch' : 'caps'}${d.minutes ? ' · ' + fmtMinutes(d.minutes) : ''}`;
+        return `<div class="flex-1 min-w-0 h-full flex flex-col items-center gap-1.5" title="${titulo}">
+          <div class="w-full flex-1 min-h-0 flex flex-col justify-end items-center gap-1">
+            <span class="font-sans text-label-sm ${esMejor ? 'text-primary font-bold' : 'text-on-surface-variant'}">${d.chapters}</span>
+            <div class="w-full rounded-t-lg rounded-b-sm ${esMejor ? 'bg-gradient-to-t from-tertiary-container to-primary-container' : 'bg-gradient-to-t from-primary-container/35 to-primary-container/75'}" style="height:${Math.max(3, pct)}%;max-height:calc(100% - 20px)"></div>
+          </div>
+          <span class="w-full text-center rounded-md py-0.5 font-sans text-label-sm ${esMejor ? 'bg-primary-container text-on-primary-container' : 'text-on-surface-variant'}">${DIAS[i].slice(0, 3)}</span>
+        </div>`;
+      })
+      .join('')}
+  </div>`;
+}
+
+/* Rango de una semana en texto corto: "3–9 nov" o "28 oct – 3 nov". */
+function rangoSemana(inicio, fin) {
+  const loc = EN ? 'en' : 'es';
+  const a = new Date(inicio + 'T12:00:00');
+  const b = new Date(fin + 'T12:00:00');
+  const mes = (d) => d.toLocaleDateString(loc, { month: 'short' }).replace('.', '');
+  return mes(a) === mes(b)
+    ? `${a.getDate()}–${b.getDate()} ${mes(b)}`
+    : `${a.getDate()} ${mes(a)}–${b.getDate()} ${mes(b)}`;
+}
+
+/* Historial de las últimas semanas: capítulos y tiempo, nada más. */
+function historialSemanal(weekly) {
+  const max = Math.max(1, ...weekly.map((w) => w.chapters));
+  const caps = weekly.reduce((n, w) => n + w.chapters, 0);
+  const mins = weekly.reduce((n, w) => n + w.minutes, 0);
+  const medidos = weekly.reduce((n, w) => n + (w.chapters * w.measuredPct) / 100, 0);
+  const filas = weekly
+    .slice()
+    .reverse()
+    .map((w, i) => {
+      const actual = i === 0;
+      const pct = Math.round((w.chapters / max) * 100);
+      const t = fmtMinutesParts(w.minutes);
       return `<div class="flex items-center gap-element-gap-sm">
-        <span class="font-sans text-label-sm text-on-surface-variant w-10 shrink-0">${etiqueta(it)}</span>
-        <div class="flex-1 h-2 rounded-full bg-surface-container-high overflow-hidden min-w-0">
-          <div class="h-full rounded-full ${accent}" style="width:${pct}%"></div>
+        <span class="w-[88px] sm:w-[104px] shrink-0 whitespace-nowrap font-sans text-label-sm ${actual ? 'text-primary font-bold' : 'text-on-surface-variant'}">${actual ? (EN ? 'This week' : 'Esta semana') : rangoSemana(w.start, w.end)}</span>
+        <div class="flex-1 min-w-0 h-2.5 rounded-full bg-surface-container-high overflow-hidden">
+          <div class="h-full rounded-full ${actual ? 'bg-primary-container' : 'bg-primary-container/50'}" style="width:${pct}%"></div>
         </div>
-        <span class="font-sans text-label-sm text-on-surface font-semibold w-8 shrink-0 text-right">${it.valor}</span>
+        <span class="w-[38px] shrink-0 text-right font-sans text-label-sm font-bold ${w.chapters ? 'text-on-surface' : 'text-outline'}">${w.chapters}</span>
+        <span class="w-[56px] shrink-0 text-right font-sans text-label-sm font-bold ${w.minutes ? 'text-secondary' : 'text-outline'}">${w.minutes ? aprox(t.valor, w.measuredPct) + ' ' + t.unidad : '—'}</span>
       </div>`;
     })
     .join('');
+
+  return `<div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-lg mb-element-gap-lg flex flex-col gap-element-gap-md">
+    <div class="flex items-center justify-between gap-2 flex-wrap">
+      <h3 class="font-serif text-headline-sm text-on-surface">${EN ? 'Week by week' : 'Semana a semana'}</h3>
+      <span class="font-sans text-label-sm text-outline">${EN ? `Last ${weekly.length} weeks` : `Últimas ${weekly.length} semanas`}</span>
+    </div>
+    <div class="flex items-center gap-element-gap-sm">
+      <span class="w-[88px] sm:w-[104px] shrink-0"></span>
+      <div class="flex-1 min-w-0"></div>
+      <span class="w-[38px] shrink-0 text-right font-sans text-[10px] text-outline">${EN ? 'Ch.' : 'Caps'}</span>
+      <span class="w-[56px] shrink-0 text-right font-sans text-[10px] text-outline">${EN ? 'Time' : 'Tiempo'}</span>
+    </div>
+    <div class="flex flex-col gap-element-gap-sm">${filas}</div>
+    <p class="font-sans text-label-sm text-outline">
+      ${
+        caps
+          ? `${caps} ${EN ? 'chapters' : 'capítulos'} · ${aprox(fmtMinutes(mins), Math.round((medidos / caps) * 100))} ${EN ? 'in this period' : 'en el periodo'}`
+          : EN
+          ? 'No reading in this period yet.'
+          : 'Todavía no hay lecturas en este periodo.'
+      }
+    </p>
+  </div>`;
 }
 
 function statsBlock(s) {
   const semana = fmtMinutesParts(s.week.minutes);
   const porCap = fmtMinutesParts(s.perChapter.minutes);
-  const maxDia = Math.max(1, ...s.byWeekday.map((w) => w.chapters));
-  const maxHora = Math.max(1, ...s.byHour.map((h) => h.chapters));
+  const totalDias = s.byWeekday.reduce((n, d) => n + d.chapters, 0);
   const mejorDiaSemana = s.byWeekday.reduce((a, b) => (b.chapters > a.chapters ? b : a), s.byWeekday[0]);
   const horaPico = s.byHour.reduce((a, b) => (b.chapters > a.chapters ? b : a), s.byHour[0]);
-
-  // Las horas solo se agrupan en bloques de 3 para que quepan en móvil.
-  const bloques = [];
-  for (let i = 0; i < 24; i += 3) {
-    bloques.push({
-      valor: s.byHour.slice(i, i + 3).reduce((n, h) => n + h.chapters, 0),
-      desde: i,
-    });
-  }
+  const pctMejorDia = totalDias ? Math.round((mejorDiaSemana.chapters / totalDias) * 100) : 0;
 
   return `
     <div class="flex items-center gap-2 mb-element-gap-lg">
@@ -233,27 +380,32 @@ function statsBlock(s) {
       </p>
     </div>
 
+    ${historialSemanal(s.weekly)}
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter-tablet mb-stack-gap-xl">
       <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-lg flex flex-col gap-element-gap-md">
-        <h3 class="font-serif text-headline-sm text-on-surface">${EN ? 'Your favourite day' : 'Tu día favorito'}</h3>
-        <div class="flex flex-col gap-element-gap-sm">
-          ${barras(s.byWeekday.map((w, i) => ({ valor: w.chapters, i })), maxDia, (it) => DIAS[it.i].slice(0, 3))}
+        <div class="flex items-center gap-2">
+          <span translate="no" class="material-symbols-outlined text-primary text-[20px]">calendar_month</span>
+          <h3 class="font-serif text-headline-sm text-on-surface">${EN ? 'Your favourite day' : 'Tu día favorito'}</h3>
         </div>
+        ${columnasDias(s.byWeekday)}
         <p class="font-sans text-label-sm text-outline">
           ${
             !mejorDiaSemana.chapters
               ? EN ? 'Not enough history yet.' : 'Aún no hay suficiente historial.'
               : EN
-              ? `You read most on ${DIAS[mejorDiaSemana.weekday]}s.`
-              : `Lees más los ${DIAS[mejorDiaSemana.weekday].toLowerCase()}.`
+              ? `You read most on ${DIAS[mejorDiaSemana.weekday]}s — ${pctMejorDia}% of your chapters.`
+              : `Lees más los ${diaPlural(mejorDiaSemana.weekday)}: el ${pctMejorDia}% de tus capítulos.`
           }
         </p>
       </div>
       <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-lg flex flex-col gap-element-gap-md">
-        <h3 class="font-serif text-headline-sm text-on-surface">${EN ? 'When you read' : 'A qué hora lees'}</h3>
-        <div class="flex flex-col gap-element-gap-sm">
-          ${barras(bloques, Math.max(1, ...bloques.map((b) => b.valor)), (it) => String(it.desde).padStart(2, '0') + 'h', 'bg-secondary-container')}
+        <div class="flex items-center gap-2">
+          <span translate="no" class="material-symbols-outlined text-secondary text-[20px]">schedule</span>
+          <h3 class="font-serif text-headline-sm text-on-surface">${EN ? 'When you read' : 'A qué hora lees'}</h3>
         </div>
+        ${relojHoras(s.byHour)}
+        ${franjasHTML(s.byHour)}
         <p class="font-sans text-label-sm text-outline">
           ${
             !horaPico.chapters
