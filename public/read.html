@@ -27,6 +27,29 @@
   #chapter-body p:last-child{ margin-bottom:0; }
   .rd-rule{ border-color:var(--rd-rule); }
   .rd-muted{ color:var(--rd-muted); }
+
+  /* Marcas sobre el texto: ámbar para lo subrayado (privado) y turquesa para lo
+     que tiene una pregunta encima (compartido). No añaden nodos de texto al
+     párrafo, así que no descuadran las posiciones guardadas. */
+  #chapter-body mark{ background:transparent; color:inherit; border-radius:2px; padding:0 1px; }
+  #chapter-body mark.marca-hl{ background:rgba(245,166,35,.26); box-shadow:0 1px 0 rgba(245,166,35,.85); cursor:pointer; }
+  #chapter-body mark.marca-q{ background:rgba(3,198,178,.2); box-shadow:0 1px 0 rgba(68,226,205,.9); cursor:pointer; }
+  #chapter-body mark.marca-q:hover{ background:rgba(3,198,178,.34); }
+  #chapter-body mark.marca-hl:hover{ background:rgba(245,166,35,.4); }
+  #chapter-body mark.resaltada{ animation:marca-late 1.6s ease-out 2; }
+  @keyframes marca-late{ 0%,100%{ box-shadow:0 1px 0 rgba(68,226,205,.9) } 50%{ box-shadow:0 0 0 4px rgba(68,226,205,.35) } }
+
+  /* Burbuja flotante sobre la selección */
+  #burbuja{ position:fixed; z-index:45; display:none; gap:2px; padding:4px; white-space:nowrap;
+    background:rgb(var(--tk-surface-container-high)); border:1px solid rgb(var(--tk-surface-container-highest));
+    border-radius:10px; box-shadow:0 14px 30px -12px rgba(0,0,0,.85); }
+  #burbuja.ver{ display:flex; }
+  #burbuja button{ display:inline-flex; align-items:center; gap:5px; border:none; background:transparent;
+    color:rgb(var(--tk-on-surface)); font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:600;
+    padding:7px 10px; border-radius:7px; cursor:pointer; }
+  #burbuja button:hover{ background:rgb(var(--tk-surface-container-highest)); }
+  #burbuja .sep{ width:1px; margin:4px 2px; background:rgb(var(--tk-surface-container-highest)); }
+  @media (prefers-reduced-motion:reduce){ #chapter-body mark.resaltada{ animation:none } }
 </style>
 </head>
 <body translate="no" class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
@@ -41,6 +64,10 @@
       <p class="font-serif text-headline-sm text-on-surface truncate leading-tight" id="book-title">…</p>
       <p class="font-sans text-label-sm text-outline truncate" id="chapter-label">Cargando…</p>
     </div>
+    <a id="link-preguntas" href="/duelos" class="shrink-0 relative p-2 rounded-lg text-on-surface-variant hover:text-secondary hover:bg-surface-container-high transition-all" aria-label="Preguntas del duelo">
+      <span translate="no" class="material-symbols-outlined align-middle">help</span>
+      <span id="q-count" class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-secondary-container text-on-secondary-container font-sans text-[9px] font-extrabold leading-4 text-center"></span>
+    </a>
     <button id="btn-settings" class="shrink-0 p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all" aria-label="Ajustes de lectura" type="button">
       <span translate="no" class="material-symbols-outlined align-middle">text_fields</span>
     </button>
@@ -108,6 +135,15 @@
 </div>
 
 <!-- Lectura -->
+<!-- Burbuja del subrayador: aparece sobre la selección -->
+<div id="burbuja" role="toolbar" aria-label="Acciones sobre la selección">
+  <button type="button" data-act="subrayar"><span translate="no" class="material-symbols-outlined text-[17px] text-primary">format_ink_highlighter</span> Subrayar</button>
+  <span class="sep"></span>
+  <button type="button" data-act="preguntar"><span translate="no" class="material-symbols-outlined text-[17px] text-secondary">help</span> Preguntar</button>
+  <span class="sep"></span>
+  <button type="button" data-act="copiar" aria-label="Copiar la cita"><span translate="no" class="material-symbols-outlined text-[17px]">content_copy</span></button>
+</div>
+
 <main id="reader" class="min-h-screen pt-16">
   <div class="mx-auto px-gutter-mobile md:px-gutter-tablet py-stack-gap-xl" id="reader-inner" style="max-width:760px">
 
@@ -120,6 +156,31 @@
       <h1 translate="yes" class="font-serif text-headline-xl md:text-display-hero mb-element-gap-lg" id="chapter-title"></h1>
       <div class="w-16 border-t rd-rule mb-stack-gap-xl"></div>
       <div translate="yes" id="chapter-body" style="font-size:18px;line-height:1.8"></div>
+
+      <!-- Compositor: se abre bajo el texto con la cita ya puesta -->
+      <div id="composer" class="hidden mt-stack-gap-xl rounded-xl bg-surface-container-low border border-secondary-container/30 p-card-padding-sm font-sans">
+        <p class="font-sans text-label-sm text-secondary uppercase tracking-widest flex items-center gap-1.5 mb-element-gap-sm">
+          <span translate="no" class="material-symbols-outlined text-[16px]">help</span> <span id="composer-titulo">Nueva pregunta</span>
+        </p>
+        <blockquote id="composer-cita" class="border-l-2 border-secondary-container pl-3 py-0.5 text-body-sm text-on-surface-variant italic mb-element-gap-md max-h-24 overflow-hidden"></blockquote>
+        <textarea id="composer-texto" rows="3" maxlength="500" placeholder="¿Qué quieres preguntar sobre este fragmento?"
+          class="w-full rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-3 text-body-md text-on-surface placeholder:text-outline/60 outline-none focus:border-secondary-container resize-y"></textarea>
+        <div class="flex items-center gap-element-gap-md flex-wrap mt-element-gap-md">
+          <p id="composer-aviso" class="text-label-sm text-outline flex items-center gap-1.5 min-w-0"></p>
+          <div class="flex gap-element-gap-sm ml-auto">
+            <button id="composer-cancelar" type="button" class="px-4 py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-label-md transition-all active:scale-95">Cancelar</button>
+            <button id="composer-enviar" type="button" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-secondary-container hover:bg-secondary-fixed-dim text-on-secondary-container text-label-md font-bold transition-all active:scale-95">
+              <span translate="no" class="material-symbols-outlined text-[18px]">send</span> Publicar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aviso de preguntas tapadas de este capítulo -->
+      <a id="tapadas" href="/duelos" class="hidden items-center gap-2 mt-element-gap-lg rounded-lg bg-surface-container-low px-4 py-3 font-sans text-body-sm text-on-surface-variant hover:bg-surface-container transition-colors">
+        <span translate="no" class="material-symbols-outlined text-[18px] text-error">lock</span>
+        <span id="tapadas-texto"></span>
+      </a>
     </article>
 
     <div id="error-box" class="hidden flex-col items-center text-center gap-element-gap-md py-24">
@@ -198,15 +259,302 @@ document.getElementById('size-minus').addEventListener('click', () => { prefs.si
 document.getElementById('size-plus').addEventListener('click', () => { prefs.size = Math.min(28, prefs.size + 1); applyPrefs(); });
 
 /* ---------- Carga de capítulos ---------- */
+let PARRAFOS = []; // texto plano de cada párrafo, tal y como se guardan las citas
 function renderBody(text) {
   const body = document.getElementById('chapter-body');
   body.replaceChildren();
-  String(text).split(/\n+/).map((s) => s.trim()).filter(Boolean).forEach((par) => {
+  PARRAFOS = String(text).split(/\n+/).map((s) => s.trim()).filter(Boolean);
+  PARRAFOS.forEach((par, i) => {
     const p = document.createElement('p');
+    p.dataset.i = i;
     p.textContent = par; // texto plano: nada de HTML de la fuente
     body.appendChild(p);
   });
 }
+
+/* ---------- Subrayados y preguntas sobre el texto ----------
+   Una marca se guarda como la cita más el párrafo y el desplazamiento donde
+   empieza. Al volver se busca primero en esa posición y, si la fuente cambió
+   algo, por el texto de la cita; si ya no aparece, la marca simplemente no se
+   pinta y la pregunta sigue viva en su pantalla. */
+let SUBRAYADOS = [];
+let PREGUNTAS = [];
+let CONTEXTO = { rival: null, rivalRead: null, myRead: 0, tapadas: 0 };
+let seleccion = null; // { paraIndex, start, end, cita }
+
+function posicionDe(texto, cita, offset) {
+  if (!cita) return null;
+  if (Number.isInteger(offset)) {
+    if (texto.substr(offset, cita.length) === cita) return offset;
+    const cerca = texto.indexOf(cita, Math.max(0, offset - 120));
+    if (cerca >= 0) return cerca;
+  }
+  const i = texto.indexOf(cita);
+  return i >= 0 ? i : null;
+}
+
+// Resuelve una marca a { paraIndex, start, end } sobre el texto ya pintado.
+function ubicar(marca) {
+  const i = Number.isInteger(marca.paraIndex) ? marca.paraIndex : -1;
+  if (i >= 0 && i < PARRAFOS.length) {
+    const pos = posicionDe(PARRAFOS[i], marca.quote, marca.charOffset);
+    if (pos !== null) return { paraIndex: i, start: pos, end: pos + marca.quote.length };
+  }
+  for (let j = 0; j < PARRAFOS.length; j++) {
+    const pos = posicionDe(PARRAFOS[j], marca.quote, null);
+    if (pos !== null) return { paraIndex: j, start: pos, end: pos + marca.quote.length };
+  }
+  return null;
+}
+
+function pintarMarcas() {
+  const body = document.getElementById('chapter-body');
+  const porParrafo = new Map();
+  const añadir = (marca, tipo) => {
+    if (!marca.quote) return;
+    const u = ubicar(marca);
+    if (!u) return;
+    if (!porParrafo.has(u.paraIndex)) porParrafo.set(u.paraIndex, []);
+    porParrafo.get(u.paraIndex).push({ ...u, tipo, id: marca.id });
+  };
+  SUBRAYADOS.forEach((h) => añadir(h, 'hl'));
+  PREGUNTAS.filter((q) => !q.hidden).forEach((q) => añadir(q, 'q'));
+
+  body.querySelectorAll('p[data-i]').forEach((p) => {
+    const i = parseInt(p.dataset.i, 10);
+    const texto = PARRAFOS[i];
+    const marcas = (porParrafo.get(i) || []).sort((a, b) => a.start - b.start || b.end - a.end);
+    if (!marcas.length) {
+      if (p.childNodes.length !== 1 || p.firstChild.nodeType !== 3) p.textContent = texto;
+      return;
+    }
+    p.replaceChildren();
+    let cursor = 0;
+    for (const m of marcas) {
+      if (m.start < cursor) continue; // solapadas: gana la primera
+      if (m.start > cursor) p.appendChild(document.createTextNode(texto.slice(cursor, m.start)));
+      const mk = document.createElement('mark');
+      mk.className = m.tipo === 'q' ? 'marca-q' : 'marca-hl';
+      mk.dataset.tipo = m.tipo;
+      mk.dataset.id = m.id;
+      if (m.tipo === 'q') mk.id = 'q' + m.id;
+      mk.textContent = texto.slice(m.start, m.end);
+      p.appendChild(mk);
+      cursor = m.end;
+    }
+    if (cursor < texto.length) p.appendChild(document.createTextNode(texto.slice(cursor)));
+  });
+
+  // Contador de la barra y aviso de las que llegan tapadas.
+  const cuenta = document.getElementById('q-count');
+  const visibles = PREGUNTAS.length;
+  cuenta.textContent = visibles;
+  cuenta.classList.toggle('hidden', visibles === 0);
+
+  const aviso = document.getElementById('tapadas');
+  const n = PREGUNTAS.filter((q) => q.hidden).length;
+  aviso.classList.toggle('hidden', n === 0);
+  aviso.classList.toggle('flex', n > 0);
+  if (n > 0) {
+    document.getElementById('tapadas-texto').textContent =
+      `${n} pregunta${n === 1 ? '' : 's'} de este capítulo te llega${n === 1 ? '' : 'n'} tapada${n === 1 ? '' : 's'}: vas por el capítulo ${CONTEXTO.myRead}. Ábrela${n === 1 ? '' : 's'} en la pantalla de preguntas.`;
+  }
+  setTimeout(remedirYActualizar, 0);
+}
+
+async function cargarMarcas(n) {
+  try {
+    const [subs, pregs] = await Promise.all([
+      api(`/api/duels/${duelId}/highlights?chapter=${n}`),
+      api(`/api/duels/${duelId}/questions?chapter=${n}`),
+    ]);
+    SUBRAYADOS = subs.highlights;
+    PREGUNTAS = pregs.questions;
+    CONTEXTO = { rival: pregs.rival, rivalRead: pregs.rivalRead, myRead: pregs.me.chaptersRead };
+    pintarMarcas();
+    irAlAncla();
+  } catch {} // sin marcas se lee igual
+}
+
+// Al llegar desde la pantalla de preguntas con #q<id> se resalta ese fragmento.
+function irAlAncla() {
+  if (!location.hash.startsWith('#q')) return;
+  const el = document.getElementById(location.hash.slice(1));
+  if (!el) return;
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  el.classList.add('resaltada');
+}
+
+/* ---------- Selección ---------- */
+function parrafoDe(nodo) {
+  const el = nodo && (nodo.nodeType === 1 ? nodo : nodo.parentElement);
+  return el ? el.closest('#chapter-body p[data-i]') : null;
+}
+
+// Desplazamiento de un punto del DOM dentro del texto plano del párrafo. Se
+// recorren los nodos de texto porque las marcas ya pintadas lo trocean.
+function offsetEn(p, nodo, off) {
+  let total = 0;
+  const w = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = w.nextNode())) {
+    if (n === nodo) return total + off;
+    total += n.nodeValue.length;
+  }
+  return null;
+}
+
+const MAX_CITA = 300;
+
+function leerSeleccion() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || sel.rangeCount === 0) return null;
+  const r = sel.getRangeAt(0);
+  const p = parrafoDe(r.startContainer);
+  if (!p) return null;
+  const i = parseInt(p.dataset.i, 10);
+  const texto = PARRAFOS[i];
+  let start = offsetEn(p, r.startContainer, r.startOffset);
+  // Si la selección cruza párrafos se queda con el primero: la cita que se
+  // guarda es justo la que se ve en el compositor, sin sorpresas.
+  const mismo = parrafoDe(r.endContainer) === p;
+  let end = mismo ? offsetEn(p, r.endContainer, r.endOffset) : texto.length;
+  if (start === null || end === null || end <= start) return null;
+  while (start < end && /\s/.test(texto[start])) start++;
+  while (end > start && /\s/.test(texto[end - 1])) end--;
+  if (end - start > MAX_CITA) end = start + MAX_CITA;
+  const cita = texto.slice(start, end);
+  if (!cita.trim()) return null;
+  return { paraIndex: i, start, end, cita, rect: r.getBoundingClientRect() };
+}
+
+function colocarBurbuja(rect) {
+  const b = document.getElementById('burbuja');
+  b.classList.add('ver');
+  const ancho = b.offsetWidth;
+  const alto = b.offsetHeight;
+  let x = rect.left + rect.width / 2 - ancho / 2;
+  x = Math.max(8, Math.min(x, window.innerWidth - ancho - 8));
+  let y = rect.top - alto - 10;
+  if (y < 70) y = rect.bottom + 10; // debajo si arriba está la barra
+  b.style.left = Math.round(x) + 'px';
+  b.style.top = Math.round(y) + 'px';
+}
+
+function ocultarBurbuja() {
+  document.getElementById('burbuja').classList.remove('ver');
+}
+
+function revisarSeleccion() {
+  const s = leerSeleccion();
+  if (!s) { ocultarBurbuja(); seleccion = null; return; }
+  seleccion = s;
+  colocarBurbuja(s.rect);
+}
+
+['mouseup', 'touchend', 'keyup'].forEach((ev) =>
+  document.getElementById('chapter-body').addEventListener(ev, () => setTimeout(revisarSeleccion, 0))
+);
+document.addEventListener('mousedown', (e) => {
+  if (!document.getElementById('burbuja').contains(e.target)) ocultarBurbuja();
+});
+window.addEventListener('scroll', ocultarBurbuja, { passive: true });
+
+/* ---------- Acciones de la burbuja ---------- */
+async function subrayar() {
+  if (!seleccion) return;
+  try {
+    const { highlight } = await api(`/api/duels/${duelId}/highlights`, {
+      method: 'POST',
+      body: { chapter: current, quote: seleccion.cita, paraIndex: seleccion.paraIndex, charOffset: seleccion.start },
+    });
+    SUBRAYADOS.push(highlight);
+    window.getSelection().removeAllRanges();
+    pintarMarcas();
+  } catch (err) { toast(err.message); }
+}
+
+function abrirCompositor() {
+  if (!seleccion) return;
+  const c = document.getElementById('composer');
+  document.getElementById('composer-cita').textContent = seleccion.cita;
+  const aviso = document.getElementById('composer-aviso');
+  if (CONTEXTO.rival && CONTEXTO.rivalRead !== null) {
+    const nombre = CONTEXTO.rival.displayName.split(' ')[0];
+    const tapa = current > CONTEXTO.rivalRead;
+    aviso.innerHTML = tapa
+      ? `<span translate="no" class="material-symbols-outlined text-[15px] text-error">lock</span> ${esc(nombre)} va por el cap. ${CONTEXTO.rivalRead}: le llegará tapada como spoiler.`
+      : `<span translate="no" class="material-symbols-outlined text-[15px] text-secondary">visibility</span> ${esc(nombre)} ya pasó este capítulo: la verá completa.`;
+  } else {
+    aviso.textContent = 'Todavía no hay rival en el duelo.';
+  }
+  c.classList.remove('hidden');
+  const t = document.getElementById('composer-texto');
+  t.value = '';
+  c.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  t.focus();
+}
+
+async function publicarPregunta() {
+  const texto = document.getElementById('composer-texto').value.trim();
+  if (!texto) { document.getElementById('composer-texto').focus(); return; }
+  if (!seleccion) return;
+  try {
+    const { question } = await api(`/api/duels/${duelId}/questions`, {
+      method: 'POST',
+      body: {
+        chapter: current,
+        text: texto,
+        quote: seleccion.cita,
+        paraIndex: seleccion.paraIndex,
+        charOffset: seleccion.start,
+      },
+    });
+    PREGUNTAS.unshift(question);
+    document.getElementById('composer').classList.add('hidden');
+    window.getSelection().removeAllRanges();
+    pintarMarcas();
+    toast(question.spoilerForRival ? 'Pregunta publicada — a tu rival le llega tapada' : 'Pregunta publicada', 'ok');
+  } catch (err) { toast(err.message); }
+}
+
+document.getElementById('burbuja').addEventListener('click', async (e) => {
+  const b = e.target.closest('button');
+  if (!b || !seleccion) return;
+  const act = b.dataset.act;
+  ocultarBurbuja();
+  if (act === 'subrayar') subrayar();
+  else if (act === 'preguntar') abrirCompositor();
+  else if (act === 'copiar') {
+    try { await navigator.clipboard.writeText(seleccion.cita); toast('Cita copiada', 'ok'); }
+    catch { toast('No se pudo copiar'); }
+  }
+});
+document.getElementById('composer-cancelar').addEventListener('click', () =>
+  document.getElementById('composer').classList.add('hidden')
+);
+document.getElementById('composer-enviar').addEventListener('click', publicarPregunta);
+
+/* Tocar una marca: la pregunta se abre en su pantalla, el subrayado se quita. */
+document.getElementById('chapter-body').addEventListener('click', async (e) => {
+  const mk = e.target.closest('mark[data-tipo]');
+  if (!mk) return;
+  if (mk.dataset.tipo === 'q') {
+    window.location.href = `/preguntas?duelo=${duelId}#q${mk.dataset.id}`;
+    return;
+  }
+  const ok = await confirmDialog({
+    title: '¿Quitar este subrayado?',
+    message: mk.textContent.slice(0, 120),
+    confirmText: 'Quitar',
+  });
+  if (!ok) return;
+  try {
+    await api(`/api/highlights/${mk.dataset.id}`, { method: 'DELETE' });
+    SUBRAYADOS = SUBRAYADOS.filter((h) => String(h.id) !== String(mk.dataset.id));
+    pintarMarcas();
+  } catch (err) { toast(err.message); }
+});
 
 /* ---------- Tiempo de lectura real ----------
    Solo se cuenta el tiempo con la pestaña visible y con actividad reciente, así
@@ -324,6 +672,12 @@ async function loadChapter(n, push = true) {
   document.getElementById('nav-bottom').classList.add('hidden');
   document.getElementById('error-box').classList.add('hidden');
   document.getElementById('error-box').classList.remove('flex');
+  // Las marcas del capítulo anterior no valen para este.
+  document.getElementById('composer').classList.add('hidden');
+  document.getElementById('tapadas').classList.add('hidden');
+  ocultarBurbuja();
+  SUBRAYADOS = [];
+  PREGUNTAS = [];
   try {
     const { chapter, duel } = await api(`/api/duels/${duelId}/chapters/${n}`);
     duelInfo = duel;
@@ -361,6 +715,7 @@ async function loadChapter(n, push = true) {
     document.getElementById('chapter-bar').style.width = '0%';
     // Tras pintar: el alto definitivo depende de la tipografía ya aplicada.
     setTimeout(remedirYActualizar, 0);
+    cargarMarcas(chapter.number); // subrayados y preguntas, sin frenar la lectura
     if (push) history.pushState({ n: chapter.number }, '', `/leer?duelo=${duelId}&cap=${chapter.number}`);
     document.title = `Cap. ${chapter.number} — ${duel.bookTitle}`;
   } catch (err) {
@@ -408,6 +763,8 @@ document.addEventListener('keydown', (e) => {
   document.getElementById('back-link').href = '/duelo?id=' + duelId;
   document.getElementById('btn-duel').href = '/duelo?id=' + duelId;
   document.getElementById('error-back').href = '/duelo?id=' + duelId;
+  document.getElementById('link-preguntas').href = '/preguntas?duelo=' + duelId;
+  document.getElementById('tapadas').href = '/preguntas?duelo=' + duelId;
   applyPrefs();
   await loadChapter(current, false);
   history.replaceState({ n: current }, '', `/leer?duelo=${duelId}&cap=${current}`);
