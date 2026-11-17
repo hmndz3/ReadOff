@@ -11,7 +11,17 @@
 <script src="/js/tw.js"></script>
 <link rel="stylesheet" href="/css/theme.css">
 <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.add("light")}catch(e){}</script>
-<style>body{margin:0;overscroll-behavior:none} ::-webkit-scrollbar{display:none}</style>
+<style>
+  body{margin:0;overscroll-behavior:none} ::-webkit-scrollbar{display:none}
+  /* Tarjetas que se pliegan desde su propio título. El contenido no se oculta
+     de golpe: la fila de altura hace el recorrido y la flecha lo acompaña. */
+  .plegable .fold{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows .26s ease,opacity .2s ease}
+  .plegable .fold > div{overflow:hidden;min-height:0}
+  .plegable.cerrada .fold{grid-template-rows:0fr;opacity:0}
+  .plegable .flecha{transition:transform .22s ease}
+  .plegable.cerrada .flecha{transform:rotate(-90deg)}
+  @media (prefers-reduced-motion:reduce){.plegable .fold,.plegable .flecha{transition:none}}
+</style>
 </head>
 <body translate="no" class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
 <div id="header"></div>
@@ -278,12 +288,32 @@ function render(d, activity) {
           ${statCard('Meta estimada', 'flag', my.projection ? fmtDate(my.projection) : finishedMine ? '¡Hecho!' : '—', projHint, 'text-secondary')}
         </div>
 
-        <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl">
-          <div class="flex items-center justify-between mb-element-gap-sm">
+        <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl plegable" id="card-preguntas">
+          <button type="button" data-plegar="card-preguntas" class="w-full flex items-center justify-between gap-element-gap-sm text-left" aria-expanded="true">
+            <h3 class="font-serif text-headline-sm text-on-surface flex items-center gap-2"><span translate="no" class="material-symbols-outlined text-secondary text-[20px]">quiz</span> Preguntas del Duelo</h3>
+            <span class="flex items-center gap-element-gap-sm shrink-0">
+              <span class="font-sans text-label-sm text-outline" id="questions-count"></span>
+              <span translate="no" class="material-symbols-outlined text-on-surface-variant flecha">expand_more</span>
+            </span>
+          </button>
+          <div class="fold"><div>
+            <div id="questions-preview" class="pt-element-gap-sm"></div>
+            <a href="/preguntas?duelo=${d.id}" class="mt-element-gap-md inline-flex items-center justify-center gap-element-gap-sm w-full px-4 py-2.5 rounded-lg bg-surface-container-high hover:bg-secondary-container/30 text-on-surface-variant hover:text-secondary font-sans text-label-md transition-all active:scale-95">
+              <span translate="no" class="material-symbols-outlined text-[18px]">forum</span> Ver todas las preguntas
+            </a>
+          </div></div>
+        </div>
+
+        <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl plegable" id="card-comentarios">
+          <button type="button" data-plegar="card-comentarios" class="w-full flex items-center justify-between gap-element-gap-sm text-left" aria-expanded="true">
             <h3 class="font-serif text-headline-sm text-on-surface flex items-center gap-2"><span translate="no" class="material-symbols-outlined text-primary text-[20px]">forum</span> Comentarios del Duelo</h3>
-            <span class="font-sans text-label-sm text-outline" id="comments-count"></span>
-          </div>
-          <p class="font-sans text-body-sm text-on-surface-variant mb-element-gap-md">Deja un comentario rápido sobre el capítulo en el que vas.</p>
+            <span class="flex items-center gap-element-gap-sm shrink-0">
+              <span class="font-sans text-label-sm text-outline" id="comments-count"></span>
+              <span translate="no" class="material-symbols-outlined text-on-surface-variant flecha">expand_more</span>
+            </span>
+          </button>
+          <div class="fold"><div>
+          <p class="font-sans text-body-sm text-on-surface-variant mb-element-gap-md pt-element-gap-sm">Deja un comentario rápido sobre el capítulo en el que vas.</p>
           <form id="comment-form" class="flex flex-col gap-element-gap-sm mb-element-gap-md">
             <div class="flex items-center gap-element-gap-sm">
               <label class="font-sans text-label-sm text-outline shrink-0" for="comment-chapter">Sobre el capítulo</label>
@@ -300,6 +330,7 @@ function render(d, activity) {
             </div>
           </form>
           <div id="comments-list" class="flex flex-col max-h-[420px] overflow-y-auto pr-1"></div>
+          </div></div>
         </div>
 
         <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl">
@@ -455,6 +486,8 @@ function render(d, activity) {
     } catch (err) { toast(err.message); }
   });
   loadComments(d);
+  loadQuestions(d);
+  plegables();
   const copy = async () => {
     try { await navigator.clipboard.writeText(d.code); toast('Código copiado: ' + d.code, 'ok'); }
     catch { toast('Código: ' + d.code, 'ok'); }
@@ -466,6 +499,66 @@ function render(d, activity) {
     if (navigator.share) { try { await navigator.share({ text }); } catch {} }
     else { try { await navigator.clipboard.writeText(text); toast('Invitación copiada al portapapeles', 'ok'); } catch {} }
   });
+}
+
+/* Tarjetas plegables: el estado se recuerda en el navegador, como las
+   preferencias del lector, para que la columna quede como la dejaste. */
+function plegables() {
+  document.querySelectorAll('[data-plegar]').forEach((btn) => {
+    const id = btn.dataset.plegar;
+    const card = document.getElementById(id);
+    let cerrada = false;
+    try { cerrada = localStorage.getItem('plegada:' + id) === '1'; } catch {}
+    card.classList.toggle('cerrada', cerrada);
+    btn.setAttribute('aria-expanded', String(!cerrada));
+    btn.addEventListener('click', () => {
+      const ahora = card.classList.toggle('cerrada');
+      btn.setAttribute('aria-expanded', String(!ahora));
+      try { localStorage.setItem('plegada:' + id, ahora ? '1' : '0'); } catch {}
+    });
+  });
+}
+
+/* Adelanto de las preguntas del duelo. Las que llegan tapadas se anuncian sin
+   enseñar nada: solo el capítulo del que hablan. */
+async function loadQuestions(d) {
+  const lista = document.getElementById('questions-preview');
+  const cuenta = document.getElementById('questions-count');
+  if (!lista || !cuenta) return;
+  try {
+    const { questions } = await api(`/api/duels/${d.id}/questions`);
+    const sinResponder = questions.filter((q) => q.answerCount === 0).length;
+    cuenta.textContent = questions.length
+      ? `${questions.length}${sinResponder ? ' · ' + sinResponder + ' sin responder' : ''}`
+      : '';
+    if (!questions.length) {
+      lista.innerHTML =
+        '<p class="font-sans text-body-sm text-outline py-3 text-center">Subraya una frase mientras lees y pregunta sobre ella.</p>';
+      return;
+    }
+    lista.innerHTML = questions
+      .slice(0, 3)
+      .map((q) => {
+        const etiqueta = q.hidden
+          ? `<span class="px-1.5 py-px rounded bg-error-container/20 text-error font-sans text-[10px] font-bold">Spoiler</span>`
+          : q.answerCount
+            ? `<span class="px-1.5 py-px rounded bg-surface-container font-sans text-[10px] font-bold text-primary">${q.answerCount} resp.</span>`
+            : `<span class="px-1.5 py-px rounded bg-surface-container font-sans text-[10px] font-bold text-secondary">Sin responder</span>`;
+        const cuerpo = q.hidden
+          ? `<p class="font-sans text-body-sm text-outline italic mt-1">Habla de algo del capítulo ${q.chapter} que todavía no has leído.</p>`
+          : `<p class="font-sans text-body-sm text-on-surface-variant mt-1 break-words line-clamp-2">${esc(q.text)}</p>`;
+        return `<a href="/preguntas?duelo=${d.id}#q${q.id}" class="block py-3 border-b border-surface-container-highest/30 last:border-0 hover:opacity-80 transition-opacity">
+          <div class="flex items-center gap-element-gap-sm flex-wrap">
+            <span class="font-sans text-label-sm text-on-surface font-bold">${q.mine ? 'Tú' : esc(q.user.displayName)}</span>
+            <span class="px-1.5 py-px rounded bg-surface-container font-sans text-[10px] font-bold text-on-surface-variant">Cap. ${q.chapter}</span>
+            ${etiqueta}
+            <span class="font-sans text-[11px] text-outline ml-auto">${timeAgo(q.createdAt)}</span>
+          </div>
+          ${cuerpo}
+        </a>`;
+      })
+      .join('');
+  } catch {}
 }
 
 async function loadComments(d) {
