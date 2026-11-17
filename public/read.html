@@ -59,6 +59,23 @@
   @media (max-width:420px){ #tts #tts-pos{ display:none } }
   /* Con la barra abierta, el texto deja sitio para que no tape la última línea. */
   body.con-voz #reader-inner{ padding-bottom:96px; }
+  /* Los avisos suben para no quedar debajo de la barra. */
+  body.con-voz #toast{ bottom:5.5rem; }
+
+  /* Menú de velocidades, justo encima de la barra */
+  #tts-menu{ position:fixed; left:50%; transform:translateX(-50%); z-index:46;
+    bottom:calc(72px + env(safe-area-inset-bottom, 0px));
+    display:none; flex-direction:column; gap:1px; padding:5px; min-width:168px;
+    background:rgb(var(--tk-surface-container-high)); border:1px solid rgb(var(--tk-surface-container-highest));
+    border-radius:12px; box-shadow:0 16px 36px -14px rgba(0,0,0,.85); }
+  #tts-menu.ver{ display:flex; }
+  #tts-menu button{ display:flex; align-items:center; justify-content:space-between; gap:14px;
+    border:none; background:transparent; color:rgb(var(--tk-on-surface));
+    font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:700;
+    padding:8px 11px; border-radius:8px; cursor:pointer; }
+  #tts-menu button:hover{ background:rgb(var(--tk-surface-container-highest)); }
+  #tts-menu button.activo{ background:rgb(var(--tk-primary-container)); color:rgb(var(--tk-on-primary-container)); }
+  #tts-menu .dur{ font-weight:600; opacity:.75; font-size:12px; }
   @keyframes marca-late{ 0%,100%{ box-shadow:0 1px 0 rgba(68,226,205,.9) } 50%{ box-shadow:0 0 0 4px rgba(68,226,205,.35) } }
 
   /* Burbuja flotante sobre la selección */
@@ -149,8 +166,16 @@
     </div>
 
     <div class="flex items-center justify-between gap-element-gap-md flex-wrap" id="fila-voz">
-      <span class="font-sans text-label-md text-on-surface-variant shrink-0">Voz que lee</span>
-      <select id="sel-voz" class="min-w-0 max-w-[260px] rounded-lg bg-surface-container-lowest border border-surface-container-highest px-3 py-2 font-sans text-label-md text-on-surface outline-none focus:border-primary-container"></select>
+      <span class="font-sans text-label-md text-on-surface-variant shrink-0">
+        Voz que lee
+        <span id="cuenta-voces" class="block font-sans text-label-sm text-outline normal-case"></span>
+      </span>
+      <div class="flex items-center gap-element-gap-sm min-w-0">
+        <select id="sel-voz" class="min-w-0 max-w-[230px] rounded-lg bg-surface-container-lowest border border-surface-container-highest px-3 py-2 font-sans text-label-md text-on-surface outline-none focus:border-primary-container"></select>
+        <button id="btn-probar-voz" type="button" class="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-primary font-sans text-label-md transition-all active:scale-95">
+          <span translate="no" class="material-symbols-outlined text-[18px]">volume_up</span> Probar
+        </button>
+      </div>
     </div>
 
     <div class="flex items-center justify-between gap-element-gap-md flex-wrap">
@@ -171,9 +196,10 @@
   <button id="tts-play" type="button" aria-label="Escuchar"><span translate="no" class="material-symbols-outlined text-[24px]" id="tts-icon">play_arrow</span></button>
   <button id="tts-fwd" type="button" aria-label="Adelante 5 segundos"><span translate="no" class="material-symbols-outlined text-[22px]">forward_5</span></button>
   <span id="tts-pos"></span>
-  <button id="tts-rate" type="button" class="chip" aria-label="Velocidad">1x</button>
+  <button id="tts-rate" type="button" class="chip" aria-label="Velocidad" aria-haspopup="menu">1x</button>
   <button id="tts-close" type="button" aria-label="Cerrar el lector"><span translate="no" class="material-symbols-outlined text-[20px]">close</span></button>
 </div>
+<div id="tts-menu" role="menu" aria-label="Velocidad de lectura"></div>
 
 <!-- Burbuja del subrayador: aparece sobre la selección -->
 <div id="burbuja" role="toolbar" aria-label="Acciones sobre la selección">
@@ -256,7 +282,7 @@ let duelInfo = null;
 
 /* ---------- Preferencias de lectura ---------- */
 const PREFS_KEY = 'readerPrefs';
-const defaults = { font: 'serif', size: 18, lh: '1.8', w: '760', rt: 'oscuro', vel: 1, voz: '' };
+const defaults = { font: 'serif', size: 18, lh: '1.8', w: '760', rt: 'oscuro', vel: 1, voz: '', wpmVoz: 0 };
 let prefs = { ...defaults };
 try { prefs = { ...defaults, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; } catch {}
 
@@ -608,9 +634,60 @@ document.getElementById('composer-enviar').addEventListener('click', publicarPre
    Ojo con los saltos: la voz no es un archivo de audio, no hay "ir al segundo
    30". El capítulo se parte en frases y los 5 segundos se traducen a palabras
    al ritmo actual, así que el salto cae en la frase más cercana. */
-const VELOCIDADES = [0.75, 1, 1.25, 1.5, 2];
-const PALABRAS_POR_MINUTO = 180; // ritmo típico de una voz sintética a 1x
+const VELOCIDADES = [0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4];
+const WPM_POR_DEFECTO = 175; // ritmo de una voz sintética a 1x, hasta medir el real
 const soporteVoz = typeof speechSynthesis !== 'undefined';
+
+/* Ritmo real de la voz. En vez de estimar con un número de manual, se cronometra
+   lo que tarda en decir cada frase y se normaliza a 1x, así el tiempo que se
+   muestra es el de tu voz a tu velocidad. Se guarda y se reinicia al cambiar de
+   voz, porque cada una lee a su aire. */
+let medidoPalabras = 0;
+let medidoMinutos = 0;
+
+function wpmVoz() {
+  if (medidoMinutos > 0 && medidoPalabras >= 60) return medidoPalabras / medidoMinutos;
+  const guardado = parseFloat(prefs.wpmVoz);
+  return Number.isFinite(guardado) && guardado > 40 ? guardado : WPM_POR_DEFECTO;
+}
+
+function anotarMedida(palabras, ms, vel) {
+  if (!(palabras > 0) || !(ms > 400)) return;
+  medidoPalabras += palabras;
+  medidoMinutos += (ms / 60000) * vel;
+  if (medidoPalabras >= 60) {
+    prefs.wpmVoz = Math.round(medidoPalabras / medidoMinutos);
+    savePrefs();
+  }
+}
+
+function olvidarMedida() {
+  medidoPalabras = 0;
+  medidoMinutos = 0;
+  prefs.wpmVoz = 0;
+  savePrefs();
+}
+
+function palabrasDesde(i) {
+  let n = 0;
+  for (let k = Math.max(0, i); k < PIEZAS.length; k++) n += PIEZAS[k].palabras;
+  return n;
+}
+
+function minutosDe(palabras, vel) {
+  return palabras / (wpmVoz() * vel);
+}
+
+function textoDuracion(min) {
+  if (!Number.isFinite(min) || min <= 0) return '';
+  if (min < 1) return Math.max(5, Math.round((min * 60) / 5) * 5) + ' s';
+  if (min < 60) return Math.round(min) + ' min';
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  return h + ' h' + (m ? ' ' + m + ' min' : '');
+}
+
+const num = (v) => String(v).replace('.', ',');
 
 let PIEZAS = [];
 let LEYENDO = null;
@@ -650,6 +727,34 @@ function vozElegida() {
   return es.find((v) => /^es-MX/i.test(v.lang)) || es[0] || VOCES[0] || null;
 }
 
+/* Los nombres que da el sistema son impronunciables ("Microsoft Dalia Online
+   (Natural) - Spanish (Mexico)"). Se dejan en el nombre propio y se agrupan por
+   país, que es lo que de verdad se elige: el acento. */
+const NOMBRES = (tipo) => {
+  try { return new Intl.DisplayNames(['es'], { type: tipo }); } catch { return null; }
+};
+const REGIONES = NOMBRES('region');
+const IDIOMAS = NOMBRES('language');
+
+function etiquetaIdioma(lang) {
+  const [idioma, region] = String(lang || '').split('-');
+  let txt = idioma;
+  try { if (IDIOMAS) txt = IDIOMAS.of(idioma) || idioma; } catch {}
+  if (region) {
+    try { if (REGIONES) txt += ' · ' + REGIONES.of(region.toUpperCase()); } catch {}
+  }
+  return txt.charAt(0).toUpperCase() + txt.slice(1);
+}
+
+function nombreCorto(v) {
+  const limpio = v.name
+    .split(' - ')[0]
+    .replace(/Microsoft|Google|Online|\(Natural\)|español|Spanish/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return limpio || v.name;
+}
+
 function cargarVoces() {
   if (!soporteVoz) return;
   VOCES = speechSynthesis.getVoices() || [];
@@ -657,23 +762,63 @@ function cargarVoces() {
   const fila = document.getElementById('fila-voz');
   if (!VOCES.length) { fila.classList.add('hidden'); return; }
   fila.classList.remove('hidden');
-  const es = vocesEspanol();
-  const resto = VOCES.filter((v) => !/^es/i.test(v.lang)).slice(0, 40);
-  const nombreCorto = (v) => v.name.replace(/Microsoft |Online |\(Natural\) ?- ?/g, '').trim();
-  const opcion = (v) => `<option value="${esc(v.name)}">${esc(nombreCorto(v))} · ${esc(v.lang)}</option>`;
-  sel.innerHTML =
-    (es.length ? `<optgroup label="Español">${es.map(opcion).join('')}</optgroup>` : '') +
-    (resto.length ? `<optgroup label="Otros idiomas">${resto.map(opcion).join('')}</optgroup>` : '');
+
+  // Todas las voces del aparato, las de español primero y por acento.
+  const grupos = new Map();
+  const meter = (v) => {
+    const k = etiquetaIdioma(v.lang);
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(v);
+  };
+  vocesEspanol().forEach(meter);
+  VOCES.filter((v) => !/^es/i.test(v.lang)).forEach(meter);
+
+  const opcion = (v) =>
+    `<option value="${esc(v.name)}">${esc(nombreCorto(v))}${v.localService ? ' · sin internet' : ''}</option>`;
+  sel.innerHTML = [...grupos]
+    .map(([k, vs]) => `<optgroup label="${esc(k)}">${vs.map(opcion).join('')}</optgroup>`)
+    .join('');
   const actual = vozElegida();
   if (actual) sel.value = actual.name;
+  document.getElementById('cuenta-voces').textContent =
+    `${VOCES.length} voces · ${vocesEspanol().length} en español`;
+}
+
+/* Una frase de muestra para elegir de oído sin tener que empezar el capítulo. */
+function probarVoz() {
+  if (!soporteVoz) return;
+  if (hablando && !pausado) { pausado = true; generacion++; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance('Así suena esta voz. Buena lectura.');
+  const v = vozElegida();
+  if (v) { u.voice = v; u.lang = v.lang; }
+  u.rate = prefs.vel;
+  setTimeout(() => speechSynthesis.speak(u), 0);
+  actualizarBarra();
 }
 
 function actualizarBarra() {
   document.getElementById('tts-icon').textContent = hablando && !pausado ? 'pause' : 'play_arrow';
-  document.getElementById('tts-rate').textContent = prefs.vel + 'x';
-  document.getElementById('tts-pos').textContent = PIEZAS.length
-    ? `${Math.min(iPieza + 1, PIEZAS.length)} / ${PIEZAS.length}`
-    : '';
+  document.getElementById('tts-rate').textContent = num(prefs.vel) + 'x';
+  const pos = document.getElementById('tts-pos');
+  if (!PIEZAS.length) { pos.textContent = ''; return; }
+  // Antes de empezar, lo que dura el capítulo entero; ya en marcha, lo que falta.
+  const palabras = hablando ? palabrasDesde(iPieza) : palabrasDesde(0);
+  pos.textContent = (hablando ? 'quedan ~' : '~') + textoDuracion(minutosDe(palabras, prefs.vel));
+  pos.title = `Frase ${Math.min(iPieza + 1, PIEZAS.length)} de ${PIEZAS.length}`;
+}
+
+/* Menú de velocidades: cada una dice lo que tardaría el capítulo a ese ritmo. */
+function alternarMenuVel() {
+  const m = document.getElementById('tts-menu');
+  if (m.classList.contains('ver')) { m.classList.remove('ver'); return; }
+  const total = palabrasDesde(0);
+  m.innerHTML = VELOCIDADES.map(
+    (v) => `<button type="button" data-vel="${v}" class="${v === prefs.vel ? 'activo' : ''}">
+      <span>${num(v)}x</span><span class="dur">${esc(textoDuracion(minutosDe(total, v)))}</span>
+    </button>`
+  ).join('');
+  m.classList.add('ver');
 }
 
 function resaltarPieza(i) {
@@ -708,7 +853,13 @@ function hablarPieza(i) {
   const v = vozElegida();
   if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'es-MX'; }
   u.rate = prefs.vel;
-  u.onend = () => { if (mio === generacion && hablando && !pausado) hablarPieza(iPieza + 1); };
+  const t0 = performance.now();
+  u.onend = () => {
+    if (mio !== generacion) return;
+    anotarMedida(PIEZAS[i].palabras, performance.now() - t0, u.rate);
+    if (hablando && !pausado) hablarPieza(iPieza + 1);
+    else actualizarBarra();
+  };
   u.onerror = (e) => {
     if (mio !== generacion || e.error === 'interrupted' || e.error === 'canceled') return;
     hablando = false;
@@ -751,7 +902,7 @@ function alternarVoz() {
 
 function saltar(segundos) {
   if (!PIEZAS.length) return;
-  const porSegundo = (PALABRAS_POR_MINUTO * prefs.vel) / 60;
+  const porSegundo = (wpmVoz() * prefs.vel) / 60;
   let faltan = Math.max(1, Math.round(Math.abs(segundos) * porSegundo));
   const paso = segundos < 0 ? -1 : 1;
   let i = iPieza;
@@ -781,7 +932,7 @@ if (soporteVoz) {
   speechSynthesis.onvoiceschanged = cargarVoces;
   document.getElementById('btn-voz').addEventListener('click', () => {
     const barra = document.getElementById('tts');
-    if (barra.classList.contains('ver')) { pararVoz(); barra.classList.remove('ver'); document.body.classList.remove('con-voz'); }
+    if (barra.classList.contains('ver')) { pararVoz(); barra.classList.remove('ver'); document.body.classList.remove('con-voz'); document.getElementById('tts-menu').classList.remove('ver'); }
     else abrirVoz(true);
   });
   document.getElementById('tts-play').addEventListener('click', alternarVoz);
@@ -792,17 +943,30 @@ if (soporteVoz) {
     document.getElementById('tts').classList.remove('ver');
     document.body.classList.remove('con-voz');
   });
-  document.getElementById('tts-rate').addEventListener('click', () => {
-    prefs.vel = VELOCIDADES[(VELOCIDADES.indexOf(prefs.vel) + 1) % VELOCIDADES.length];
+  document.getElementById('tts-rate').addEventListener('click', alternarMenuVel);
+  document.getElementById('tts-menu').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-vel]');
+    if (!b) return;
+    prefs.vel = parseFloat(b.dataset.vel);
     savePrefs();
+    document.getElementById('tts-menu').classList.remove('ver');
     actualizarBarra();
     if (hablando && !pausado) hablarPieza(iPieza); // el ritmo solo cambia lo que empieza
   });
+  document.addEventListener('click', (e) => {
+    const m = document.getElementById('tts-menu');
+    if (!m.classList.contains('ver')) return;
+    if (!m.contains(e.target) && e.target.closest('#tts-rate') === null) m.classList.remove('ver');
+  });
   document.getElementById('sel-voz').addEventListener('change', (e) => {
     prefs.voz = e.target.value;
+    olvidarMedida(); // cada voz lee a su ritmo: el estimado se vuelve a medir
     savePrefs();
+    actualizarBarra();
     if (hablando && !pausado) hablarPieza(iPieza);
+    else probarVoz();
   });
+  document.getElementById('btn-probar-voz').addEventListener('click', probarVoz);
   // Al salir de la página la voz seguiría hablando sola.
   window.addEventListener('pagehide', () => speechSynthesis.cancel());
 } else {

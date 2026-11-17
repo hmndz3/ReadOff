@@ -127,6 +127,8 @@ const EN_DICT = {
   'Esa voz necesita internet': 'That voice needs an internet connection',
   'Tu navegador no puede leer en voz alta': "Your browser can't read aloud",
   'Tu navegador no tiene voces en español instaladas': 'Your browser has no Spanish voices installed',
+  'Probar': 'Try it', 'Velocidad de lectura': 'Reading speed',
+
   'Anterior': 'Previous', 'Siguiente': 'Next', 'Terminar': 'Finish', 'Ver duelo': 'View duel',
   'Ajustes de lectura': 'Reading settings', 'Volver al duelo': 'Back to the duel',
   'Al terminar se registrará el libro completo.': 'Finishing will log the whole book.',
@@ -225,6 +227,9 @@ const EN_RX = [
   [/^ completó el $/, ' completed '],
   [/^Capítulo (\d+)$/, 'Chapter $1'],
   [/^(\d+) respuestas?$/, '$1 replies'],
+  [/^quedan ~(.+)$/, '~$1 left'],
+  [/^(\d+) voces · (\d+) en español$/, '$1 voices · $2 in Spanish'],
+  [/^Frase (\d+) de (\d+)$/, 'Sentence $1 of $2'],
   [/^(\d+) resp\.$/, '$1 replies'],
   [/^(.+) abrió el spoiler (.+)\.$/, '$1 opened the spoiler $2.'],
   [/^Tapada para (.+) \(va por el cap\. (\d+)\) — todavía no la ha abierto\.$/, 'Hidden for $1 (on ch. $2) — not opened yet.'],
@@ -258,7 +263,7 @@ const EN_INLINE = [
   [/^Por\s*$/g, 'By '], [/^Ritmo:\s*$/g, 'Pace: '], [/^Tú completaste el\s*$/g, 'You completed the '],
   [/completó el\s*$/g, 'completed '], [/^\s*completaste el\s*$/g, ' completed the '], [/^Tú$/g, 'You'],
   [/• Edición (\d+) Capítulos/g, '• $1-Chapter Edition'],
-  [/Fecha límite:/g, 'Deadline:'], [/capítulos leídos/g, 'chapters read'], [/caps\/día/g, 'chs/day'],
+  [/· sin internet/g, '· offline'], [/Fecha límite:/g, 'Deadline:'], [/capítulos leídos/g, 'chapters read'], [/caps\/día/g, 'chs/day'],
 ];
 
 function trString(s) {
