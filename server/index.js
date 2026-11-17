@@ -715,6 +715,7 @@ app.get('/api/duels/:id/questions', auth, (req, res) => {
     lead: ctx.lead,
     totalChapters: duel.total_chapters,
     bookTitle: duel.book_title,
+    sourceSlug: duel.source_slug || null,
   });
 });
 

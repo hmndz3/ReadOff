@@ -3,3 +3,8 @@ data/
 *.db
 *.db-journal
 .env
+
+# Herramientas locales, nunca se trackean
+CLAUDE.md
+AGENTS.md
+.claude/

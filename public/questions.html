@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReadOff — Preguntas del duelo</title>
+<link rel="icon" href="/img/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="/js/tw.js"></script>
+<link rel="stylesheet" href="/css/theme.css">
+<script>try{if(localStorage.getItem("theme")==="light")document.documentElement.classList.add("light")}catch(e){}</script>
+<style>
+  body{margin:0;overscroll-behavior:none} ::-webkit-scrollbar{display:none}
+  .cita{font-family:'Lora',Georgia,serif;font-style:italic}
+  .tapado{filter:blur(5px);user-select:none;pointer-events:none}
+</style>
+</head>
+<body translate="no" class="bg-background font-sans text-body-md text-on-background min-h-screen selection:bg-primary selection:text-on-primary">
+<div id="header"></div>
+
+<main class="w-full pt-16 md:pt-20 min-h-screen">
+  <div class="max-w-[900px] mx-auto px-gutter-mobile md:px-gutter-tablet py-stack-gap-xl" id="content">
+    <div class="flex items-center justify-center gap-2 py-24 text-on-surface-variant">
+      <span translate="no" class="material-symbols-outlined animate-spin">progress_activity</span> Cargando preguntas…
+    </div>
+  </div>
+</main>
+
+<script src="/js/app.js"></script>
+<script>
+const duelId = new URLSearchParams(location.search).get('duelo');
+let USER = null;
+let DATOS = null;       // respuesta de /questions
+let filtro = 'todas';
+
+/* ---------- Plantillas ---------- */
+function citaHTML(texto, tapado) {
+  if (!texto) return '';
+  return `<div class="cita border-l-2 ${tapado ? 'border-outline-variant' : 'border-secondary-container'} pl-3 py-0.5 text-body-sm text-on-surface-variant mb-element-gap-sm ${tapado ? 'tapado' : ''}">${esc(texto)}</div>`;
+}
+
+function badge(texto, tono) {
+  const tonos = {
+    cap: 'bg-surface-container text-on-surface-variant',
+    abierta: 'bg-secondary-container/15 text-secondary',
+    resp: 'bg-primary-container/15 text-primary',
+    spoiler: 'bg-error-container/20 text-error',
+    vista: 'bg-surface-container-high text-outline',
+  };
+  return `<span class="px-2 py-0.5 rounded font-sans text-label-sm uppercase ${tonos[tono] || tonos.cap}">${esc(texto)}</span>`;
+}
+
+/* Lo que ve el autor de su propia pregunta: si al rival le llegó tapada y si ya
+   la abrió. Es la mitad interesante del spoiler. */
+function estadoSpoilerHTML(q) {
+  if (!q.mine || !DATOS.rival) return '';
+  if (!q.spoilerForRival)
+    return `<p class="font-sans text-label-sm text-outline flex items-center gap-1.5 mt-element-gap-sm">
+      <span translate="no" class="material-symbols-outlined text-[15px]">visibility</span>
+      ${esc(DATOS.rival.displayName.split(' ')[0])} ya pasó este capítulo: la ve completa.</p>`;
+  if (q.rivalRevealedAt)
+    return `<p class="font-sans text-label-sm text-secondary flex items-center gap-1.5 mt-element-gap-sm">
+      <span translate="no" class="material-symbols-outlined text-[15px]">lock_open</span>
+      ${esc(DATOS.rival.displayName.split(' ')[0])} abrió el spoiler ${esc(timeAgo(q.rivalRevealedAt))}.</p>`;
+  return `<p class="font-sans text-label-sm text-outline flex items-center gap-1.5 mt-element-gap-sm">
+    <span translate="no" class="material-symbols-outlined text-[15px]">lock</span>
+    Tapada para ${esc(DATOS.rival.displayName.split(' ')[0])} (va por el cap. ${DATOS.rivalRead}) — todavía no la ha abierto.</p>`;
+}
+
+function respuestaHTML(q, a) {
+  const mia = a.user.id === USER.id;
+  return `<div class="flex items-start gap-element-gap-md">
+    <div class="w-8 h-8 shrink-0 rounded-full ${mia ? 'bg-primary-container/20 ring-2 ring-primary-container/60' : 'bg-secondary-container/20 ring-2 ring-secondary/50'} flex items-center justify-center mt-0.5">
+      <span class="font-sans text-label-sm ${mia ? 'text-primary' : 'text-secondary'} font-bold">${esc(initials(a.user.displayName))}</span>
+    </div>
+    <div class="min-w-0 flex-1">
+      <div class="flex items-center gap-element-gap-sm flex-wrap">
+        <span class="font-sans text-label-md text-on-surface font-bold">${mia ? 'Tú' : esc(a.user.displayName)}</span>
+        ${a.isBest ? '<span class="px-1.5 py-px rounded bg-primary-container text-on-primary-container font-sans text-label-sm uppercase">Mejor respuesta</span>' : ''}
+        <span class="font-sans text-label-sm text-outline">${esc(timeAgo(a.createdAt))}</span>
+      </div>
+      <p class="font-sans text-body-sm text-on-surface-variant mt-0.5 break-words">${esc(a.text)}</p>
+      <div class="flex items-center gap-element-gap-md mt-1">
+        ${q.mine && !a.isBest ? `<button data-mejor="${a.id}" data-q="${q.id}" class="font-sans text-label-sm text-outline hover:text-primary transition-colors" type="button">Marcar como mejor</button>` : ''}
+        ${mia ? `<button data-borrar-resp="${a.id}" class="font-sans text-label-sm text-outline hover:text-error transition-colors" type="button">Borrar</button>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function preguntaHTML(q, i) {
+  const borde = q.hidden ? 'border-error/40' : q.mine ? 'border-primary-container' : 'border-secondary-container';
+  const sinResponder = q.answerCount === 0;
+
+  const cuerpo = q.hidden
+    ? `<h3 class="font-sans text-body-lg text-on-surface font-bold leading-snug tapado">Esta pregunta habla de algo que todavía no has leído del capítulo ${q.chapter}</h3>
+       ${citaHTML('Cita del capítulo ' + q.chapter + ' guardada por quien preguntó', true)}
+       <div class="flex items-center gap-element-gap-md flex-wrap mt-element-gap-sm">
+         <button data-destapar="${q.id}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-high hover:bg-error-container/30 text-on-surface-variant hover:text-error font-sans text-label-md transition-all active:scale-95" type="button">
+           <span translate="no" class="material-symbols-outlined text-[17px]">visibility</span> Mostrar de todos modos
+         </button>
+         <span class="font-sans text-label-sm text-outline">Vas por el cap. ${DATOS.me.chaptersRead}; esto es del ${q.chapter}.</span>
+       </div>`
+    : `<h3 class="font-sans text-body-lg text-on-surface font-bold leading-snug mb-element-gap-sm break-words">${esc(q.text)}</h3>
+       ${citaHTML(q.quote, false)}`;
+
+  const pie = q.hidden
+    ? ''
+    : `<div class="flex items-center gap-element-gap-md flex-wrap mt-element-gap-sm font-sans text-label-sm text-outline">
+        <span class="flex items-center gap-1.5">
+          <span class="w-5 h-5 rounded-full ${q.mine ? 'bg-primary-container/20 text-primary' : 'bg-secondary-container/20 text-secondary'} flex items-center justify-center text-[9px] font-bold">${esc(initials(q.user.displayName))}</span>
+          ${q.mine ? 'Tú' : esc(q.user.displayName)}
+        </span>
+        <span>${esc(timeAgo(q.createdAt))}</span>
+        <button data-responder="${q.id}" class="inline-flex items-center gap-1 hover:text-secondary transition-colors" type="button">
+          <span translate="no" class="material-symbols-outlined text-[16px]">reply</span> Responder
+        </button>
+        <a href="/leer?duelo=${duelId}&cap=${q.chapter}#q${q.id}" class="inline-flex items-center gap-1 hover:text-primary transition-colors">
+          <span translate="no" class="material-symbols-outlined text-[16px]">menu_book</span> Ir al párrafo
+        </a>
+        ${q.mine ? `<button data-borrar="${q.id}" class="inline-flex items-center gap-1 hover:text-error transition-colors ml-auto" type="button">
+          <span translate="no" class="material-symbols-outlined text-[16px]">delete</span> Borrar
+        </button>` : ''}
+      </div>`;
+
+  const respuestas = q.answers.length
+    ? `<div class="flex flex-col gap-element-gap-md mt-element-gap-md pt-element-gap-md border-t border-surface-container-highest/40">
+        ${q.answers.map((a) => respuestaHTML(q, a)).join('')}
+      </div>`
+    : '';
+
+  return `<article id="q${q.id}" class="ro-in rounded-xl bg-surface-container-low border-l-[3px] ${borde} p-card-padding-md shadow-lg" style="--d:${Math.min(i, 8) * 45}ms">
+    <div class="flex items-center gap-element-gap-sm flex-wrap mb-element-gap-sm">
+      ${badge('Cap. ' + q.chapter, 'cap')}
+      ${q.hidden ? badge('Spoiler', 'spoiler') : sinResponder ? badge('Sin responder', 'abierta') : badge(q.answerCount + (q.answerCount === 1 ? ' respuesta' : ' respuestas'), 'resp')}
+      ${q.spoiler && q.revealed ? badge('Spoiler abierto', 'vista') : ''}
+    </div>
+    ${cuerpo}
+    ${estadoSpoilerHTML(q)}
+    ${pie}
+    ${respuestas}
+    <form data-form="${q.id}" class="hidden flex gap-element-gap-sm mt-element-gap-md">
+      <input name="texto" maxlength="1000" placeholder="Escribe tu respuesta…" autocomplete="off"
+        class="flex-1 min-w-0 rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-2.5 font-sans text-body-md text-on-surface placeholder:text-outline/60 outline-none focus:border-secondary-container focus:ring-[3px] focus:ring-secondary-container/20 transition-all">
+      <button type="submit" class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-secondary-container hover:bg-secondary-fixed-dim text-on-secondary-container font-sans text-label-md font-bold transition-all active:scale-95">
+        <span translate="no" class="material-symbols-outlined text-[18px]">send</span><span class="hidden sm:inline">Responder</span>
+      </button>
+    </form>
+  </article>`;
+}
+
+function pasanFiltro(q) {
+  if (filtro === 'abiertas') return q.answerCount === 0;
+  if (filtro === 'mias') return q.mine;
+  if (filtro === 'rival') return !q.mine;
+  if (filtro === 'tapadas') return q.hidden;
+  return true;
+}
+
+function ventajaHTML() {
+  const { rival, lead, rivalRead, me } = DATOS;
+  if (!rival)
+    return `<div class="rounded-xl bg-surface-container/60 px-card-padding-sm py-3 font-sans text-body-sm text-on-surface-variant flex items-start gap-2">
+      <span translate="no" class="material-symbols-outlined text-[18px] text-outline">person_off</span>
+      <span>Todavía no hay rival en este duelo: tus preguntas te esperan aquí hasta que alguien se una.</span>
+    </div>`;
+
+  const nombre = esc(rival.displayName.split(' ')[0]);
+  let icono = 'balance';
+  let tono = 'text-on-surface-variant';
+  let texto = `Van iguales, por el capítulo ${me.chaptersRead}. Nadie se tapa nada.`;
+  if (lead > 0) {
+    icono = 'trending_up';
+    tono = 'text-primary';
+    texto = `Vas ${lead} capítulo${lead === 1 ? '' : 's'} por delante de ${nombre} (tú ${me.chaptersRead}, ${nombre} ${rivalRead}). Lo que preguntes del capítulo ${rivalRead + 1} en adelante le llega tapado.`;
+  } else if (lead < 0) {
+    const n = Math.abs(lead);
+    icono = 'trending_down';
+    tono = 'text-secondary';
+    texto = `${nombre} va ${n} capítulo${n === 1 ? '' : 's'} por delante (${nombre} ${rivalRead}, tú ${me.chaptersRead}). Sus preguntas de más adelante te llegan tapadas.`;
+  }
+  return `<div class="rounded-xl bg-surface-container/60 px-card-padding-sm py-3 font-sans text-body-sm ${tono} flex items-start gap-2">
+    <span translate="no" class="material-symbols-outlined text-[18px]">${icono}</span>
+    <span class="text-on-surface-variant">${texto}</span>
+  </div>`;
+}
+
+function render() {
+  const qs = DATOS.questions;
+  const visibles = qs.filter(pasanFiltro);
+  const cuenta = {
+    todas: qs.length,
+    abiertas: qs.filter((q) => q.answerCount === 0).length,
+    mias: qs.filter((q) => q.mine).length,
+    rival: qs.filter((q) => !q.mine).length,
+    tapadas: qs.filter((q) => q.hidden).length,
+  };
+  const pest = [
+    ['todas', 'Todas'],
+    ['abiertas', 'Sin responder'],
+    ['mias', 'Mías'],
+    ['rival', 'Del rival'],
+    ['tapadas', 'Tapadas'],
+  ]
+    .filter(([k]) => k === 'todas' || cuenta[k] > 0 || k === filtro)
+    .map(([k, label]) => {
+      const on = k === filtro;
+      return `<button data-filtro="${k}" type="button" class="shrink-0 px-card-padding-sm py-2 rounded-lg font-sans text-label-md transition-all ${on ? 'bg-surface-container-highest text-primary font-bold' : 'text-on-surface-variant hover:bg-surface-container-high'}">${label} <span class="${on ? 'text-primary' : 'text-outline'}">${cuenta[k]}</span></button>`;
+    })
+    .join('');
+
+  document.getElementById('content').innerHTML = `
+    <div class="flex flex-col gap-element-gap-lg mb-stack-gap-xl ro-in">
+      <a href="/duelo?id=${duelId}" class="inline-flex items-center gap-1.5 font-sans text-label-md text-on-surface-variant hover:text-primary transition-colors w-fit">
+        <span translate="no" class="material-symbols-outlined text-[18px]">arrow_back</span> Volver al duelo
+      </a>
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-element-gap-lg">
+        <div class="min-w-0">
+          <span class="px-element-gap-sm py-0.5 rounded-full bg-secondary-container/15 text-secondary font-sans text-label-sm uppercase tracking-widest">Preguntas del duelo</span>
+          <h1 class="font-serif text-headline-xl md:text-display-hero text-on-surface tracking-tight mt-2 truncate">${esc(DATOS.bookTitle)}</h1>
+          <p class="font-sans text-body-sm text-on-surface-variant mt-1">
+            ${qs.length} pregunta${qs.length === 1 ? '' : 's'} · ${cuenta.abiertas} sin responder · vas por el capítulo ${DATOS.me.chaptersRead} de ${DATOS.totalChapters}
+          </p>
+        </div>
+        <button id="btn-nueva" type="button" class="shrink-0 inline-flex items-center justify-center gap-element-gap-sm px-card-padding-md py-3 rounded-lg bg-secondary-container hover:bg-secondary-fixed-dim text-on-secondary-container font-sans text-label-md font-bold shadow-lg shadow-secondary-container/20 transition-all active:scale-95">
+          <span translate="no" class="material-symbols-outlined text-[20px]">add</span> Nueva pregunta
+        </button>
+      </div>
+      ${ventajaHTML()}
+      <div class="flex items-center gap-1 overflow-x-auto p-1 rounded-lg bg-surface-container-lowest">${pest}</div>
+    </div>
+
+    <div class="flex flex-col gap-gutter-mobile" id="lista">
+      ${visibles.length
+        ? visibles.map((q, i) => preguntaHTML(q, i)).join('')
+        : `<div class="flex flex-col items-center text-center gap-element-gap-md py-20 ro-in">
+            <span translate="no" class="material-symbols-outlined text-[40px] text-outline">quiz</span>
+            <p class="font-serif text-headline-sm text-on-surface">${qs.length ? 'Nada con este filtro' : 'Todavía no hay preguntas'}</p>
+            <p class="font-sans text-body-sm text-on-surface-variant max-w-sm">${qs.length ? 'Prueba con otra pestaña.' : 'Subraya una frase mientras lees y pregunta sobre ella, o abre una pregunta desde aquí.'}</p>
+            ${DATOS.sourceSlug ? `<a href="/leer?duelo=${duelId}&cap=${Math.min(DATOS.me.chaptersRead + 1, DATOS.totalChapters)}" class="font-sans text-label-md text-primary hover:underline">Ir a leer →</a>` : ''}
+          </div>`}
+    </div>`;
+
+  enlazar();
+}
+
+/* ---------- Acciones ---------- */
+function enlazar() {
+  document.querySelectorAll('[data-filtro]').forEach((b) =>
+    b.addEventListener('click', () => { filtro = b.dataset.filtro; render(); })
+  );
+
+  const nueva = document.getElementById('btn-nueva');
+  if (nueva) nueva.addEventListener('click', nuevaPregunta);
+
+  document.querySelectorAll('[data-destapar]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      b.disabled = true;
+      try {
+        const { question } = await api(`/api/questions/${b.dataset.destapar}/reveal`, { method: 'POST' });
+        const i = DATOS.questions.findIndex((q) => q.id === question.id);
+        if (i >= 0) DATOS.questions[i] = question;
+        render();
+        document.getElementById('q' + question.id)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      } catch (err) { toast(err.message); b.disabled = false; }
+    })
+  );
+
+  document.querySelectorAll('[data-responder]').forEach((b) =>
+    b.addEventListener('click', () => {
+      const form = document.querySelector(`form[data-form="${b.dataset.responder}"]`);
+      form.classList.toggle('hidden');
+      form.classList.toggle('flex');
+      form.querySelector('input').focus();
+    })
+  );
+
+  document.querySelectorAll('form[data-form]').forEach((form) =>
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = form.querySelector('input');
+      const texto = input.value.trim();
+      if (!texto) return;
+      try {
+        await api(`/api/questions/${form.dataset.form}/answers`, { method: 'POST', body: { text: texto } });
+        input.value = '';
+        await cargar();
+        toast('Respuesta publicada', 'ok');
+      } catch (err) { toast(err.message); }
+    })
+  );
+
+  document.querySelectorAll('[data-mejor]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      try {
+        await api(`/api/questions/${b.dataset.q}/best`, { method: 'POST', body: { answerId: parseInt(b.dataset.mejor, 10) } });
+        await cargar();
+      } catch (err) { toast(err.message); }
+    })
+  );
+
+  document.querySelectorAll('[data-borrar]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      const ok = await confirmDialog({
+        title: '¿Borrar esta pregunta?',
+        message: 'Se borrará junto con sus respuestas. No se puede deshacer.',
+        confirmText: 'Sí, borrar',
+      });
+      if (!ok) return;
+      try {
+        await api(`/api/questions/${b.dataset.borrar}`, { method: 'DELETE' });
+        await cargar();
+        toast('Pregunta borrada', 'ok');
+      } catch (err) { toast(err.message); }
+    })
+  );
+
+  document.querySelectorAll('[data-borrar-resp]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      try {
+        await api(`/api/answers/${b.dataset.borrarResp}`, { method: 'DELETE' });
+        await cargar();
+      } catch (err) { toast(err.message); }
+    })
+  );
+}
+
+/* Diálogo de pregunta nueva. El capítulo decide a quién le llega tapada, así
+   que se avisa en el momento de escribirla. */
+function nuevaPregunta() {
+  const porDefecto = Math.max(1, Math.min(DATOS.me.chaptersRead || 1, DATOS.totalChapters));
+  const overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 z-[200] flex items-center justify-center p-gutter-mobile bg-black/70 backdrop-blur-sm';
+  overlay.innerHTML = `
+    <div class="w-full max-w-md rounded-xl bg-surface-container-low shadow-2xl overflow-hidden" role="dialog" aria-modal="true">
+      <div class="h-1 bg-secondary-container"></div>
+      <div class="p-card-padding-md flex flex-col gap-element-gap-md">
+        <div class="flex items-start gap-element-gap-md">
+          <div class="w-11 h-11 shrink-0 rounded-lg bg-secondary-container/15 flex items-center justify-center">
+            <span translate="no" class="material-symbols-outlined text-secondary text-[24px]">help</span>
+          </div>
+          <div class="min-w-0">
+            <h2 class="font-serif text-headline-sm text-on-surface">Nueva pregunta</h2>
+            <p class="font-sans text-body-sm text-on-surface-variant mt-1">El capítulo decide quién la puede leer sin spoilers.</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-element-gap-sm">
+          <label class="font-sans text-label-md text-on-surface-variant shrink-0" for="nq-cap">Capítulo</label>
+          <input id="nq-cap" type="number" min="1" max="${DATOS.totalChapters}" value="${porDefecto}"
+            class="w-24 rounded-lg bg-surface-container-lowest border border-surface-container-highest px-3 py-2 font-sans text-label-md text-primary font-bold text-center outline-none focus:border-secondary-container [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+          <span id="nq-aviso" class="font-sans text-label-sm text-outline"></span>
+        </div>
+        <textarea id="nq-text" maxlength="500" rows="4" placeholder="¿Qué quieres preguntar?"
+          class="w-full rounded-lg bg-surface-container-lowest border border-surface-container-highest px-4 py-3 font-sans text-body-md text-on-surface placeholder:text-outline/60 outline-none focus:border-secondary-container resize-y"></textarea>
+        <div class="flex gap-element-gap-sm justify-end">
+          <button data-act="cancel" type="button" class="px-4 py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-sans text-label-md transition-all active:scale-95">Cancelar</button>
+          <button data-act="ok" type="button" class="px-4 py-2.5 rounded-lg bg-secondary-container hover:bg-secondary-fixed-dim text-on-secondary-container font-sans text-label-md font-bold transition-all active:scale-95">Publicar</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const cap = overlay.querySelector('#nq-cap');
+  const aviso = overlay.querySelector('#nq-aviso');
+  const texto = overlay.querySelector('#nq-text');
+  const avisar = () => {
+    const n = parseInt(cap.value, 10);
+    if (!DATOS.rival || DATOS.rivalRead === null || !Number.isInteger(n)) { aviso.textContent = ''; return; }
+    const nombre = DATOS.rival.displayName.split(' ')[0];
+    aviso.textContent = n > DATOS.rivalRead ? `A ${nombre} le llegará tapada` : `${nombre} la verá completa`;
+    aviso.className = 'font-sans text-label-sm ' + (n > DATOS.rivalRead ? 'text-error' : 'text-secondary');
+  };
+  cap.addEventListener('input', avisar);
+  avisar();
+  texto.focus();
+
+  const cerrar = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e) => { if (e.key === 'Escape') cerrar(); };
+  document.addEventListener('keydown', onKey);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) cerrar(); });
+  overlay.querySelector('[data-act="cancel"]').addEventListener('click', cerrar);
+  overlay.querySelector('[data-act="ok"]').addEventListener('click', async () => {
+    const t = texto.value.trim();
+    if (!t) { texto.focus(); return; }
+    try {
+      await api(`/api/duels/${duelId}/questions`, {
+        method: 'POST',
+        body: { chapter: parseInt(cap.value, 10), text: t },
+      });
+      cerrar();
+      await cargar();
+      toast('Pregunta publicada', 'ok');
+    } catch (err) { toast(err.message); }
+  });
+}
+
+async function cargar() {
+  const datos = await api(`/api/duels/${duelId}/questions`);
+  DATOS = datos;
+  render();
+  // Si se llegó con #q<id> desde el lector, se centra esa pregunta.
+  if (location.hash.startsWith('#q')) {
+    const el = document.getElementById(location.hash.slice(1));
+    if (el) {
+      el.scrollIntoView({ block: 'center' });
+      el.classList.add('ring-2', 'ring-primary-container/60');
+    }
+  }
+}
+
+(async () => {
+  USER = await requireAuth(null);
+  if (!duelId) { window.location.href = '/duelos'; return; }
+  try {
+    await cargar();
+  } catch (err) {
+    document.getElementById('content').innerHTML = `<div class="flex flex-col items-center py-24 gap-4 text-center">
+      <span translate="no" class="material-symbols-outlined text-error text-[40px]">error</span>
+      <p class="font-sans text-body-md text-on-surface-variant">${esc(err.message)}</p>
+      <a href="/duelos" class="text-primary font-sans text-label-md hover:underline">← Volver a mis duelos</a>
+    </div>`;
+  }
+})();
+</script>
+</body>
+</html>
