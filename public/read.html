@@ -178,6 +178,17 @@
       </div>
     </div>
 
+    <div id="aviso-voces" class="hidden rounded-lg bg-error-container/15 border border-error/25 p-card-padding-sm">
+      <p class="font-sans text-label-md text-error flex items-center gap-1.5 mb-element-gap-sm">
+        <span translate="no" class="material-symbols-outlined text-[18px]">record_voice_over</span>
+        Este aparato no tiene voces en español
+      </p>
+      <p class="font-sans text-body-sm text-on-surface-variant mb-element-gap-sm">
+        Las voces las instala el sistema, no ReadOff. Mientras falten, el capítulo se leerá con acento extranjero o no sonará.
+      </p>
+      <ol data-el="pasos" class="font-sans text-body-sm text-on-surface-variant list-decimal pl-5 flex flex-col gap-0.5"></ol>
+    </div>
+
     <div class="flex items-center justify-between gap-element-gap-md flex-wrap">
       <span class="font-sans text-label-md text-on-surface-variant shrink-0">Tema de lectura</span>
       <div class="flex gap-1 p-1 rounded-lg bg-surface-container-lowest">
@@ -715,16 +726,24 @@ function trocearCapitulo() {
   iPieza = 0;
 }
 
+// Android devuelve el idioma con guion bajo ("es_MX") y los navegadores de
+// escritorio con guion. Se normaliza antes de comparar nada.
+function idiomaDe(v) {
+  return String((v && v.lang) || '').replace('_', '-');
+}
+
 function vocesEspanol() {
-  return VOCES.filter((v) => /^es/i.test(v.lang));
+  return VOCES.filter((v) => /^es/i.test(idiomaDe(v)));
 }
 
 function vozElegida() {
   const guardada = VOCES.find((v) => v.name === prefs.voz);
-  if (guardada) return guardada;
+  if (guardada) return guardada; // si la elegiste tú, mandas tú
   const es = vocesEspanol();
-  // Sin elección previa: español de México, cualquier español, y si no hay, lo que haya.
-  return es.find((v) => /^es-MX/i.test(v.lang)) || es[0] || VOCES[0] || null;
+  // Sin elección previa: español de México y si no, cualquier español. Nunca
+  // una voz de otro idioma: leer español con una voz inglesa suena a extranjero
+  // deletreando, y es peor que avisar de que faltan voces.
+  return es.find((v) => /^es-MX/i.test(idiomaDe(v))) || es[0] || null;
 }
 
 /* Los nombres que da el sistema son impronunciables ("Microsoft Dalia Online
@@ -737,7 +756,7 @@ const REGIONES = NOMBRES('region');
 const IDIOMAS = NOMBRES('language');
 
 function etiquetaIdioma(lang) {
-  const [idioma, region] = String(lang || '').split('-');
+  const [idioma, region] = String(lang || '').replace('_', '-').split('-');
   let txt = idioma;
   try { if (IDIOMAS) txt = IDIOMAS.of(idioma) || idioma; } catch {}
   if (region) {
@@ -775,13 +794,48 @@ function cargarVoces() {
 
   const opcion = (v) =>
     `<option value="${esc(v.name)}">${esc(nombreCorto(v))}${v.localService ? ' · sin internet' : ''}</option>`;
-  sel.innerHTML = [...grupos]
-    .map(([k, vs]) => `<optgroup label="${esc(k)}">${vs.map(opcion).join('')}</optgroup>`)
-    .join('');
+  sel.innerHTML =
+    '<option value="">Automática · español</option>' +
+    [...grupos].map(([k, vs]) => `<optgroup label="${esc(k)}">${vs.map(opcion).join('')}</optgroup>`).join('');
   const actual = vozElegida();
-  if (actual) sel.value = actual.name;
+  sel.value = actual && prefs.voz ? actual.name : '';
   document.getElementById('cuenta-voces').textContent =
     `${VOCES.length} voces · ${vocesEspanol().length} en español`;
+  pintarAvisoVoces();
+}
+
+/* Las voces las instala el sistema, no la página: aquí solo se puede decir
+   dónde se añaden en cada aparato. Los pasos cambian bastante entre Android,
+   Windows y iPhone, así que se muestran los del que estás usando. */
+function pasosVoces() {
+  const ua = navigator.userAgent;
+  if (/Android/i.test(ua)) {
+    return [
+      'Abre los Ajustes de la tablet',
+      'Administración general → Texto a voz (en algunos aparatos está en Accesibilidad)',
+      'Toca el engranaje del motor preferido (Google o Samsung)',
+      'Instalar datos de voz → Español, y descarga el que quieras',
+      'Cierra Chrome del todo y vuelve a abrirlo',
+    ];
+  }
+  if (/iPhone|iPad|iPod/i.test(ua)) {
+    return ['Abre los Ajustes', 'Accesibilidad → Contenido hablado → Voces', 'Español, y descarga una', 'Vuelve a abrir el navegador'];
+  }
+  if (/Windows/i.test(ua)) {
+    return ['Abre Configuración', 'Hora e idioma → Voz', 'Administrar voces → Agregar voces → Español', 'Vuelve a abrir el navegador'];
+  }
+  return ['Instala un paquete de voces en español en tu sistema', 'Vuelve a abrir el navegador'];
+}
+
+function pintarAvisoVoces() {
+  const caja = document.getElementById('aviso-voces');
+  if (!caja) return;
+  const faltan = !vocesEspanol().length;
+  caja.classList.toggle('hidden', !faltan);
+  if (!faltan) return;
+  caja.querySelector('[data-el="pasos"]').innerHTML = pasosVoces()
+    .map((p) => `<li>${esc(p)}</li>`)
+    .join('');
 }
 
 /* Una frase de muestra para elegir de oído sin tener que empezar el capítulo. */
@@ -791,7 +845,7 @@ function probarVoz() {
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance('Así suena esta voz. Buena lectura.');
   const v = vozElegida();
-  if (v) { u.voice = v; u.lang = v.lang; }
+  if (v) { u.voice = v; u.lang = idiomaDe(v); } else { u.lang = 'es-MX'; }
   u.rate = prefs.vel;
   setTimeout(() => speechSynthesis.speak(u), 0);
   actualizarBarra();
@@ -851,7 +905,7 @@ function hablarPieza(i) {
 
   const u = new SpeechSynthesisUtterance(PIEZAS[i].texto);
   const v = vozElegida();
-  if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'es-MX'; }
+  if (v) { u.voice = v; u.lang = idiomaDe(v); } else { u.lang = 'es-MX'; }
   u.rate = prefs.vel;
   const t0 = performance.now();
   u.onend = () => {
@@ -864,7 +918,13 @@ function hablarPieza(i) {
     if (mio !== generacion || e.error === 'interrupted' || e.error === 'canceled') return;
     hablando = false;
     actualizarBarra();
-    toast(e.error === 'network' ? 'Esa voz necesita internet' : 'La voz se detuvo');
+    if (e.error === 'language-unavailable' || e.error === 'voice-unavailable') {
+      pintarAvisoVoces();
+      document.getElementById('settings').classList.remove('hidden');
+      toast('Falta el español en este aparato: mira los pasos en los ajustes');
+    } else {
+      toast(e.error === 'network' ? 'Esa voz necesita internet' : 'La voz se detuvo');
+    }
   };
 
   hablando = true;
@@ -922,9 +982,18 @@ function abrirVoz(empezar) {
   document.getElementById('tts').classList.add('ver');
   document.body.classList.add('con-voz');
   if (!VOCES.length) cargarVoces();
-  if (!vocesEspanol().length) toast('Tu navegador no tiene voces en español instaladas');
+  // Sin voces en español no se empieza a escondidas: se abren los ajustes con
+  // los pasos para instalarlas en este aparato.
+  const sinEspanol = !vocesEspanol().length && !prefs.voz;
+  if (sinEspanol) {
+    pintarAvisoVoces();
+    document.getElementById('settings').classList.remove('hidden');
+    toast('Este aparato no tiene voces en español');
+  }
   actualizarBarra();
-  if (empezar) alternarVoz();
+  // Si falta el español no se arranca solo: antes de leer con acento extranjero
+  // es mejor enseñar los pasos y dejar que decida (puede darle a play igual).
+  if (empezar && !sinEspanol) alternarVoz();
 }
 
 if (soporteVoz) {

@@ -128,6 +128,23 @@ const EN_DICT = {
   'Tu navegador no puede leer en voz alta': "Your browser can't read aloud",
   'Tu navegador no tiene voces en español instaladas': 'Your browser has no Spanish voices installed',
   'Probar': 'Try it', 'Velocidad de lectura': 'Reading speed',
+  'Automática · español': 'Automatic · Spanish',
+  'Este aparato no tiene voces en español': 'This device has no Spanish voices',
+  'Las voces las instala el sistema, no ReadOff. Mientras falten, el capítulo se leerá con acento extranjero o no sonará.':
+    'Voices are installed by the system, not by ReadOff. Until you add one, the chapter is read with a foreign accent or stays silent.',
+  'Falta el español en este aparato: mira los pasos en los ajustes': 'Spanish is missing on this device: see the steps in the settings',
+  'Abre los Ajustes de la tablet': 'Open the tablet Settings',
+  'Administración general → Texto a voz (en algunos aparatos está en Accesibilidad)':
+    'General management → Text-to-speech (on some devices it is under Accessibility)',
+  'Toca el engranaje del motor preferido (Google o Samsung)': 'Tap the gear next to the preferred engine (Google or Samsung)',
+  'Instalar datos de voz → Español, y descarga el que quieras': 'Install voice data → Spanish, and download the one you want',
+  'Cierra Chrome del todo y vuelve a abrirlo': 'Close Chrome completely and open it again',
+  'Abre Configuración': 'Open Settings', 'Hora e idioma → Voz': 'Time & language → Speech',
+  'Administrar voces → Agregar voces → Español': 'Manage voices → Add voices → Spanish',
+  'Vuelve a abrir el navegador': 'Open the browser again',
+  'Abre los Ajustes': 'Open Settings', 'Accesibilidad → Contenido hablado → Voces': 'Accessibility → Spoken Content → Voices',
+  'Español, y descarga una': 'Spanish, and download one',
+  'Instala un paquete de voces en español en tu sistema': 'Install a Spanish voice pack on your system',
 
   'Anterior': 'Previous', 'Siguiente': 'Next', 'Terminar': 'Finish', 'Ver duelo': 'View duel',
   'Ajustes de lectura': 'Reading settings', 'Volver al duelo': 'Back to the duel',
