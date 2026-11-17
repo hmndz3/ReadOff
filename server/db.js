@@ -76,6 +76,59 @@ CREATE TABLE IF NOT EXISTS reading_sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON reading_sessions(user_id, started_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_chapter ON reading_sessions(user_id, duel_id, chapter);
 
+-- Preguntas sobre un fragmento subrayado del libro. quote guarda el texto
+-- citado y para_index/char_offset su posicion, para volver a pintar la marca en
+-- el lector aunque la fuente cambie una palabra. author_chapter es el progreso
+-- de quien pregunta en ese momento: deja constancia de cuanto iba adelantado.
+CREATE TABLE IF NOT EXISTS questions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  duel_id INTEGER NOT NULL REFERENCES duels(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  chapter INTEGER NOT NULL,
+  text TEXT NOT NULL,
+  quote TEXT NOT NULL DEFAULT '',
+  para_index INTEGER,
+  char_offset INTEGER,
+  author_chapter INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_questions_duel ON questions(duel_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_questions_chapter ON questions(duel_id, chapter);
+
+CREATE TABLE IF NOT EXISTS answers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  text TEXT NOT NULL,
+  is_best INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_answers_question ON answers(question_id, created_at);
+
+-- Quien destapo una pregunta que le llegaba como spoiler, y cuando. El texto de
+-- una pregunta tapada no se manda al cliente hasta que se pide destaparla, asi
+-- que esta tabla es el registro fiable de quien la leyo.
+CREATE TABLE IF NOT EXISTS question_reveals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  revealed_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(question_id, user_id)
+);
+
+-- Subrayados privados: solo los ve quien los hizo, y viajan entre dispositivos.
+CREATE TABLE IF NOT EXISTS highlights (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  duel_id INTEGER NOT NULL REFERENCES duels(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  chapter INTEGER NOT NULL,
+  quote TEXT NOT NULL,
+  para_index INTEGER,
+  char_offset INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_highlights_chapter ON highlights(duel_id, user_id, chapter);
+
 -- Caché local de capítulos: cada capítulo se descarga de la fuente una sola vez.
 CREATE TABLE IF NOT EXISTS chapters (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

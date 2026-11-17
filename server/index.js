@@ -555,6 +555,361 @@ app.post('/api/duels/:id/comments', auth, (req, res) => {
   });
 });
 
+// ---------- Preguntas sobre un fragmento ----------
+// Una pregunta nace de un subrayado dentro del capítulo y vive en la pantalla de
+// preguntas del duelo. La regla de spoiler es el progreso real de cada uno: si
+// el capítulo de la pregunta va por delante de lo que el otro lleva leído, le
+// llega tapada, y el texto no sale del servidor hasta que pide destaparla. Así
+// el registro de quién la abrió es fiable y no se puede espiar la respuesta.
+const MAX_QUESTION = 500;
+const MAX_ANSWER = 1000;
+const MAX_QUOTE = 300;
+
+function chaptersReadBy(duelId, userId) {
+  if (!userId) return 0;
+  return (
+    db.prepare('SELECT MAX(chapter) AS last FROM progress WHERE duel_id = ? AND user_id = ?').get(duelId, userId).last || 0
+  );
+}
+
+function rivalIdOf(duel, meId) {
+  return duel.creator_id === meId ? duel.opponent_id : duel.creator_id;
+}
+
+// Contexto de un duelo para decidir spoilers: cuánto lleva cada uno y quién va
+// adelante. ventaja > 0 significa que quien mira va por delante de su rival.
+function spoilerContext(duel, meId) {
+  const rivalId = rivalIdOf(duel, meId);
+  const rival = rivalId ? db.prepare('SELECT * FROM users WHERE id = ?').get(rivalId) : null;
+  const myRead = chaptersReadBy(duel.id, meId);
+  const rivalRead = rival ? chaptersReadBy(duel.id, rival.id) : null;
+  return {
+    myRead,
+    rival: publicUser(rival),
+    rivalRead,
+    lead: rivalRead === null ? null : myRead - rivalRead,
+  };
+}
+
+// Posición dentro del texto: el párrafo y el desplazamiento dentro de él. Sin
+// esto la marca se perdería en cuanto la fuente cambiara una palabra.
+function intOrNull(v) {
+  const n = parseInt(v, 10);
+  return Number.isInteger(n) && n >= 0 && n < 1e7 ? n : null;
+}
+
+function answersOf(questionIds) {
+  const byQuestion = new Map();
+  if (!questionIds.length) return byQuestion;
+  const marks = questionIds.map(() => '?').join(',');
+  const rows = db
+    .prepare(
+      `SELECT a.id, a.question_id, a.text, a.is_best, a.created_at, u.id AS user_id, u.display_name, u.username
+       FROM answers a JOIN users u ON u.id = a.user_id
+       WHERE a.question_id IN (${marks}) ORDER BY a.is_best DESC, a.created_at ASC`
+    )
+    .all(...questionIds);
+  for (const r of rows) {
+    if (!byQuestion.has(r.question_id)) byQuestion.set(r.question_id, []);
+    byQuestion.get(r.question_id).push({
+      id: r.id,
+      text: r.text,
+      isBest: !!r.is_best,
+      createdAt: r.created_at,
+      user: { id: r.user_id, displayName: r.display_name, username: r.username },
+    });
+  }
+  return byQuestion;
+}
+
+// Una pregunta tal y como la ve `meId`. Si le llega tapada, el texto y la cita
+// salen en null: lo único que viaja es el capítulo, para avisar de qué se trata.
+function questionPayload(q, meId, ctx, extras = {}) {
+  const mine = q.user_id === meId;
+  const spoiler = !mine && q.chapter > ctx.myRead;
+  const revealed = !!extras.revealedAt;
+  const hidden = spoiler && !revealed;
+  const answers = extras.answers || [];
+  const out = {
+    id: q.id,
+    chapter: q.chapter,
+    createdAt: q.created_at,
+    mine,
+    spoiler,
+    revealed,
+    hidden,
+    revealedAt: extras.revealedAt || null,
+    authorChapter: q.author_chapter,
+    user: { id: q.user_id, displayName: q.display_name, username: q.username },
+    text: hidden ? null : q.text,
+    quote: hidden ? null : q.quote || '',
+    paraIndex: hidden ? null : q.para_index,
+    charOffset: hidden ? null : q.char_offset,
+    answerCount: extras.answerCount ?? answers.length,
+    answers: hidden ? [] : answers,
+  };
+  // En las propias se ve el otro lado: si al rival le llegó tapada y si la abrió.
+  if (mine && ctx.rival) {
+    out.spoilerForRival = ctx.rivalRead !== null && q.chapter > ctx.rivalRead;
+    out.rivalRead = ctx.rivalRead;
+    out.rivalRevealedAt = extras.rivalRevealedAt || null;
+  }
+  return out;
+}
+
+function listQuestions(duel, meId, chapter) {
+  const ctx = spoilerContext(duel, meId);
+  const rows = chapter
+    ? db
+        .prepare(
+          `SELECT q.*, u.display_name, u.username FROM questions q JOIN users u ON u.id = q.user_id
+           WHERE q.duel_id = ? AND q.chapter = ? ORDER BY q.created_at DESC, q.id DESC LIMIT 200`
+        )
+        .all(duel.id, chapter)
+    : db
+        .prepare(
+          `SELECT q.*, u.display_name, u.username FROM questions q JOIN users u ON u.id = q.user_id
+           WHERE q.duel_id = ? ORDER BY q.created_at DESC, q.id DESC LIMIT 300`
+        )
+        .all(duel.id);
+
+  const ids = rows.map((r) => r.id);
+  const answers = answersOf(ids);
+  const myReveals = new Map();
+  const rivalReveals = new Map();
+  if (ids.length) {
+    const marks = ids.map(() => '?').join(',');
+    for (const r of db
+      .prepare(`SELECT question_id, user_id, revealed_at FROM question_reveals WHERE question_id IN (${marks})`)
+      .all(...ids)) {
+      if (r.user_id === meId) myReveals.set(r.question_id, r.revealed_at);
+      else rivalReveals.set(r.question_id, r.revealed_at);
+    }
+  }
+
+  const questions = rows.map((q) =>
+    questionPayload(q, meId, ctx, {
+      answers: answers.get(q.id) || [],
+      answerCount: (answers.get(q.id) || []).length,
+      revealedAt: myReveals.get(q.id) || null,
+      rivalRevealedAt: rivalReveals.get(q.id) || null,
+    })
+  );
+  return { questions, ctx };
+}
+
+app.get('/api/duels/:id/questions', auth, (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  let chapter = null;
+  if (req.query.chapter !== undefined) {
+    chapter = parseInt(req.query.chapter, 10);
+    if (!Number.isInteger(chapter) || chapter < 1) return res.status(400).json({ error: 'Capítulo inválido' });
+  }
+  const { questions, ctx } = listQuestions(duel, req.user.id, chapter);
+  res.json({
+    questions,
+    me: { chaptersRead: ctx.myRead },
+    rival: ctx.rival,
+    rivalRead: ctx.rivalRead,
+    lead: ctx.lead,
+    totalChapters: duel.total_chapters,
+    bookTitle: duel.book_title,
+  });
+});
+
+app.post('/api/duels/:id/questions', auth, (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  const b = req.body || {};
+  const ch = parseInt(b.chapter, 10);
+  const text = String(b.text || '').trim();
+  const quote = String(b.quote || '').trim().slice(0, MAX_QUOTE);
+  if (!Number.isInteger(ch) || ch < 1 || ch > duel.total_chapters)
+    return res.status(400).json({ error: 'Capítulo inválido' });
+  if (!text) return res.status(400).json({ error: 'Escribe tu pregunta antes de publicarla' });
+  if (text.length > MAX_QUESTION) return res.status(400).json({ error: `Máximo ${MAX_QUESTION} caracteres` });
+
+  const info = db
+    .prepare(
+      `INSERT INTO questions (duel_id, user_id, chapter, text, quote, para_index, char_offset, author_chapter)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(duel.id, req.user.id, ch, text, quote, intOrNull(b.paraIndex), intOrNull(b.charOffset), chaptersReadBy(duel.id, req.user.id));
+
+  const q = db
+    .prepare('SELECT q.*, u.display_name, u.username FROM questions q JOIN users u ON u.id = q.user_id WHERE q.id = ?')
+    .get(info.lastInsertRowid);
+  const ctx = spoilerContext(duel, req.user.id);
+  res.json({ question: questionPayload(q, req.user.id, ctx, {}) });
+});
+
+// Carga una pregunta comprobando que quien pide participa en su duelo.
+function getQuestion(req, res) {
+  const q = db
+    .prepare('SELECT q.*, u.display_name, u.username FROM questions q JOIN users u ON u.id = q.user_id WHERE q.id = ?')
+    .get(req.params.id);
+  if (!q) {
+    res.status(404).json({ error: 'Pregunta no encontrada' });
+    return null;
+  }
+  const duel = db.prepare('SELECT * FROM duels WHERE id = ?').get(q.duel_id);
+  if (!duel || (duel.creator_id !== req.user.id && duel.opponent_id !== req.user.id)) {
+    res.status(403).json({ error: 'No participas en este duelo' });
+    return null;
+  }
+  return { q, duel };
+}
+
+// Destapar un spoiler. Queda registrado: quien preguntó verá que ya se abrió.
+app.post('/api/questions/:id/reveal', auth, (req, res) => {
+  const found = getQuestion(req, res);
+  if (!found) return;
+  const { q, duel } = found;
+  if (q.user_id !== req.user.id) {
+    db.prepare('INSERT OR IGNORE INTO question_reveals (question_id, user_id) VALUES (?, ?)').run(q.id, req.user.id);
+  }
+  const row = db
+    .prepare('SELECT revealed_at FROM question_reveals WHERE question_id = ? AND user_id = ?')
+    .get(q.id, req.user.id);
+  const ctx = spoilerContext(duel, req.user.id);
+  const answers = answersOf([q.id]).get(q.id) || [];
+  const rivalRevealed = db
+    .prepare('SELECT revealed_at FROM question_reveals WHERE question_id = ? AND user_id != ?')
+    .get(q.id, req.user.id);
+  res.json({
+    question: questionPayload(q, req.user.id, ctx, {
+      answers,
+      revealedAt: (row && row.revealed_at) || new Date().toISOString().slice(0, 19).replace('T', ' '),
+      rivalRevealedAt: (rivalRevealed && rivalRevealed.revealed_at) || null,
+    }),
+  });
+});
+
+app.delete('/api/questions/:id', auth, (req, res) => {
+  const found = getQuestion(req, res);
+  if (!found) return;
+  if (found.q.user_id !== req.user.id) return res.status(403).json({ error: 'Solo puedes borrar tus preguntas' });
+  db.prepare('DELETE FROM questions WHERE id = ?').run(found.q.id);
+  res.json({ ok: true });
+});
+
+// Responder. No se puede responder a lo que todavía te llega tapado: primero se
+// destapa, y entonces queda constancia de que se leyó.
+app.post('/api/questions/:id/answers', auth, (req, res) => {
+  const found = getQuestion(req, res);
+  if (!found) return;
+  const { q, duel } = found;
+  const text = String((req.body || {}).text || '').trim();
+  if (!text) return res.status(400).json({ error: 'Escribe tu respuesta' });
+  if (text.length > MAX_ANSWER) return res.status(400).json({ error: `Máximo ${MAX_ANSWER} caracteres` });
+  const ctx = spoilerContext(duel, req.user.id);
+  const revealed = db
+    .prepare('SELECT 1 AS y FROM question_reveals WHERE question_id = ? AND user_id = ?')
+    .get(q.id, req.user.id);
+  if (q.user_id !== req.user.id && q.chapter > ctx.myRead && !revealed)
+    return res.status(409).json({ error: 'Destapa la pregunta antes de responderla' });
+
+  const info = db.prepare('INSERT INTO answers (question_id, user_id, text) VALUES (?, ?, ?)').run(q.id, req.user.id, text);
+  const row = db.prepare('SELECT created_at FROM answers WHERE id = ?').get(info.lastInsertRowid);
+  res.json({
+    answer: {
+      id: info.lastInsertRowid,
+      text,
+      isBest: false,
+      createdAt: row.created_at,
+      user: { id: req.user.id, displayName: req.user.display_name, username: req.user.username },
+    },
+  });
+});
+
+app.delete('/api/answers/:id', auth, (req, res) => {
+  const a = db.prepare('SELECT * FROM answers WHERE id = ?').get(req.params.id);
+  if (!a) return res.status(404).json({ error: 'Respuesta no encontrada' });
+  if (a.user_id !== req.user.id) return res.status(403).json({ error: 'Solo puedes borrar tus respuestas' });
+  db.prepare('DELETE FROM answers WHERE id = ?').run(a.id);
+  res.json({ ok: true });
+});
+
+// Marcar la mejor respuesta: solo quien preguntó, y solo una por pregunta.
+app.post('/api/questions/:id/best', auth, (req, res) => {
+  const found = getQuestion(req, res);
+  if (!found) return;
+  if (found.q.user_id !== req.user.id)
+    return res.status(403).json({ error: 'Solo quien preguntó puede elegir la mejor respuesta' });
+  const answerId = parseInt((req.body || {}).answerId, 10);
+  const a = Number.isInteger(answerId)
+    ? db.prepare('SELECT * FROM answers WHERE id = ? AND question_id = ?').get(answerId, found.q.id)
+    : null;
+  if (answerId && !a) return res.status(404).json({ error: 'Esa respuesta no es de esta pregunta' });
+  db.transaction(() => {
+    db.prepare('UPDATE answers SET is_best = 0 WHERE question_id = ?').run(found.q.id);
+    if (a) db.prepare('UPDATE answers SET is_best = 1 WHERE id = ?').run(a.id);
+  })();
+  res.json({ bestAnswerId: a ? a.id : null });
+});
+
+// ---------- Subrayados privados ----------
+app.get('/api/duels/:id/highlights', auth, (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  const ch = parseInt(req.query.chapter, 10);
+  const rows = Number.isInteger(ch)
+    ? db
+        .prepare(
+          `SELECT id, chapter, quote, para_index, char_offset, created_at FROM highlights
+           WHERE duel_id = ? AND user_id = ? AND chapter = ? ORDER BY id`
+        )
+        .all(duel.id, req.user.id, ch)
+    : db
+        .prepare(
+          `SELECT id, chapter, quote, para_index, char_offset, created_at FROM highlights
+           WHERE duel_id = ? AND user_id = ? ORDER BY chapter, id LIMIT 500`
+        )
+        .all(duel.id, req.user.id);
+  res.json({
+    highlights: rows.map((h) => ({
+      id: h.id,
+      chapter: h.chapter,
+      quote: h.quote,
+      paraIndex: h.para_index,
+      charOffset: h.char_offset,
+      createdAt: h.created_at,
+    })),
+  });
+});
+
+app.post('/api/duels/:id/highlights', auth, (req, res) => {
+  const duel = getMyDuel(req, res);
+  if (!duel) return;
+  const b = req.body || {};
+  const ch = parseInt(b.chapter, 10);
+  const quote = String(b.quote || '').trim().slice(0, MAX_QUOTE);
+  if (!Number.isInteger(ch) || ch < 1 || ch > duel.total_chapters)
+    return res.status(400).json({ error: 'Capítulo inválido' });
+  if (!quote) return res.status(400).json({ error: 'No hay nada subrayado' });
+  const info = db
+    .prepare('INSERT INTO highlights (duel_id, user_id, chapter, quote, para_index, char_offset) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(duel.id, req.user.id, ch, quote, intOrNull(b.paraIndex), intOrNull(b.charOffset));
+  res.json({
+    highlight: {
+      id: info.lastInsertRowid,
+      chapter: ch,
+      quote,
+      paraIndex: intOrNull(b.paraIndex),
+      charOffset: intOrNull(b.charOffset),
+    },
+  });
+});
+
+app.delete('/api/highlights/:id', auth, (req, res) => {
+  const h = db.prepare('SELECT * FROM highlights WHERE id = ?').get(req.params.id);
+  if (!h) return res.status(404).json({ error: 'Subrayado no encontrado' });
+  if (h.user_id !== req.user.id) return res.status(403).json({ error: 'Solo puedes borrar tus subrayados' });
+  db.prepare('DELETE FROM highlights WHERE id = ?').run(h.id);
+  res.json({ ok: true });
+});
+
 // ---------- Autoconfiguración desde chikari.moe ----------
 const CHIKARI = 'https://chikari.moe';
 const UA = { 'User-Agent': 'Mozilla/5.0 (compatible; ReadOff personal duel app)' };
@@ -980,7 +1335,7 @@ app.use((err, req, res, next) => {
   if (err) return res.status(400).json({ error: err.message || 'Error inesperado' });
   next();
 });
-const pages = { '/duelo': 'duel.html', '/nuevo': 'new.html', '/unirse': 'join.html', '/perfil': 'profile.html', '/duelos': 'dashboard.html', '/leer': 'read.html' };
+const pages = { '/duelo': 'duel.html', '/nuevo': 'new.html', '/unirse': 'join.html', '/perfil': 'profile.html', '/duelos': 'dashboard.html', '/leer': 'read.html', '/preguntas': 'questions.html' };
 for (const [route, file] of Object.entries(pages)) {
   app.get(route, (req, res) => res.sendFile(path.join(__dirname, '..', 'public', file)));
 }
