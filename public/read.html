@@ -181,7 +181,7 @@
     <div id="aviso-voces" class="hidden rounded-lg bg-error-container/15 border border-error/25 p-card-padding-sm">
       <p class="font-sans text-label-md text-error flex items-center gap-1.5 mb-element-gap-sm">
         <span translate="no" class="material-symbols-outlined text-[18px]">record_voice_over</span>
-        Este aparato no tiene voces en español
+        <span data-el="titulo">Este aparato no tiene voces para este capítulo</span>
       </p>
       <p class="font-sans text-body-sm text-on-surface-variant mb-element-gap-sm">
         Las voces las instala el sistema, no ReadOff. Mientras falten, el capítulo se leerá con acento extranjero o no sonará.
@@ -293,7 +293,7 @@ let duelInfo = null;
 
 /* ---------- Preferencias de lectura ---------- */
 const PREFS_KEY = 'readerPrefs';
-const defaults = { font: 'serif', size: 18, lh: '1.8', w: '760', rt: 'oscuro', vel: 1, voz: '', wpmVoz: 0 };
+const defaults = { font: 'serif', size: 18, lh: '1.8', w: '760', rt: 'oscuro', vel: 1, voces: {}, wpm: {} };
 let prefs = { ...defaults };
 try { prefs = { ...defaults, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; } catch {}
 
@@ -656,9 +656,14 @@ const soporteVoz = typeof speechSynthesis !== 'undefined';
 let medidoPalabras = 0;
 let medidoMinutos = 0;
 
+// El ritmo se guarda por idioma: la voz inglesa y la española no leen igual.
+function claveWpm() {
+  return IDIOMA_CAP || 'otro';
+}
+
 function wpmVoz() {
   if (medidoMinutos > 0 && medidoPalabras >= 60) return medidoPalabras / medidoMinutos;
-  const guardado = parseFloat(prefs.wpmVoz);
+  const guardado = parseFloat((prefs.wpm || {})[claveWpm()]);
   return Number.isFinite(guardado) && guardado > 40 ? guardado : WPM_POR_DEFECTO;
 }
 
@@ -667,7 +672,8 @@ function anotarMedida(palabras, ms, vel) {
   medidoPalabras += palabras;
   medidoMinutos += (ms / 60000) * vel;
   if (medidoPalabras >= 60) {
-    prefs.wpmVoz = Math.round(medidoPalabras / medidoMinutos);
+    if (!prefs.wpm) prefs.wpm = {};
+    prefs.wpm[claveWpm()] = Math.round(medidoPalabras / medidoMinutos);
     savePrefs();
   }
 }
@@ -675,7 +681,7 @@ function anotarMedida(palabras, ms, vel) {
 function olvidarMedida() {
   medidoPalabras = 0;
   medidoMinutos = 0;
-  prefs.wpmVoz = 0;
+  if (prefs.wpm) delete prefs.wpm[claveWpm()];
   savePrefs();
 }
 
@@ -732,18 +738,55 @@ function idiomaDe(v) {
   return String((v && v.lang) || '').replace('_', '-');
 }
 
-function vocesEspanol() {
-  return VOCES.filter((v) => /^es/i.test(idiomaDe(v)));
+/* ---------- Idioma del capítulo ----------
+   La interfaz está en español, pero los libros no tienen por qué estarlo. Leer
+   un capítulo en inglés con una voz española suena tan mal como al revés, así
+   que el idioma se saca del propio texto, no de la app ni del sistema. Se
+   cuentan palabras y signos que solo salen en uno de los dos idiomas; si no
+   hay una diferencia clara, no se fuerza nada y decide el sistema. */
+const PISTAS = {
+  es: /\b(que|de|la|los|las|una|por|con|para|como|pero|más|sus|era|cuando|estaba|había)\b|[ñáéíóú¿¡]/gi,
+  en: /\b(the|and|of|to|in|is|was|that|it|with|for|his|her|had|they|you|from|been)\b/gi,
+};
+const NOMBRE_IDIOMA = { es: 'español', en: 'inglés' };
+const REGION_FAVORITA = { es: /^es-MX/i, en: /^en-US/i };
+let IDIOMA_CAP = null; // 'es' | 'en' | null
+
+function idiomaDelTexto(parrafos) {
+  const muestra = parrafos.join(' ').slice(0, 5000);
+  const es = (muestra.match(PISTAS.es) || []).length;
+  const en = (muestra.match(PISTAS.en) || []).length;
+  const total = es + en;
+  if (total < 8) return null; // muy poco texto para decidir
+  const ganador = es >= en ? 'es' : 'en';
+  const ventaja = Math.max(es, en) / total;
+  return ventaja >= 0.6 ? ganador : null; // sin una mayoría clara, mejor no forzar
+}
+
+function vocesDe(lang) {
+  if (!lang) return [];
+  return VOCES.filter((v) => idiomaDe(v).toLowerCase().startsWith(lang));
+}
+
+function vocesDelCapitulo() {
+  return vocesDe(IDIOMA_CAP);
+}
+
+// Voz guardada para el idioma de este capítulo. Se recuerda una por idioma:
+// quien lee en inglés y en español no quiere la misma.
+function vozGuardada() {
+  return (prefs.voces || {})[claveWpm()] || '';
 }
 
 function vozElegida() {
-  const guardada = VOCES.find((v) => v.name === prefs.voz);
+  const guardada = VOCES.find((v) => v.name === vozGuardada());
   if (guardada) return guardada; // si la elegiste tú, mandas tú
-  const es = vocesEspanol();
-  // Sin elección previa: español de México y si no, cualquier español. Nunca
-  // una voz de otro idioma: leer español con una voz inglesa suena a extranjero
-  // deletreando, y es peor que avisar de que faltan voces.
-  return es.find((v) => /^es-MX/i.test(idiomaDe(v))) || es[0] || null;
+  if (!IDIOMA_CAP) return null; // idioma desconocido: que el sistema decida
+  const candidatas = vocesDelCapitulo();
+  const favorita = REGION_FAVORITA[IDIOMA_CAP];
+  // Nunca una voz de otro idioma: suena a extranjero deletreando, y es peor
+  // que avisar de que faltan voces.
+  return candidatas.find((v) => favorita.test(idiomaDe(v))) || candidatas[0] || null;
 }
 
 /* Los nombres que da el sistema son impronunciables ("Microsoft Dalia Online
@@ -782,58 +825,67 @@ function cargarVoces() {
   if (!VOCES.length) { fila.classList.add('hidden'); return; }
   fila.classList.remove('hidden');
 
-  // Todas las voces del aparato, las de español primero y por acento.
+  // Todas las voces del aparato: primero las del idioma del capítulo, por acento.
   const grupos = new Map();
   const meter = (v) => {
     const k = etiquetaIdioma(v.lang);
     if (!grupos.has(k)) grupos.set(k, []);
     grupos.get(k).push(v);
   };
-  vocesEspanol().forEach(meter);
-  VOCES.filter((v) => !/^es/i.test(v.lang)).forEach(meter);
+  const delCap = vocesDelCapitulo();
+  delCap.forEach(meter);
+  VOCES.filter((v) => !delCap.includes(v)).forEach(meter);
 
   const opcion = (v) =>
     `<option value="${esc(v.name)}">${esc(nombreCorto(v))}${v.localService ? ' · sin internet' : ''}</option>`;
+  const auto = IDIOMA_CAP ? `Automática · ${NOMBRE_IDIOMA[IDIOMA_CAP]}` : 'Automática';
   sel.innerHTML =
-    '<option value="">Automática · español</option>' +
+    `<option value="">${esc(auto)}</option>` +
     [...grupos].map(([k, vs]) => `<optgroup label="${esc(k)}">${vs.map(opcion).join('')}</optgroup>`).join('');
   const actual = vozElegida();
-  sel.value = actual && prefs.voz ? actual.name : '';
-  document.getElementById('cuenta-voces').textContent =
-    `${VOCES.length} voces · ${vocesEspanol().length} en español`;
+  sel.value = actual && vozGuardada() ? actual.name : '';
+  document.getElementById('cuenta-voces').textContent = IDIOMA_CAP
+    ? `${VOCES.length} voces · ${delCap.length} en ${NOMBRE_IDIOMA[IDIOMA_CAP]}`
+    : `${VOCES.length} voces`;
   pintarAvisoVoces();
 }
 
 /* Las voces las instala el sistema, no la página: aquí solo se puede decir
    dónde se añaden en cada aparato. Los pasos cambian bastante entre Android,
    Windows y iPhone, así que se muestran los del que estás usando. */
-function pasosVoces() {
+function pasosVoces(idioma) {
   const ua = navigator.userAgent;
+  const nombre = NOMBRE_IDIOMA[idioma] || 'ese idioma';
+  const Nombre = nombre.charAt(0).toUpperCase() + nombre.slice(1);
   if (/Android/i.test(ua)) {
     return [
-      'Abre los Ajustes de la tablet',
+      'Abre los Ajustes del aparato',
       'Administración general → Texto a voz (en algunos aparatos está en Accesibilidad)',
       'Toca el engranaje del motor preferido (Google o Samsung)',
-      'Instalar datos de voz → Español, y descarga el que quieras',
-      'Cierra Chrome del todo y vuelve a abrirlo',
+      `Instalar datos de voz → ${Nombre}, y descarga el que quieras`,
+      'Cierra el navegador del todo y vuelve a abrirlo',
     ];
   }
   if (/iPhone|iPad|iPod/i.test(ua)) {
-    return ['Abre los Ajustes', 'Accesibilidad → Contenido hablado → Voces', 'Español, y descarga una', 'Vuelve a abrir el navegador'];
+    return ['Abre los Ajustes', 'Accesibilidad → Contenido hablado → Voces', `${Nombre}, y descarga una`, 'Vuelve a abrir el navegador'];
   }
   if (/Windows/i.test(ua)) {
-    return ['Abre Configuración', 'Hora e idioma → Voz', 'Administrar voces → Agregar voces → Español', 'Vuelve a abrir el navegador'];
+    return ['Abre Configuración', 'Hora e idioma → Voz', `Administrar voces → Agregar voces → ${Nombre}`, 'Vuelve a abrir el navegador'];
   }
-  return ['Instala un paquete de voces en español en tu sistema', 'Vuelve a abrir el navegador'];
+  return [`Instala un paquete de voces en ${nombre} en tu sistema`, 'Vuelve a abrir el navegador'];
 }
 
 function pintarAvisoVoces() {
   const caja = document.getElementById('aviso-voces');
   if (!caja) return;
-  const faltan = !vocesEspanol().length;
+  // Solo se avisa cuando se sabe en qué idioma está el capítulo y no hay
+  // ninguna voz para él.
+  const faltan = !!IDIOMA_CAP && !vocesDelCapitulo().length;
   caja.classList.toggle('hidden', !faltan);
   if (!faltan) return;
-  caja.querySelector('[data-el="pasos"]').innerHTML = pasosVoces()
+  caja.querySelector('[data-el="titulo"]').textContent =
+    `Este aparato no tiene voces en ${NOMBRE_IDIOMA[IDIOMA_CAP]}`;
+  caja.querySelector('[data-el="pasos"]').innerHTML = pasosVoces(IDIOMA_CAP)
     .map((p) => `<li>${esc(p)}</li>`)
     .join('');
 }
@@ -843,9 +895,9 @@ function probarVoz() {
   if (!soporteVoz) return;
   if (hablando && !pausado) { pausado = true; generacion++; }
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance('Así suena esta voz. Buena lectura.');
+  const u = new SpeechSynthesisUtterance(IDIOMA_CAP === 'en' ? 'This is how this voice sounds. Enjoy the chapter.' : 'Así suena esta voz. Buena lectura.');
   const v = vozElegida();
-  if (v) { u.voice = v; u.lang = idiomaDe(v); } else { u.lang = 'es-MX'; }
+  if (v) { u.voice = v; u.lang = idiomaDe(v); } else if (IDIOMA_CAP) { u.lang = IDIOMA_CAP === 'en' ? 'en-US' : 'es-MX'; }
   u.rate = prefs.vel;
   setTimeout(() => speechSynthesis.speak(u), 0);
   actualizarBarra();
@@ -905,7 +957,7 @@ function hablarPieza(i) {
 
   const u = new SpeechSynthesisUtterance(PIEZAS[i].texto);
   const v = vozElegida();
-  if (v) { u.voice = v; u.lang = idiomaDe(v); } else { u.lang = 'es-MX'; }
+  if (v) { u.voice = v; u.lang = idiomaDe(v); } else if (IDIOMA_CAP) { u.lang = IDIOMA_CAP === 'en' ? 'en-US' : 'es-MX'; }
   u.rate = prefs.vel;
   const t0 = performance.now();
   u.onend = () => {
@@ -984,11 +1036,11 @@ function abrirVoz(empezar) {
   if (!VOCES.length) cargarVoces();
   // Sin voces en español no se empieza a escondidas: se abren los ajustes con
   // los pasos para instalarlas en este aparato.
-  const sinEspanol = !vocesEspanol().length && !prefs.voz;
+  const sinEspanol = !!IDIOMA_CAP && !vocesDelCapitulo().length && !vozGuardada();
   if (sinEspanol) {
     pintarAvisoVoces();
     document.getElementById('settings').classList.remove('hidden');
-    toast('Este aparato no tiene voces en español');
+    toast('Este aparato no tiene voces en ' + NOMBRE_IDIOMA[IDIOMA_CAP]);
   }
   actualizarBarra();
   // Si falta el español no se arranca solo: antes de leer con acento extranjero
@@ -1028,7 +1080,8 @@ if (soporteVoz) {
     if (!m.contains(e.target) && e.target.closest('#tts-rate') === null) m.classList.remove('ver');
   });
   document.getElementById('sel-voz').addEventListener('change', (e) => {
-    prefs.voz = e.target.value;
+    if (!prefs.voces) prefs.voces = {};
+    prefs.voces[claveWpm()] = e.target.value;
     olvidarMedida(); // cada voz lee a su ritmo: el estimado se vuelve a medir
     savePrefs();
     actualizarBarra();
@@ -1226,6 +1279,12 @@ async function loadChapter(n, push = true) {
     document.getElementById('chapter-bar').style.width = '0%';
     // Tras pintar: el alto definitivo depende de la tipografía ya aplicada.
     setTimeout(remedirYActualizar, 0);
+    // El idioma sale del texto del capítulo: de ahí depende qué voz lo lee.
+    const idiomaAntes = IDIOMA_CAP;
+    IDIOMA_CAP = idiomaDelTexto(PARRAFOS);
+    if (idiomaAntes && IDIOMA_CAP !== idiomaAntes) { medidoPalabras = 0; medidoMinutos = 0; } // otra voz, otro ritmo
+    cargarVoces();
+
     cargarMarcas(chapter.number); // subrayados y preguntas, sin frenar la lectura
 
     // Si estabas escuchando, la voz sigue con el capítulo nuevo.
