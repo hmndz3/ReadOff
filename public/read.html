@@ -37,6 +37,28 @@
   #chapter-body mark.marca-q:hover{ background:rgba(3,198,178,.34); }
   #chapter-body mark.marca-hl:hover{ background:rgba(245,166,35,.4); }
   #chapter-body mark.resaltada{ animation:marca-late 1.6s ease-out 2; }
+  /* Frase que va diciendo la voz */
+  #chapter-body mark.marca-tts{ background:rgba(255,200,128,.18); box-shadow:inset 0 -2px 0 rgba(255,200,128,.7); border-radius:3px; }
+
+  /* Barra del lector en voz alta */
+  #tts{ position:fixed; left:50%; transform:translateX(-50%); z-index:44;
+    bottom:calc(14px + env(safe-area-inset-bottom, 0px));
+    display:none; align-items:center; gap:4px; padding:6px;
+    background:rgb(var(--tk-surface-container-high)); border:1px solid rgb(var(--tk-surface-container-highest));
+    border-radius:999px; box-shadow:0 16px 36px -14px rgba(0,0,0,.85);
+    max-width:calc(100vw - 24px); }
+  #tts.ver{ display:flex; }
+  #tts button{ display:inline-flex; align-items:center; justify-content:center; border:none; background:transparent;
+    color:rgb(var(--tk-on-surface)); border-radius:999px; cursor:pointer; padding:8px; transition:background .13s,color .13s; }
+  #tts button:hover{ background:rgb(var(--tk-surface-container-highest)); }
+  #tts button:disabled{ opacity:.35; pointer-events:none; }
+  #tts #tts-play{ background:rgb(var(--tk-primary-container)); color:rgb(var(--tk-on-primary-container)); }
+  #tts #tts-play:hover{ filter:brightness(1.08); }
+  #tts .chip{ font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:700; padding:7px 10px; white-space:nowrap; }
+  #tts #tts-pos{ font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; color:rgb(var(--tk-outline)); padding:0 6px; white-space:nowrap; }
+  @media (max-width:420px){ #tts #tts-pos{ display:none } }
+  /* Con la barra abierta, el texto deja sitio para que no tape la última línea. */
+  body.con-voz #reader-inner{ padding-bottom:96px; }
   @keyframes marca-late{ 0%,100%{ box-shadow:0 1px 0 rgba(68,226,205,.9) } 50%{ box-shadow:0 0 0 4px rgba(68,226,205,.35) } }
 
   /* Burbuja flotante sobre la selección */
@@ -64,6 +86,9 @@
       <p class="font-serif text-headline-sm text-on-surface truncate leading-tight" id="book-title">…</p>
       <p class="font-sans text-label-sm text-outline truncate" id="chapter-label">Cargando…</p>
     </div>
+    <button id="btn-voz" class="shrink-0 p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all" aria-label="Escuchar el capítulo" type="button">
+      <span translate="no" class="material-symbols-outlined align-middle">headphones</span>
+    </button>
     <a id="link-preguntas" href="/duelos" class="shrink-0 relative p-2 rounded-lg text-on-surface-variant hover:text-secondary hover:bg-surface-container-high transition-all" aria-label="Preguntas del duelo">
       <span translate="no" class="material-symbols-outlined align-middle">help</span>
       <span id="q-count" class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-secondary-container text-on-secondary-container font-sans text-[9px] font-extrabold leading-4 text-center"></span>
@@ -123,6 +148,11 @@
       </div>
     </div>
 
+    <div class="flex items-center justify-between gap-element-gap-md flex-wrap" id="fila-voz">
+      <span class="font-sans text-label-md text-on-surface-variant shrink-0">Voz que lee</span>
+      <select id="sel-voz" class="min-w-0 max-w-[260px] rounded-lg bg-surface-container-lowest border border-surface-container-highest px-3 py-2 font-sans text-label-md text-on-surface outline-none focus:border-primary-container"></select>
+    </div>
+
     <div class="flex items-center justify-between gap-element-gap-md flex-wrap">
       <span class="font-sans text-label-md text-on-surface-variant shrink-0">Tema de lectura</span>
       <div class="flex gap-1 p-1 rounded-lg bg-surface-container-lowest">
@@ -135,6 +165,16 @@
 </div>
 
 <!-- Lectura -->
+<!-- Lector en voz alta -->
+<div id="tts" role="toolbar" aria-label="Lectura en voz alta">
+  <button id="tts-back" type="button" aria-label="Atrás 5 segundos"><span translate="no" class="material-symbols-outlined text-[22px]">replay_5</span></button>
+  <button id="tts-play" type="button" aria-label="Escuchar"><span translate="no" class="material-symbols-outlined text-[24px]" id="tts-icon">play_arrow</span></button>
+  <button id="tts-fwd" type="button" aria-label="Adelante 5 segundos"><span translate="no" class="material-symbols-outlined text-[22px]">forward_5</span></button>
+  <span id="tts-pos"></span>
+  <button id="tts-rate" type="button" class="chip" aria-label="Velocidad">1x</button>
+  <button id="tts-close" type="button" aria-label="Cerrar el lector"><span translate="no" class="material-symbols-outlined text-[20px]">close</span></button>
+</div>
+
 <!-- Burbuja del subrayador: aparece sobre la selección -->
 <div id="burbuja" role="toolbar" aria-label="Acciones sobre la selección">
   <button type="button" data-act="subrayar"><span translate="no" class="material-symbols-outlined text-[17px] text-primary">format_ink_highlighter</span> Subrayar</button>
@@ -216,7 +256,7 @@ let duelInfo = null;
 
 /* ---------- Preferencias de lectura ---------- */
 const PREFS_KEY = 'readerPrefs';
-const defaults = { font: 'serif', size: 18, lh: '1.8', w: '760', rt: 'oscuro' };
+const defaults = { font: 'serif', size: 18, lh: '1.8', w: '760', rt: 'oscuro', vel: 1, voz: '' };
 let prefs = { ...defaults };
 try { prefs = { ...defaults, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; } catch {}
 
@@ -263,7 +303,14 @@ let PARRAFOS = []; // texto plano de cada párrafo, tal y como se guardan las ci
 function renderBody(text) {
   const body = document.getElementById('chapter-body');
   body.replaceChildren();
-  PARRAFOS = String(text).split(/\n+/).map((s) => s.trim()).filter(Boolean);
+  // La fuente mete caracteres invisibles (marcas de agua de ancho cero) entre
+  // las letras. No se ven, pero ensucian las citas, el conteo de palabras y
+  // hacen tropezar a la voz que lee, así que se quitan al pintar.
+  PARRAFOS = String(text)
+    .replace(/[​-‏⁠﻿]/g, '')
+    .split(/\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
   PARRAFOS.forEach((par, i) => {
     const p = document.createElement('p');
     p.dataset.i = i;
@@ -307,7 +354,7 @@ function ubicar(marca) {
   return null;
 }
 
-function pintarMarcas() {
+function pintarMarcas(remedir) {
   const body = document.getElementById('chapter-body');
   const porParrafo = new Map();
   const añadir = (marca, tipo) => {
@@ -319,6 +366,24 @@ function pintarMarcas() {
   };
   SUBRAYADOS.forEach((h) => añadir(h, 'hl'));
   PREGUNTAS.filter((q) => !q.hidden).forEach((q) => añadir(q, 'q'));
+
+  // La frase que va diciendo la voz se pinta por debajo de todo: se parte
+  // alrededor de las marcas que ya hay para no taparles el color.
+  if (LEYENDO) {
+    const yaHay = (porParrafo.get(LEYENDO.p) || []).slice().sort((a, b) => a.start - b.start);
+    const trozos = [];
+    let c = LEYENDO.start;
+    for (const m of yaHay) {
+      if (m.end <= c || m.start >= LEYENDO.end) continue;
+      if (m.start > c) trozos.push([c, Math.min(m.start, LEYENDO.end)]);
+      c = Math.max(c, m.end);
+    }
+    if (c < LEYENDO.end) trozos.push([c, LEYENDO.end]);
+    if (!porParrafo.has(LEYENDO.p)) porParrafo.set(LEYENDO.p, []);
+    trozos.forEach(([a, b], k) => {
+      if (b > a) porParrafo.get(LEYENDO.p).push({ paraIndex: LEYENDO.p, start: a, end: b, tipo: 'tts', id: 'tts' + k });
+    });
+  }
 
   body.querySelectorAll('p[data-i]').forEach((p) => {
     const i = parseInt(p.dataset.i, 10);
@@ -334,7 +399,7 @@ function pintarMarcas() {
       if (m.start < cursor) continue; // solapadas: gana la primera
       if (m.start > cursor) p.appendChild(document.createTextNode(texto.slice(cursor, m.start)));
       const mk = document.createElement('mark');
-      mk.className = m.tipo === 'q' ? 'marca-q' : 'marca-hl';
+      mk.className = { q: 'marca-q', hl: 'marca-hl', tts: 'marca-tts' }[m.tipo];
       mk.dataset.tipo = m.tipo;
       mk.dataset.id = m.id;
       if (m.tipo === 'q') mk.id = 'q' + m.id;
@@ -359,7 +424,8 @@ function pintarMarcas() {
     document.getElementById('tapadas-texto').textContent =
       `${n} pregunta${n === 1 ? '' : 's'} de este capítulo te llega${n === 1 ? '' : 'n'} tapada${n === 1 ? '' : 's'}: vas por el capítulo ${CONTEXTO.myRead}. Ábrela${n === 1 ? '' : 's'} en la pantalla de preguntas.`;
   }
-  setTimeout(remedirYActualizar, 0);
+  // Al repintar solo la frase que se está leyendo no hace falta volver a medir.
+  if (remedir !== false) setTimeout(remedirYActualizar, 0);
 }
 
 async function cargarMarcas(n) {
@@ -535,10 +601,219 @@ document.getElementById('composer-cancelar').addEventListener('click', () =>
 );
 document.getElementById('composer-enviar').addEventListener('click', publicarPregunta);
 
+/* ---------- Lectura en voz alta ----------
+   Usa la voz que ya trae el navegador (Web Speech API): sin servicio externo,
+   sin clave y sin coste. El idioma no sale del texto guardado sino de la voz
+   elegida, así que se prefiere una en español y se recuerda cuál.
+   Ojo con los saltos: la voz no es un archivo de audio, no hay "ir al segundo
+   30". El capítulo se parte en frases y los 5 segundos se traducen a palabras
+   al ritmo actual, así que el salto cae en la frase más cercana. */
+const VELOCIDADES = [0.75, 1, 1.25, 1.5, 2];
+const PALABRAS_POR_MINUTO = 180; // ritmo típico de una voz sintética a 1x
+const soporteVoz = typeof speechSynthesis !== 'undefined';
+
+let PIEZAS = [];
+let LEYENDO = null;
+let iPieza = 0;
+let hablando = false; // sesión de escucha abierta
+let pausado = false;  // abierta pero callada
+let generacion = 0;   // corta el encadenado de la frase anterior
+let VOCES = [];
+
+function trocearCapitulo() {
+  PIEZAS = [];
+  PARRAFOS.forEach((texto, p) => {
+    const rx = /[^.!?…]+(?:[.!?…]+["»”']?)?/g;
+    let m;
+    while ((m = rx.exec(texto))) {
+      let start = m.index;
+      let end = start + m[0].length;
+      while (start < end && /\s/.test(texto[start])) start++;
+      while (end > start && /\s/.test(texto[end - 1])) end--;
+      if (end <= start) continue;
+      const t = texto.slice(start, end);
+      PIEZAS.push({ p, start, end, texto: t, palabras: (t.match(/\S+/g) || []).length });
+    }
+  });
+  iPieza = 0;
+}
+
+function vocesEspanol() {
+  return VOCES.filter((v) => /^es/i.test(v.lang));
+}
+
+function vozElegida() {
+  const guardada = VOCES.find((v) => v.name === prefs.voz);
+  if (guardada) return guardada;
+  const es = vocesEspanol();
+  // Sin elección previa: español de México, cualquier español, y si no hay, lo que haya.
+  return es.find((v) => /^es-MX/i.test(v.lang)) || es[0] || VOCES[0] || null;
+}
+
+function cargarVoces() {
+  if (!soporteVoz) return;
+  VOCES = speechSynthesis.getVoices() || [];
+  const sel = document.getElementById('sel-voz');
+  const fila = document.getElementById('fila-voz');
+  if (!VOCES.length) { fila.classList.add('hidden'); return; }
+  fila.classList.remove('hidden');
+  const es = vocesEspanol();
+  const resto = VOCES.filter((v) => !/^es/i.test(v.lang)).slice(0, 40);
+  const nombreCorto = (v) => v.name.replace(/Microsoft |Online |\(Natural\) ?- ?/g, '').trim();
+  const opcion = (v) => `<option value="${esc(v.name)}">${esc(nombreCorto(v))} · ${esc(v.lang)}</option>`;
+  sel.innerHTML =
+    (es.length ? `<optgroup label="Español">${es.map(opcion).join('')}</optgroup>` : '') +
+    (resto.length ? `<optgroup label="Otros idiomas">${resto.map(opcion).join('')}</optgroup>` : '');
+  const actual = vozElegida();
+  if (actual) sel.value = actual.name;
+}
+
+function actualizarBarra() {
+  document.getElementById('tts-icon').textContent = hablando && !pausado ? 'pause' : 'play_arrow';
+  document.getElementById('tts-rate').textContent = prefs.vel + 'x';
+  document.getElementById('tts-pos').textContent = PIEZAS.length
+    ? `${Math.min(iPieza + 1, PIEZAS.length)} / ${PIEZAS.length}`
+    : '';
+}
+
+function resaltarPieza(i) {
+  const pz = PIEZAS[i];
+  LEYENDO = pz ? { p: pz.p, start: pz.start, end: pz.end } : null;
+  pintarMarcas(false);
+  if (!pz) return;
+  const mk = document.querySelector('#chapter-body mark.marca-tts');
+  if (mk) {
+    const r = mk.getBoundingClientRect();
+    if (r.top < 90 || r.bottom > window.innerHeight - 120) mk.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+  marcarActividad(); // escuchar también es leer: que siga contando el tiempo
+}
+
+function hablarPieza(i) {
+  if (!soporteVoz || !PIEZAS.length) return;
+  if (i < 0) i = 0;
+  if (i >= PIEZAS.length) {
+    pararVoz();
+    iPieza = 0; // al volver a darle, empieza de nuevo el capítulo
+    actualizarBarra();
+    toast('Fin del capítulo', 'ok');
+    return;
+  }
+  generacion++;
+  const mio = generacion;
+  iPieza = i;
+  speechSynthesis.cancel();
+
+  const u = new SpeechSynthesisUtterance(PIEZAS[i].texto);
+  const v = vozElegida();
+  if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'es-MX'; }
+  u.rate = prefs.vel;
+  u.onend = () => { if (mio === generacion && hablando && !pausado) hablarPieza(iPieza + 1); };
+  u.onerror = (e) => {
+    if (mio !== generacion || e.error === 'interrupted' || e.error === 'canceled') return;
+    hablando = false;
+    actualizarBarra();
+    toast(e.error === 'network' ? 'Esa voz necesita internet' : 'La voz se detuvo');
+  };
+
+  hablando = true;
+  pausado = false;
+  resaltarPieza(i);
+  actualizarBarra();
+  // Tras cancel(), Chrome necesita un respiro antes de aceptar la siguiente.
+  setTimeout(() => { if (mio === generacion) speechSynthesis.speak(u); }, 0);
+}
+
+function pararVoz() {
+  if (!soporteVoz) return;
+  generacion++;
+  speechSynthesis.cancel();
+  hablando = false;
+  pausado = false;
+  LEYENDO = null;
+  pintarMarcas(false);
+  actualizarBarra();
+}
+
+/* Pausar cancela y al seguir se repite la frase desde el principio: pause() no
+   es fiable en todas las voces, y repetir una frase es mejor que quedarse
+   mudo. */
+function alternarVoz() {
+  if (hablando && !pausado) {
+    pausado = true;
+    generacion++;
+    speechSynthesis.cancel();
+    actualizarBarra();
+    return;
+  }
+  hablarPieza(iPieza);
+}
+
+function saltar(segundos) {
+  if (!PIEZAS.length) return;
+  const porSegundo = (PALABRAS_POR_MINUTO * prefs.vel) / 60;
+  let faltan = Math.max(1, Math.round(Math.abs(segundos) * porSegundo));
+  const paso = segundos < 0 ? -1 : 1;
+  let i = iPieza;
+  while (faltan > 0 && i + paso >= 0 && i + paso < PIEZAS.length) {
+    i += paso;
+    faltan -= PIEZAS[i].palabras;
+  }
+  const sonaba = hablando && !pausado;
+  iPieza = Math.max(0, Math.min(i, PIEZAS.length - 1));
+  if (sonaba) hablarPieza(iPieza);
+  else { resaltarPieza(iPieza); actualizarBarra(); }
+}
+
+function abrirVoz(empezar) {
+  if (!soporteVoz) { toast('Tu navegador no puede leer en voz alta'); return; }
+  if (!PIEZAS.length) trocearCapitulo();
+  document.getElementById('tts').classList.add('ver');
+  document.body.classList.add('con-voz');
+  if (!VOCES.length) cargarVoces();
+  if (!vocesEspanol().length) toast('Tu navegador no tiene voces en español instaladas');
+  actualizarBarra();
+  if (empezar) alternarVoz();
+}
+
+if (soporteVoz) {
+  cargarVoces();
+  speechSynthesis.onvoiceschanged = cargarVoces;
+  document.getElementById('btn-voz').addEventListener('click', () => {
+    const barra = document.getElementById('tts');
+    if (barra.classList.contains('ver')) { pararVoz(); barra.classList.remove('ver'); document.body.classList.remove('con-voz'); }
+    else abrirVoz(true);
+  });
+  document.getElementById('tts-play').addEventListener('click', alternarVoz);
+  document.getElementById('tts-back').addEventListener('click', () => saltar(-5));
+  document.getElementById('tts-fwd').addEventListener('click', () => saltar(5));
+  document.getElementById('tts-close').addEventListener('click', () => {
+    pararVoz();
+    document.getElementById('tts').classList.remove('ver');
+    document.body.classList.remove('con-voz');
+  });
+  document.getElementById('tts-rate').addEventListener('click', () => {
+    prefs.vel = VELOCIDADES[(VELOCIDADES.indexOf(prefs.vel) + 1) % VELOCIDADES.length];
+    savePrefs();
+    actualizarBarra();
+    if (hablando && !pausado) hablarPieza(iPieza); // el ritmo solo cambia lo que empieza
+  });
+  document.getElementById('sel-voz').addEventListener('change', (e) => {
+    prefs.voz = e.target.value;
+    savePrefs();
+    if (hablando && !pausado) hablarPieza(iPieza);
+  });
+  // Al salir de la página la voz seguiría hablando sola.
+  window.addEventListener('pagehide', () => speechSynthesis.cancel());
+} else {
+  document.getElementById('btn-voz').classList.add('hidden');
+  document.getElementById('fila-voz').classList.add('hidden');
+}
+
 /* Tocar una marca: la pregunta se abre en su pantalla, el subrayado se quita. */
 document.getElementById('chapter-body').addEventListener('click', async (e) => {
   const mk = e.target.closest('mark[data-tipo]');
-  if (!mk) return;
+  if (!mk || mk.dataset.tipo === 'tts') return;
   if (mk.dataset.tipo === 'q') {
     window.location.href = `/preguntas?duelo=${duelId}#q${mk.dataset.id}`;
     return;
@@ -672,7 +947,10 @@ async function loadChapter(n, push = true) {
   document.getElementById('nav-bottom').classList.add('hidden');
   document.getElementById('error-box').classList.add('hidden');
   document.getElementById('error-box').classList.remove('flex');
-  // Las marcas del capítulo anterior no valen para este.
+  // Las marcas y las frases del capítulo anterior no valen para este.
+  const seguiaLeyendo = hablando && !pausado;
+  pararVoz();
+  PIEZAS = [];
   document.getElementById('composer').classList.add('hidden');
   document.getElementById('tapadas').classList.add('hidden');
   ocultarBurbuja();
@@ -716,6 +994,13 @@ async function loadChapter(n, push = true) {
     // Tras pintar: el alto definitivo depende de la tipografía ya aplicada.
     setTimeout(remedirYActualizar, 0);
     cargarMarcas(chapter.number); // subrayados y preguntas, sin frenar la lectura
+
+    // Si estabas escuchando, la voz sigue con el capítulo nuevo.
+    if (document.getElementById('tts').classList.contains('ver')) {
+      trocearCapitulo();
+      if (seguiaLeyendo) hablarPieza(0);
+      else actualizarBarra();
+    }
     if (push) history.pushState({ n: chapter.number }, '', `/leer?duelo=${duelId}&cap=${chapter.number}`);
     document.title = `Cap. ${chapter.number} — ${duel.bookTitle}`;
   } catch (err) {
