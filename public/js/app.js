@@ -275,6 +275,29 @@ async function api(path, options = {}) {
   return data;
 }
 
+/* Cuenta ascendente para las cifras grandes. Solo toca el texto de los
+   elementos con data-contar, cada uno una vez, y se salta la animación si el
+   sistema pide menos movimiento o si el número ya es cero. */
+function contarNumeros(raiz) {
+  const scope = raiz || document;
+  let quieto = false;
+  try { quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch {}
+  scope.querySelectorAll('[data-contar]').forEach((el) => {
+    const fin = parseInt(el.dataset.contar, 10);
+    if (!Number.isInteger(fin) || el.dataset.contado === '1') return;
+    el.dataset.contado = '1';
+    if (quieto || fin <= 0) { el.textContent = fin; return; }
+    const dur = Math.min(900, 320 + fin * 14);
+    const inicio = performance.now();
+    const paso = (t) => {
+      const p = Math.min(1, (t - inicio) / dur);
+      el.textContent = Math.round(fin * (1 - Math.pow(1 - p, 3))); // frena al llegar
+      if (p < 1) requestAnimationFrame(paso);
+    };
+    requestAnimationFrame(paso);
+  });
+}
+
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }

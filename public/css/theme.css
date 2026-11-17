@@ -75,6 +75,61 @@ html.light {
   --tk-on-error-container: 122 0 7;
 }
 
+/* ---------- Animaciones de entrada ----------
+   Todo con opacidad y transform, que el navegador resuelve en la capa de
+   composición: no hay recálculo de diseño ni un solo archivo más que cargar,
+   así que la página tarda lo mismo en aparecer. Duran menos de medio segundo
+   para que no estorben al que ya sabe adónde va. */
+@keyframes ro-entrar { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
+@keyframes ro-surgir { from { opacity: 0; transform: scale(0.92) } to { opacity: 1; transform: none } }
+@keyframes ro-barra { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+
+.ro-in { animation: ro-entrar 0.42s cubic-bezier(0.22, 0.8, 0.3, 1) both; animation-delay: var(--d, 0ms) }
+.ro-pop { animation: ro-surgir 0.3s cubic-bezier(0.22, 0.8, 0.3, 1) both; animation-delay: var(--d, 0ms) }
+/* Las barras crecen desde su borde izquierdo hasta el ancho que ya tienen. */
+.ro-bar { animation: ro-barra 0.75s cubic-bezier(0.22, 0.8, 0.3, 1) both; transform-origin: left center; animation-delay: var(--d, 150ms) }
+
+/* Cascada: cada hijo entra un poco después que el anterior. A partir del
+   duodécimo entran todos juntos, para que una rejilla larga no tarde. */
+.ro-stagger > * { animation: ro-entrar 0.42s cubic-bezier(0.22, 0.8, 0.3, 1) both }
+.ro-stagger > *:nth-child(1) { animation-delay: 0ms }
+.ro-stagger > *:nth-child(2) { animation-delay: 45ms }
+.ro-stagger > *:nth-child(3) { animation-delay: 90ms }
+.ro-stagger > *:nth-child(4) { animation-delay: 135ms }
+.ro-stagger > *:nth-child(5) { animation-delay: 180ms }
+.ro-stagger > *:nth-child(6) { animation-delay: 225ms }
+.ro-stagger > *:nth-child(7) { animation-delay: 270ms }
+.ro-stagger > *:nth-child(8) { animation-delay: 315ms }
+.ro-stagger > *:nth-child(9) { animation-delay: 360ms }
+.ro-stagger > *:nth-child(10) { animation-delay: 405ms }
+.ro-stagger > *:nth-child(11) { animation-delay: 450ms }
+.ro-stagger > *:nth-child(n + 12) { animation-delay: 480ms }
+
+/* Cascada rápida para rejillas de muchas celdas, como el tablero de capítulos. */
+.ro-grid > * { animation: ro-surgir 0.26s cubic-bezier(0.22, 0.8, 0.3, 1) both }
+.ro-grid > *:nth-child(1) { animation-delay: 0ms }
+.ro-grid > *:nth-child(2) { animation-delay: 14ms }
+.ro-grid > *:nth-child(3) { animation-delay: 28ms }
+.ro-grid > *:nth-child(4) { animation-delay: 42ms }
+.ro-grid > *:nth-child(5) { animation-delay: 56ms }
+.ro-grid > *:nth-child(6) { animation-delay: 70ms }
+.ro-grid > *:nth-child(7) { animation-delay: 84ms }
+.ro-grid > *:nth-child(8) { animation-delay: 98ms }
+.ro-grid > *:nth-child(9) { animation-delay: 112ms }
+.ro-grid > *:nth-child(10) { animation-delay: 126ms }
+.ro-grid > *:nth-child(n + 11) { animation-delay: 140ms }
+
+/* Quien pide menos movimiento en su sistema no ve ninguna de estas. */
+@media (prefers-reduced-motion: reduce) {
+  .ro-in,
+  .ro-pop,
+  .ro-bar,
+  .ro-stagger > *,
+  .ro-grid > * {
+    animation: none !important;
+  }
+}
+
 /* Los iconos son ligaduras de la fuente Material Symbols: si no llega (redes
    que bloquean Google Fonts, extensiones de privacidad), el navegador pinta su
    nombre como texto suelto y descuadra la interfaz. En ese caso se ocultan. */

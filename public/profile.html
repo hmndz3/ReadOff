@@ -33,12 +33,12 @@ function metric(label, icon, value, unit, barPct, barNote, accent) {
       <div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center"><span translate="no" class="material-symbols-outlined ${accent} text-[22px]">${icon}</span></div>
     </div>
     <div class="flex items-baseline gap-2">
-      <span class="font-sans font-extrabold text-[40px] leading-none ${accent}">${value}</span>
+      <span class="font-sans font-extrabold text-[40px] leading-none ${accent}" ${/^\d+$/.test(String(value)) ? `data-contar="${value}"` : ''}>${value}</span>
       <span class="font-sans text-body-sm text-outline">${unit}</span>
     </div>
     <div class="flex flex-col gap-1.5">
       <div class="flex justify-between font-sans text-label-sm text-on-surface-variant"><span>${barNote[0]}</span><span class="font-bold">${barNote[1]}</span></div>
-      <div class="w-full h-1.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full ${accent === 'text-secondary' ? 'bg-secondary-container' : accent === 'text-error' ? 'bg-error-container' : 'bg-primary-container'}" style="width:${barPct}%"></div></div>
+      <div class="w-full h-1.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full ro-bar ${accent === 'text-secondary' ? 'bg-secondary-container' : accent === 'text-error' ? 'bg-error-container' : 'bg-primary-container'}" style="width:${barPct}%"></div></div>
     </div>
   </div>`;
 }
@@ -354,7 +354,7 @@ function statsBlock(s) {
       <h2 class="font-serif text-headline-md text-on-surface">${EN ? 'Your Reading Week' : 'Tu Semana de Lectura'}</h2>
     </div>
 
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-gutter-tablet mb-element-gap-lg">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-gutter-tablet mb-element-gap-lg ro-stagger">
       ${tarjetaSemana(EN ? 'Chapters' : 'Capítulos', 'auto_stories', s.week.chapters, EN ? 'this week' : 'esta semana', chipDelta(s.delta.chapters), 'text-primary')}
       ${tarjetaSemana(EN ? 'Time read' : 'Tiempo leído', 'schedule', aprox(semana.valor, s.week.measuredPct), semana.unidad + (EN ? ' this week' : ' esta semana'), chipDelta(s.delta.minutes), 'text-secondary')}
       ${tarjetaSemana(EN ? 'Current streak' : 'Racha actual', 'local_fire_department', s.streak.current, EN ? (s.streak.current === 1 ? 'day' : 'days') : s.streak.current === 1 ? 'día' : 'días', `<span class="font-sans text-label-sm text-outline">${EN ? 'Record' : 'Récord'}: ${s.streak.record} ${EN ? (s.streak.record === 1 ? 'day' : 'days') : s.streak.record === 1 ? 'día' : 'días'}</span>`, 'text-primary')}
@@ -480,7 +480,7 @@ function duelRow(d) {
       <span translate="no" class="material-symbols-outlined text-primary text-[22px]">monitoring</span>
       <h2 class="font-serif text-headline-md text-on-surface">Métricas de Combate Literario</h2>
     </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter-tablet mb-stack-gap-xl">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter-tablet mb-stack-gap-xl ro-stagger">
       ${metric('Duelos Ganados', 'trophy', stats.wins, 'victorias', stats.winRate, ['Tasa de victoria', stats.winRate + '%'], 'text-primary')}
       ${metric('Duelos Perdidos', 'flag', stats.losses, 'derrotas', stats.finishedDuels ? Math.round((stats.losses / stats.finishedDuels) * 100) : 0, ['Total contiendas', stats.finishedDuels + ' disputadas'], 'text-error')}
       ${metric('Capítulos Leídos', 'auto_stories', stats.totalChapters.toLocaleString('es'), 'caps', Math.min(100, stats.totalChapters), ['Duelos totales', stats.totalDuels + ''], 'text-secondary')}
@@ -505,6 +505,8 @@ function duelRow(d) {
           <p class="font-sans text-body-md text-on-surface-variant">Todavía no has terminado ningún duelo. ¡Tu primer trofeo te espera!</p>
         </div>`}
     </div>`;
+
+  contarNumeros();
 
   // El heatmap necesita saber el ancho real, así que se pinta ya montado y se
   // recalcula al girar el móvil o cambiar el tamaño de la ventana.

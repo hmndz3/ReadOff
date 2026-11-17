@@ -204,9 +204,9 @@ function playerCard(d, mine) {
       </div>
       <span class="ml-auto px-2 py-0.5 rounded bg-surface-container-lowest font-sans text-label-sm ${mine ? 'text-primary' : 'text-secondary'} font-bold">${s.pct}%</span>
     </div>
-    <span class="font-serif font-bold text-[38px] leading-none ${mine ? 'text-primary' : 'text-secondary'}">Cap. ${s.chaptersRead}</span>
+    <span class="font-serif font-bold text-[38px] leading-none ${mine ? 'text-primary' : 'text-secondary'}">Cap. <span data-contar="${s.chaptersRead}">${s.chaptersRead}</span></span>
     <span class="font-sans text-body-sm text-on-surface-variant">${s.chaptersRead} / ${d.totalChapters} capítulos leídos</span>
-    <div class="w-full h-2.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full ${barCls} transition-all duration-500" style="width:${s.pct}%"></div></div>
+    <div class="w-full h-2.5 rounded-full bg-surface-container-lowest overflow-hidden"><div class="h-full rounded-full ${barCls} transition-all duration-500 ro-bar" style="width:${s.pct}%"></div></div>
   </div>`;
 }
 
@@ -278,7 +278,7 @@ function render(d, activity) {
 
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-gutter-tablet lg:gap-gutter-desktop items-start">
       <!-- Columna izquierda -->
-      <div class="lg:col-span-2 flex flex-col gap-gutter-tablet">
+      <div class="lg:col-span-2 flex flex-col gap-gutter-tablet ro-stagger">
         <div class="grid grid-cols-2 gap-gutter-mobile">
           ${rv !== null
             ? statCard('Ventaja', 'crown', (lead > 0 ? '+' : '') + lead + ' Caps', lead > 0 ? 'Liderando la carrera' : lead < 0 ? 'Toca remontar' : 'Empate total')
@@ -343,7 +343,7 @@ function render(d, activity) {
       </div>
 
       <!-- Columna derecha -->
-      <div class="lg:col-span-3 flex flex-col gap-gutter-tablet">
+      <div class="lg:col-span-3 flex flex-col gap-gutter-tablet ro-stagger">
         <div class="rounded-xl bg-surface-container-low p-card-padding-md shadow-xl">
           <div class="flex flex-col sm:flex-row items-stretch gap-element-gap-md relative">
             ${playerCard(d, true)}
@@ -381,7 +381,7 @@ function render(d, activity) {
             ${d.rival && rv && rv.chaptersRead > 0 ? `<span class="flex items-center gap-1.5 text-secondary"><span class="w-2 h-2 rounded-full bg-secondary inline-block"></span> Posición de ${esc(d.rival.displayName.split(' ')[0])}: Cap. ${rv.chaptersRead}</span>` : ''}
           </div>
           ${blocksHTML(d)}
-          <div class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 pt-2" id="chapters-grid">${grid}</div>
+          <div class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 pt-2 ro-grid" id="chapters-grid">${grid}</div>
           <div class="flex items-center justify-between mt-element-gap-lg pt-element-gap-md border-t border-surface-container-highest/40 flex-wrap gap-2">
             ${d.sourceSlug
               ? '<span class="font-sans text-body-sm text-outline flex items-center gap-1.5"><span translate="no" class="material-symbols-outlined text-[16px]">info</span> El progreso se sincroniza con tu rival al instante.</span>'
@@ -488,6 +488,7 @@ function render(d, activity) {
   loadComments(d);
   loadQuestions(d);
   plegables();
+  contarNumeros();
   const copy = async () => {
     try { await navigator.clipboard.writeText(d.code); toast('Código copiado: ' + d.code, 'ok'); }
     catch { toast('Código: ' + d.code, 'ok'); }

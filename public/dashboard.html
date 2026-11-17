@@ -54,7 +54,7 @@
     <div class="flex items-center gap-1 overflow-x-auto py-1 pb-element-gap-lg border-b border-surface-container-highest/60 mb-element-gap-lg" id="tabs"></div>
 
     <!-- Grid de duelos -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter-tablet lg:gap-gutter-desktop mb-stack-gap-xl" id="grid"></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter-tablet lg:gap-gutter-desktop mb-stack-gap-xl ro-stagger" id="grid"></div>
 
     <!-- Estado vacío -->
     <div id="empty" class="hidden flex-col items-center justify-center text-center py-16 gap-element-gap-lg">
@@ -206,6 +206,7 @@ function render() {
   const grid = document.getElementById('grid');
   const empty = document.getElementById('empty');
   grid.innerHTML = duels.map(duelCard).join('');
+  contarNumeros(grid);
   const isEmpty = duels.length === 0;
   empty.classList.toggle('hidden', !isEmpty);
   empty.classList.toggle('flex', isEmpty);
