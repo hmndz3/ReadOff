@@ -175,6 +175,9 @@
         <button id="btn-probar-voz" type="button" class="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-primary font-sans text-label-md transition-all active:scale-95">
           <span translate="no" class="material-symbols-outlined text-[18px]">volume_up</span> Probar
         </button>
+        <button id="btn-diag-voz" type="button" class="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-primary font-sans text-label-md transition-all active:scale-95">
+          <span translate="no" class="material-symbols-outlined text-[18px]">stethoscope</span> ¿No suena?
+        </button>
       </div>
     </div>
 
@@ -187,6 +190,15 @@
         Las voces las instala el sistema, no ReadOff. Mientras falten, el capítulo se leerá con acento extranjero o no sonará.
       </p>
       <ol data-el="pasos" class="font-sans text-body-sm text-on-surface-variant list-decimal pl-5 flex flex-col gap-0.5"></ol>
+    </div>
+
+    <!-- Resultado de la prueba de voces: dice qué acepta este aparato -->
+    <div id="diag-voz" class="hidden rounded-lg bg-surface-container-lowest border border-surface-container-highest p-card-padding-sm">
+      <p class="font-sans text-label-md text-on-surface flex items-center gap-1.5 mb-element-gap-sm">
+        <span translate="no" class="material-symbols-outlined text-[18px]">stethoscope</span> Prueba de voces de este aparato
+      </p>
+      <ul data-el="lista" class="font-sans text-body-sm text-on-surface-variant flex flex-col gap-0.5"></ul>
+      <p data-el="final" class="font-sans text-body-sm text-on-surface mt-element-gap-sm"></p>
     </div>
 
     <div class="flex items-center justify-between gap-element-gap-md flex-wrap">
@@ -293,7 +305,9 @@ let duelInfo = null;
 
 /* ---------- Preferencias de lectura ---------- */
 const PREFS_KEY = 'readerPrefs';
-const defaults = { font: 'serif', size: 18, lh: '1.8', w: '760', rt: 'oscuro', vel: 1, voces: {}, wpm: {} };
+/* `sos` son los apáños que este aparato necesitó para poder leer: se aprenden
+   solos cuando una lectura falla y la de repuesto sí suena. */
+const defaults = { font: 'serif', size: 18, lh: '1.8', w: '760', rt: 'oscuro', vel: 1, voces: {}, wpm: {}, sos: {} };
 let prefs = { ...defaults };
 try { prefs = { ...defaults, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; } catch {}
 
@@ -727,7 +741,7 @@ function despertarMotor() {
   if (motorListo || !soporteVoz) return;
   motorListo = true;
   try {
-    const u = new SpeechSynthesisUtterance(' ');
+    const u = new SpeechSynthesisUtterance('.');
     u.volume = 0;
     speechSynthesis.speak(u);
   } catch {}
@@ -751,28 +765,78 @@ function callar() {
    aparato tenga puesto. Asi un aparato con voces raras sigue leyendo. */
 function planDeVoz() {
   const plan = [];
+  const vel = velSegura();
+  const limpio = !!(prefs.sos || {}).texto;
   const elegida = vozElegida();
-  if (elegida && !VOCES_FALLIDAS.has(elegida.name)) plan.push({ voz: elegida, lang: idiomaDe(elegida) });
+  const sana = elegida && !VOCES_FALLIDAS.has(elegida.name) ? elegida : null;
+  if (sana) {
+    plan.push({ voz: sana, lang: idiomaDe(sana), vel, limpio });
+    // Lo primero que se prueba no es otra voz, sino la misma despacio y con el
+    // texto simplificado: casi siempre el problema es eso, no la voz.
+    if (vel !== 1) plan.push({ voz: sana, lang: idiomaDe(sana), vel: 1, limpio, cura: { vel: 1 } });
+    if (!limpio) plan.push({ voz: sana, lang: idiomaDe(sana), vel: 1, limpio: true, cura: { vel: 1, texto: true } });
+  }
   vocesDelCapitulo()
-    .filter((v) => v.localService && !VOCES_FALLIDAS.has(v.name) && (!elegida || v.name !== elegida.name))
+    .filter((v) => v.localService && !VOCES_FALLIDAS.has(v.name) && (!sana || v.name !== sana.name))
     .slice(0, 3)
-    .forEach((v) => plan.push({ voz: v, lang: idiomaDe(v) }));
-  if (IDIOMA_CAP) plan.push({ voz: null, lang: IDIOMA_CAP === 'en' ? 'en-US' : 'es-MX' });
-  plan.push({ voz: null, lang: '' });
+    .forEach((v) => plan.push({ voz: v, lang: idiomaDe(v), vel: 1, limpio: true }));
+  if (IDIOMA_CAP) plan.push({ voz: null, lang: IDIOMA_CAP === 'en' ? 'en-US' : 'es-MX', vel: 1, limpio: true });
+  plan.push({ voz: null, lang: '', vel: 1, limpio: true });
   return plan;
+}
+
+/* Lo que hizo falta para que sonara se guarda, para no repetir el vía crucis
+   en cada frase ni en el próximo capítulo. */
+function aprenderCura(cura) {
+  if (!cura) return;
+  if (!prefs.sos) prefs.sos = {};
+  let nuevo = false;
+  if (cura.vel && prefs.sos.vel !== cura.vel) { prefs.sos.vel = cura.vel; nuevo = true; }
+  if (cura.texto && !prefs.sos.texto) { prefs.sos.texto = true; nuevo = true; }
+  if (cura.corto && !prefs.sos.corto) { prefs.sos.corto = true; nuevo = true; }
+  if (!nuevo) return;
+  savePrefs();
+  olvidarMedida();
+  actualizarBarra();
+  if (cura.vel) toast('Este aparato no puede leer rápido: se queda en 1x', 'ok');
+  else if (cura.texto) toast('Se le quitan al texto los signos que atragantan a este aparato', 'ok');
 }
 
 /* Los motores de voz de Android (Google y Samsung) se atragantan con frases
    largas: unas veces fallan y otras leen solo el principio. Cada frase se
    parte en trozos de unos 200 caracteres cortando en un espacio o una coma,
    sin perder la posición en el texto para poder seguir resaltando. */
-const MAX_TROZO = 200;
+function topeTrozo() {
+  return (prefs.sos || {}).corto ? 100 : 200;
+}
+
+/* Hay motores de Android que mueren con las comillas y los guiones de las
+   novelas. Si se descubre que este es uno de ellos, se le da el texto sin
+   esos signos: se pierde poco y al menos lee. */
+function textoSimple(t) {
+  return String(t)
+    .replace(/[‘’‚‛]/g, "'")
+    .replace(/[“”„«»]/g, '"')
+    .replace(/[–—―−]/g, '-')
+    .replace(/…/g, '...')
+    .replace(/[   ]/g, ' ')
+    .replace(/[^ -~À-ÿ¿¡]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/* Velocidad que el aparato aguanta: hay motores que fallan al leer rápido. */
+function velSegura() {
+  const v = prefs.vel;
+  const tope = parseFloat((prefs.sos || {}).vel);
+  return Number.isFinite(tope) && v > tope ? tope : v;
+}
 
 function trozosDe(texto, start, end) {
   const salida = [];
   let i = start;
   while (i < end) {
-    let j = Math.min(i + MAX_TROZO, end);
+    let j = Math.min(i + topeTrozo(), end);
     if (j < end) {
       let corte = -1;
       for (let k = j; k > i + 40; k--) {
@@ -993,7 +1057,7 @@ function probarVoz() {
   const u = new SpeechSynthesisUtterance(IDIOMA_CAP === 'en' ? 'This is how this voice sounds. Enjoy the chapter.' : 'Así suena esta voz. Buena lectura.');
   const v = vozElegida();
   if (v) { u.voice = v; u.lang = idiomaDe(v); } else if (IDIOMA_CAP) { u.lang = IDIOMA_CAP === 'en' ? 'en-US' : 'es-MX'; }
-  u.rate = prefs.vel;
+  u.rate = velSegura();
   u.onerror = (e) => {
     if (e.error === 'interrupted' || e.error === 'canceled') return;
     if (v) VOCES_FALLIDAS.add(v.name);
@@ -1003,14 +1067,112 @@ function probarVoz() {
   actualizarBarra();
 }
 
+
+/* ---------- Prueba de voces del aparato ----------
+   Cuando no suena y no se sabe por qué, se prueba una cosa a la vez y se
+   escribe en pantalla qué aceptó el aparato: así se ve de un golpe si el
+   problema es la voz, la velocidad, los signos del libro o la frase larga.
+   Las pruebas van calladas: solo interesa si el motor arranca o se queja. */
+function intentoDeVoz({ voz, lang, vel, texto, espera = 2500 }) {
+  return new Promise((resolve) => {
+    let hecho = false;
+    const acabar = (r) => {
+      if (hecho) return;
+      hecho = true;
+      try { speechSynthesis.cancel(); } catch {}
+      resolve(r);
+    };
+    const u = new SpeechSynthesisUtterance(texto);
+    if (voz) u.voice = voz;
+    if (lang) u.lang = lang;
+    u.rate = vel;
+    u.volume = 0;
+    u.onstart = () => acabar({ ok: true });
+    u.onend = () => acabar({ ok: true });
+    u.onerror = (e) => acabar({ ok: false, motivo: (e && e.error) || 'sin motivo' });
+    setTimeout(() => acabar({ ok: false, motivo: 'no suena ni avisa' }), espera);
+    try { speechSynthesis.speak(u); } catch { acabar({ ok: false, motivo: 'no acepta la frase' }); }
+  });
+}
+
+let diagnosticando = false;
+
+async function diagnosticarVoz() {
+  if (!soporteVoz || diagnosticando) return;
+  diagnosticando = true;
+  const caja = document.getElementById('diag-voz');
+  const lista = caja.querySelector('[data-el="lista"]');
+  const final = caja.querySelector('[data-el="final"]');
+  caja.classList.remove('hidden');
+  lista.innerHTML = '';
+  final.textContent = 'Probando, no se oye nada…';
+  pararVoz();
+  despertarMotor();
+  if (!VOCES.length) cargarVoces();
+
+  const v = vozElegida();
+  const lang = IDIOMA_CAP === 'en' ? 'en-US' : 'es-MX';
+  const vLang = v ? idiomaDe(v) : lang;
+  const corta = IDIOMA_CAP === 'en' ? 'Testing one two three.' : 'Probando uno dos tres.';
+  const larga = (corta + ' ').repeat(9).trim();
+  const signos = IDIOMA_CAP === 'en' ? '"Come here —he said— …now"' : '«Ven acá —dijo él— …ahora mismo»';
+  const pruebas = [
+    { clave: 'sistema', texto: 'La voz que el aparato trae puesta', args: { voz: null, lang: '', vel: 1, texto: corta } },
+    { clave: 'idioma', texto: 'Sin elegir voz, pidiendo ' + lang, args: { voz: null, lang, vel: 1, texto: corta } },
+  ];
+  if (v) pruebas.push({ clave: 'voz', texto: 'La voz ' + nombreCorto(v) + ' a 1x', args: { voz: v, lang: vLang, vel: 1, texto: corta } });
+  if (prefs.vel !== 1) pruebas.push({ clave: 'vel', texto: 'Esa misma voz a ' + num(prefs.vel) + 'x', args: { voz: v, lang: vLang, vel: prefs.vel, texto: corta } });
+  pruebas.push({ clave: 'larga', texto: 'Una frase de ' + larga.length + ' letras', args: { voz: v, lang: vLang, vel: 1, texto: larga } });
+  pruebas.push({ clave: 'signos', texto: 'Comillas y guiones de novela', args: { voz: v, lang: vLang, vel: 1, texto: signos } });
+
+  const r = {};
+  for (const pr of pruebas) {
+    const li = document.createElement('li');
+    li.textContent = '… ' + pr.texto;
+    lista.appendChild(li);
+    const res = await intentoDeVoz(pr.args);
+    r[pr.clave] = res;
+    li.textContent = (res.ok ? '✓ ' : '✗ ') + pr.texto + (res.ok ? '' : ' — ' + res.motivo);
+    li.className = res.ok ? 'text-on-surface-variant' : 'text-error';
+  }
+
+  // Lo que se saca en limpio, y lo que la página va a hacer con ello.
+  const algo = Object.keys(r).some((k) => r[k].ok);
+  const partes = [];
+  const cura = {};
+  if (!algo) {
+    partes.push('Ninguna prueba arrancó: el motor de voz del aparato no le responde a este navegador.');
+    partes.push('Cierra el navegador del todo (no solo la pestaña), reinicia la tablet y vuelve a probar.');
+    pintarAvisoVoces();
+  } else {
+    if (r.vel && !r.vel.ok && r.voz && r.voz.ok) cura.vel = 1;
+    if (r.signos && !r.signos.ok && r.voz && r.voz.ok) cura.texto = true;
+    if (r.larga && !r.larga.ok && r.voz && r.voz.ok) cura.corto = true;
+    if (r.voz && !r.voz.ok && (r.sistema.ok || r.idioma.ok)) {
+      VOCES_FALLIDAS.add(v.name);
+      partes.push('La voz ' + nombreCorto(v) + ' no funciona en este aparato: se usará otra.');
+    }
+    if (cura.vel) partes.push('No aguanta leer rápido: se lee a 1x.');
+    if (cura.texto) partes.push('Se atraganta con las comillas y los guiones: se le pasa el texto sin ellos.');
+    if (cura.corto) partes.push('No puede con frases largas: se parten más cortas.');
+    if (!partes.length) partes.push('Todo arrancó bien, el lector debería sonar. Si no lo oyes, revisa el volumen y el modo silencio del aparato.');
+  }
+  if (Object.keys(cura).length) {
+    aprenderCura(cura);
+    if (cura.corto) trocearCapitulo();
+  }
+  final.textContent = partes.join(' ');
+  diagnosticando = false;
+}
+
 function actualizarBarra() {
   document.getElementById('tts-icon').textContent = hablando && !pausado ? 'pause' : 'play_arrow';
-  document.getElementById('tts-rate').textContent = num(prefs.vel) + 'x';
+  document.getElementById('tts-rate').textContent = num(velSegura()) + 'x';
   const pos = document.getElementById('tts-pos');
   if (!PIEZAS.length) { pos.textContent = ''; return; }
   // Antes de empezar, lo que dura el capítulo entero; ya en marcha, lo que falta.
   const palabras = hablando ? palabrasDesde(iPieza) : palabrasDesde(0);
-  pos.textContent = (hablando ? 'quedan ~' : '~') + textoDuracion(minutosDe(palabras, prefs.vel));
+  pos.textContent = (hablando ? 'quedan ~' : '~') + textoDuracion(minutosDe(palabras, velSegura()));
   pos.title = `Frase ${Math.min(iPieza + 1, PIEZAS.length)} de ${PIEZAS.length}`;
 }
 
@@ -1019,11 +1181,18 @@ function alternarMenuVel() {
   const m = document.getElementById('tts-menu');
   if (m.classList.contains('ver')) { m.classList.remove('ver'); return; }
   const total = palabrasDesde(0);
-  m.innerHTML = VELOCIDADES.map(
-    (v) => `<button type="button" data-vel="${v}" class="${v === prefs.vel ? 'activo' : ''}">
+  // Si el aparato ya demostró que no puede con las rápidas, no se ofrecen.
+  const tope = parseFloat((prefs.sos || {}).vel);
+  const lista = Number.isFinite(tope) ? VELOCIDADES.filter((v) => v <= tope) : VELOCIDADES;
+  m.innerHTML =
+    lista
+      .map(
+        (v) => `<button type="button" data-vel="${v}" class="${v === velSegura() ? 'activo' : ''}">
       <span>${num(v)}x</span><span class="dur">${esc(textoDuracion(minutosDe(total, v)))}</span>
     </button>`
-  ).join('');
+      )
+      .join('') +
+    (lista.length < VELOCIDADES.length ? '<p class="dur" style="padding:.4rem .75rem">Este aparato no lee más rápido</p>' : '');
   m.classList.add('ver');
 }
 
@@ -1060,21 +1229,25 @@ function hablarPieza(i, plan, intento) {
   const n = intento || 0;
   const paso = plan[Math.min(n, plan.length - 1)];
   const ultimo = n >= plan.length - 1;
-  const u = new SpeechSynthesisUtterance(PIEZAS[i].texto);
+  const u = new SpeechSynthesisUtterance(paso.limpio ? textoSimple(PIEZAS[i].texto) : PIEZAS[i].texto);
   if (paso.voz) u.voice = paso.voz;
   if (paso.lang) u.lang = paso.lang;
-  u.rate = prefs.vel;
+  u.rate = paso.vel || velSegura();
   const t0 = performance.now();
   let contesto = false; // el motor dio señales de vida
 
-  // Si la voz de respaldo si suena, se avisa una vez de que la elegida no sirve.
+  /* Solo se culpa a la voz cuando de verdad se la deja por otra. Si lo que va
+     a cambiar es la velocidad o los signos del texto, la voz no tiene nada que
+     ver y seguirá siendo la que lee el resto del capítulo. */
   const apuntarFallo = () => {
     if (!paso.voz) return;
+    const sig = plan[Math.min(n + 1, plan.length - 1)];
+    if (sig && sig.voz && sig.voz.name === paso.voz.name) return;
     VOCES_FALLIDAS.add(paso.voz.name);
     if (!avisoVozMala) { avisoVozMala = true; toast('Esa voz no funciona aquí: se usa otra'); }
   };
 
-  u.onstart = () => { contesto = true; };
+  u.onstart = () => { contesto = true; if (n > 0) aprenderCura(paso.cura); };
   u.onend = () => {
     contesto = true;
     if (mio !== generacion) return;
@@ -1159,7 +1332,7 @@ function alternarVoz() {
 
 function saltar(segundos) {
   if (!PIEZAS.length) return;
-  const porSegundo = (wpmVoz() * prefs.vel) / 60;
+  const porSegundo = (wpmVoz() * velSegura()) / 60;
   let faltan = Math.max(1, Math.round(Math.abs(segundos) * porSegundo));
   const paso = segundos < 0 ? -1 : 1;
   let i = iPieza;
@@ -1239,6 +1412,7 @@ if (soporteVoz) {
     else probarVoz();
   });
   document.getElementById('btn-probar-voz').addEventListener('click', probarVoz);
+  document.getElementById('btn-diag-voz').addEventListener('click', diagnosticarVoz);
   // Al salir de la página la voz seguiría hablando sola.
   window.addEventListener('pagehide', () => speechSynthesis.cancel());
 } else {

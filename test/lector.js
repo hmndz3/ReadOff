@@ -51,7 +51,12 @@ function elemento(id) {
   };
   el.addEventListener = (tipo, fn) => { (el.oyentes = el.oyentes || {})[tipo] = fn; };
   el.removeEventListener = () => {};
-  el.querySelector = () => null;
+  el.sub = {};
+  // Cada [data-el="..."] de dentro es otro elemento de mentira, siempre el mismo.
+  el.querySelector = (sel) => {
+    if (!el.sub[sel]) el.sub[sel] = elemento(el.id + ' ' + sel);
+    return el.sub[sel];
+  };
   el.querySelectorAll = () => [];
   el.appendChild = (h) => el.children.push(h);
   el.insertAdjacentHTML = () => {};
@@ -102,8 +107,9 @@ function reloj() {
 
 /* Motor de voz de mentira. `rotas` son las voces que dan error (lo que hace
    Android con las voces de otro motor) y `mudas` las que no suenan ni avisan. */
-function motorFalso(rl, { voces = [], rotas = [], mudas = [] } = {}) {
+function motorFalso(rl, { voces = [], rotas = [], mudas = [], velMax = null, signosRotos = false, largoMax = null } = {}) {
   const dicho = [];
+  const calladas = []; // las pruebas del diagnóstico van con el volumen a cero
   const motor = {
     speaking: false,
     pending: false,
@@ -115,10 +121,19 @@ function motorFalso(rl, { voces = [], rotas = [], mudas = [] } = {}) {
     resume() { motor.paused = false; },
     speak(u) {
       const voz = u.voice ? u.voice.name : '(sistema)';
-      if (!String(u.text || '').trim()) return; // el empujón mudo del arranque
+      if (!String(u.text || '').trim()) return;
       if (mudas.includes(voz)) return; // ni suena ni avisa: el caso peor
       motor.speaking = true;
       motor.viva = u;
+      /* Lo que hace Android de verdad: el motor se queja de la velocidad, de
+         los signos raros del libro o de las frases largas, no de la voz. */
+      const porVel = velMax !== null && u.rate > velMax;
+      const porSignos = signosRotos && /[\u00ab\u00bb\u2014\u2026\u201c\u201d]/.test(u.text);
+      const porLargo = largoMax !== null && String(u.text).length > largoMax;
+      if (porVel || porSignos || porLargo) {
+        rl.setTimeout(() => { motor.speaking = false; if (u.onerror) u.onerror({ error: 'synthesis-failed' }); }, 10);
+        return;
+      }
       if (rotas.includes(voz)) {
         rl.setTimeout(() => { motor.speaking = false; if (u.onerror) u.onerror({ error: 'synthesis-failed' }); }, 10);
         return;
@@ -126,12 +141,13 @@ function motorFalso(rl, { voces = [], rotas = [], mudas = [] } = {}) {
       rl.setTimeout(() => { if (u.onstart) u.onstart(); }, 5);
       rl.setTimeout(() => {
         motor.speaking = false;
-        dicho.push({ texto: u.text, voz });
+        (u.volume === 0 ? calladas : dicho).push({ texto: u.text, voz, vel: u.rate });
         if (u.onend) u.onend();
       }, 25);
     },
   };
   motor.dicho = dicho;
+  motor.calladas = calladas;
   return motor;
 }
 
@@ -141,16 +157,16 @@ function vozFalsa(name, lang, localService = true) {
 
 /* Carga el guion de /leer dentro del navegador de mentira y devuelve sus
    funciones para poder probarlas. */
-function cargarLector({ voces = [], rotas = [], mudas = [], guardada = null } = {}) {
+function cargarLector({ voces = [], rotas = [], mudas = [], guardada = null, vel = 1, velMax = null, signosRotos = false, largoMax = null, sos = {} } = {}) {
   const html = fs.readFileSync(path.join(__dirname, '..', 'public', 'read.html'), 'utf8');
   const bloques = [...html.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
   const src = bloques.find((b) => b.includes('trocearCapitulo'));
   if (!src) throw new Error('no se encontró el guion del lector en read.html');
 
   const rl = reloj();
-  const motor = motorFalso(rl, { voces, rotas, mudas });
+  const motor = motorFalso(rl, { voces, rotas, mudas, velMax, signosRotos, largoMax });
   const elementos = new Map();
-  const almacen = { readerPrefs: JSON.stringify({ vel: 1, voces: guardada ? { es: guardada } : {}, wpm: {} }) };
+  const almacen = { readerPrefs: JSON.stringify({ vel, voces: guardada ? { es: guardada } : {}, wpm: {}, sos }) };
 
   const sandbox = {
     console,
@@ -235,6 +251,9 @@ function cargarLector({ voces = [], rotas = [], mudas = [], guardada = null } = 
       cargarVoces,
       abrirVoz,
       pararVoz,
+      diagnosticarVoz,
+      velSegura,
+      textoSimple,
       ponerParrafos: (ps, idioma) => { PARRAFOS = ps; IDIOMA_CAP = idioma; },
       estado: () => ({
         piezas: PIEZAS.map((p) => p.texto),
@@ -244,6 +263,16 @@ function cargarLector({ voces = [], rotas = [], mudas = [], guardada = null } = 
         fallidas: [...VOCES_FALLIDAS],
         voces: VOCES.length,
         idioma: IDIOMA_CAP,
+        vel: prefs.vel,
+        sos: { ...(prefs.sos || {}) },
+        diag: (() => {
+          const c = document.getElementById('diag-voz');
+          return {
+            oculto: c.classList.contains('hidden'),
+            lineas: c.querySelector('[data-el="lista"]').children.map((x) => x.textContent),
+            final: c.querySelector('[data-el="final"]').textContent,
+          };
+        })(),
       }),
     })`;
 
@@ -384,5 +413,87 @@ seccion('La lista de voces que llega tarde no se confunde con "faltan voces"');
   rl.correr();
 }
 
-console.log(`\n${fallos === 0 ? '\u2713' : '\u2717'} ${pruebas - fallos}/${pruebas} comprobaciones`);
-process.exit(fallos === 0 ? 0 : 1);
+seccion('Velocidad: si el aparato no puede con 3x, baja a 1x y lo recuerda');
+{
+  const voces = [vozFalsa('Esp MX', 'es_MX')];
+  const { lector, motor, rl, avisos } = cargarLector({ voces, vel: 3, velMax: 2 });
+  lector.ponerParrafos(PARRAFOS_CORTOS, 'es');
+  lector.cargarVoces();
+  lector.trocearCapitulo();
+  lector.hablarPieza(0);
+  rl.correr();
+  ok(motor.dicho.length === 3, 'el cap\u00edtulo se lee entero', motor.dicho.length);
+  ok(motor.dicho.every((d) => d.voz === 'Esp MX'), 'sin cambiar de voz: la voz no era el problema', motor.dicho.map((d) => d.voz));
+  ok(motor.dicho.every((d) => d.vel === 1), 'se lee a 1x', motor.dicho.map((d) => d.vel));
+  ok(lector.estado().sos.vel === 1, 'queda apuntado que este aparato solo lee a 1x', lector.estado().sos);
+  ok(lector.velSegura() === 1, 'la velocidad que se usa ya es 1x', lector.velSegura());
+  ok(avisos.some((a) => /no puede leer r\u00e1pido/.test(a)), 'se avisa en palabras llanas', avisos);
+}
+
+seccion('Signos de novela: si atragantan al motor, se le pasa el texto sin ellos');
+{
+  const voces = [vozFalsa('Esp MX', 'es_MX')];
+  const { lector, motor, rl } = cargarLector({ voces, signosRotos: true });
+  lector.ponerParrafos(['\u00abVen ac\u00e1 \u2014dijo \u00e9l\u2014 \u2026ahora mismo\u00bb.'], 'es');
+  lector.cargarVoces();
+  lector.trocearCapitulo();
+  lector.hablarPieza(0);
+  rl.correr();
+  ok(motor.dicho.length === 2, 'las dos frases se leen', motor.dicho.length);
+  ok(motor.dicho.length && !/[\u00ab\u00bb\u2014\u2026]/.test(motor.dicho[0].texto), 'va sin comillas ni guiones largos', motor.dicho.map((d) => d.texto));
+  ok(motor.dicho.length && /Ven ac\u00e1/.test(motor.dicho[0].texto), 'pero con las palabras y los acentos intactos', motor.dicho.map((d) => d.texto));
+  ok(lector.estado().sos.texto === true, 'queda apuntado para las frases siguientes', lector.estado().sos);
+}
+
+seccion('Texto simplificado: cambia los signos, respeta el espa\u00f1ol');
+{
+  const { lector } = cargarLector({ voces: [vozFalsa('Esp MX', 'es_MX')] });
+  const t = lector.textoSimple('\u00abEl ni\u00f1o \u2014dijo\u2014 ya ten\u00eda a\u00f1os\u2026 \u00bfo no?\u00bb');
+  ok(!/[\u00ab\u00bb\u2014\u2026]/.test(t), 'fuera las comillas, el guion largo y los puntos suspensivos', t);
+  ok(/ni\u00f1o/.test(t) && /ten\u00eda/.test(t) && /a\u00f1os/.test(t), 'la \u00f1 y los acentos se quedan', t);
+  ok(/\u00bfo no\?/.test(t), 'los signos de pregunta tambi\u00e9n', t);
+}
+
+/* El diagnóstico es asíncrono: hay que ir soltando el reloj de mentira y
+   dejar que las promesas respiren entre aviso y aviso. */
+async function soltarReloj(rl, vueltas = 400) {
+  for (let k = 0; k < vueltas; k++) { rl.correrN(1); await null; }
+}
+
+(async () => {
+  seccion('El botón "¿No suena?" dice qué acepta el aparato');
+  {
+    const voces = [vozFalsa('Esp MX', 'es_MX')];
+    const { lector, rl } = cargarLector({ voces, vel: 3, velMax: 2 });
+    lector.ponerParrafos(PARRAFOS_CORTOS, 'es');
+    lector.cargarVoces();
+    const fin = lector.diagnosticarVoz();
+    await soltarReloj(rl);
+    await fin;
+    const d = lector.estado().diag;
+    ok(d.oculto === false, 'la caja de resultados se muestra');
+    ok(d.lineas.length >= 5, 'prueba varias cosas, una por línea', d.lineas);
+    ok(d.lineas.some((l) => l.startsWith('✗') && /3x/.test(l)), 'marca la velocidad que falla', d.lineas);
+    ok(d.lineas.some((l) => l.startsWith('✓') && /1x/.test(l)), 'y la misma voz a 1x como buena', d.lineas);
+    ok(d.lineas.some((l) => /synthesis-failed/.test(l)), 'dice el motivo que da el aparato', d.lineas);
+    ok(/1x/.test(d.final), 'el resumen explica qué se va a hacer', d.final);
+    ok(lector.estado().sos.vel === 1, 'y lo deja aplicado', lector.estado().sos);
+  }
+
+  seccion('El botón "¿No suena?" cuando nada funciona');
+  {
+    const voces = [vozFalsa('Esp MX', 'es_MX')];
+    const { lector, rl } = cargarLector({ voces, rotas: ['Esp MX', '(sistema)'] });
+    lector.ponerParrafos(PARRAFOS_CORTOS, 'es');
+    lector.cargarVoces();
+    const fin = lector.diagnosticarVoz();
+    await soltarReloj(rl);
+    await fin;
+    const d = lector.estado().diag;
+    ok(d.lineas.every((l) => l.startsWith('✗')), 'todas las pruebas salen mal', d.lineas);
+    ok(/reinicia la tablet/i.test(d.final), 'manda reiniciar el aparato, que es lo único que queda', d.final);
+  }
+
+  console.log(`\n${fallos === 0 ? '\u2713' : '\u2717'} ${pruebas - fallos}/${pruebas} comprobaciones`);
+  process.exit(fallos === 0 ? 0 : 1);
+})();
