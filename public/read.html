@@ -713,6 +713,82 @@ let hablando = false; // sesión de escucha abierta
 let pausado = false;  // abierta pero callada
 let generacion = 0;   // corta el encadenado de la frase anterior
 let VOCES = [];
+/* Android lista voces que su motor no sabe decir de verdad: Chrome solo habla
+   bien con el motor que el aparato tenga como predeterminado, y al forzar una
+   voz de otro motor la lectura muere al instante. Las que fallan se apuntan
+   aqui y no se vuelven a usar en esta visita. */
+const VOCES_FALLIDAS = new Set();
+let avisoVozMala = false;
+let motorListo = false;
+
+/* El motor de voz de Android nace dormido: la primera frase se pierde si no se
+   le da un empujon dentro del toque del dedo. Se le manda algo mudo. */
+function despertarMotor() {
+  if (motorListo || !soporteVoz) return;
+  motorListo = true;
+  try {
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    speechSynthesis.speak(u);
+  } catch {}
+}
+
+/* Cancelar sin que haya nada hablando deja el motor de Android tonto: el
+   siguiente speak() no suena. Solo se cancela si hace falta, y si estaba en
+   pausa se reanuda, porque en pausa las frases nuevas se quedan en la cola. */
+function callar() {
+  if (!soporteVoz) return false;
+  let cancelo = false;
+  try {
+    if (speechSynthesis.speaking || speechSynthesis.pending) { speechSynthesis.cancel(); cancelo = true; }
+    if (speechSynthesis.paused) speechSynthesis.resume();
+  } catch {}
+  return cancelo;
+}
+
+/* Lo que se va a intentar, en orden, hasta que suene: tu voz, otras del mismo
+   idioma que no necesiten internet, el idioma a secas y por ultimo lo que el
+   aparato tenga puesto. Asi un aparato con voces raras sigue leyendo. */
+function planDeVoz() {
+  const plan = [];
+  const elegida = vozElegida();
+  if (elegida && !VOCES_FALLIDAS.has(elegida.name)) plan.push({ voz: elegida, lang: idiomaDe(elegida) });
+  vocesDelCapitulo()
+    .filter((v) => v.localService && !VOCES_FALLIDAS.has(v.name) && (!elegida || v.name !== elegida.name))
+    .slice(0, 3)
+    .forEach((v) => plan.push({ voz: v, lang: idiomaDe(v) }));
+  if (IDIOMA_CAP) plan.push({ voz: null, lang: IDIOMA_CAP === 'en' ? 'en-US' : 'es-MX' });
+  plan.push({ voz: null, lang: '' });
+  return plan;
+}
+
+/* Los motores de voz de Android (Google y Samsung) se atragantan con frases
+   largas: unas veces fallan y otras leen solo el principio. Cada frase se
+   parte en trozos de unos 200 caracteres cortando en un espacio o una coma,
+   sin perder la posición en el texto para poder seguir resaltando. */
+const MAX_TROZO = 200;
+
+function trozosDe(texto, start, end) {
+  const salida = [];
+  let i = start;
+  while (i < end) {
+    let j = Math.min(i + MAX_TROZO, end);
+    if (j < end) {
+      let corte = -1;
+      for (let k = j; k > i + 40; k--) {
+        if (/[\s,;:—–]/.test(texto[k])) { corte = k; break; }
+      }
+      if (corte > 0) j = corte + 1;
+    }
+    let a = i;
+    let b = j;
+    while (a < b && /\s/.test(texto[a])) a++;
+    while (b > a && /\s/.test(texto[b - 1])) b--;
+    if (b > a) salida.push([a, b]);
+    i = j;
+  }
+  return salida;
+}
 
 function trocearCapitulo() {
   PIEZAS = [];
@@ -725,8 +801,10 @@ function trocearCapitulo() {
       while (start < end && /\s/.test(texto[start])) start++;
       while (end > start && /\s/.test(texto[end - 1])) end--;
       if (end <= start) continue;
-      const t = texto.slice(start, end);
-      PIEZAS.push({ p, start, end, texto: t, palabras: (t.match(/\S+/g) || []).length });
+      trozosDe(texto, start, end).forEach(([a, b]) => {
+        const t = texto.slice(a, b);
+        PIEZAS.push({ p, start: a, end: b, texto: t, palabras: (t.match(/\S+/g) || []).length });
+      });
     }
   });
   iPieza = 0;
@@ -817,12 +895,28 @@ function nombreCorto(v) {
   return limpio || v.name;
 }
 
+/* En Android getVoices() devuelve una lista vacía las primeras veces y el
+   aviso de que ya estan no siempre llega, así que se vuelve a preguntar unas
+   cuantas veces al abrir la página. */
+let reintentosVoces = 0;
+
+function esperarVoces() {
+  if (!soporteVoz || VOCES.length || reintentosVoces >= 10) return;
+  reintentosVoces++;
+  setTimeout(() => {
+    if (VOCES.length) return;
+    const antes = VOCES.length;
+    cargarVoces();
+    if (!VOCES.length && antes === 0) esperarVoces();
+  }, 400 * reintentosVoces);
+}
+
 function cargarVoces() {
   if (!soporteVoz) return;
-  VOCES = speechSynthesis.getVoices() || [];
+  try { VOCES = speechSynthesis.getVoices() || []; } catch { VOCES = []; }
   const sel = document.getElementById('sel-voz');
   const fila = document.getElementById('fila-voz');
-  if (!VOCES.length) { fila.classList.add('hidden'); return; }
+  if (!VOCES.length) { fila.classList.add('hidden'); pintarAvisoVoces(); esperarVoces(); return; }
   fila.classList.remove('hidden');
 
   // Todas las voces del aparato: primero las del idioma del capítulo, por acento.
@@ -880,7 +974,7 @@ function pintarAvisoVoces() {
   if (!caja) return;
   // Solo se avisa cuando se sabe en qué idioma está el capítulo y no hay
   // ninguna voz para él.
-  const faltan = !!IDIOMA_CAP && !vocesDelCapitulo().length;
+  const faltan = !!IDIOMA_CAP && !!VOCES.length && !vocesDelCapitulo().length;
   caja.classList.toggle('hidden', !faltan);
   if (!faltan) return;
   caja.querySelector('[data-el="titulo"]').textContent =
@@ -893,13 +987,19 @@ function pintarAvisoVoces() {
 /* Una frase de muestra para elegir de oído sin tener que empezar el capítulo. */
 function probarVoz() {
   if (!soporteVoz) return;
+  despertarMotor();
   if (hablando && !pausado) { pausado = true; generacion++; }
-  speechSynthesis.cancel();
+  const corto = callar();
   const u = new SpeechSynthesisUtterance(IDIOMA_CAP === 'en' ? 'This is how this voice sounds. Enjoy the chapter.' : 'Así suena esta voz. Buena lectura.');
   const v = vozElegida();
   if (v) { u.voice = v; u.lang = idiomaDe(v); } else if (IDIOMA_CAP) { u.lang = IDIOMA_CAP === 'en' ? 'en-US' : 'es-MX'; }
   u.rate = prefs.vel;
-  setTimeout(() => speechSynthesis.speak(u), 0);
+  u.onerror = (e) => {
+    if (e.error === 'interrupted' || e.error === 'canceled') return;
+    if (v) VOCES_FALLIDAS.add(v.name);
+    toast('Esa voz no funciona en este aparato');
+  };
+  setTimeout(() => speechSynthesis.speak(u), corto ? 180 : 0);
   actualizarBarra();
 }
 
@@ -940,7 +1040,7 @@ function resaltarPieza(i) {
   marcarActividad(); // escuchar también es leer: que siga contando el tiempo
 }
 
-function hablarPieza(i) {
+function hablarPieza(i, plan, intento) {
   if (!soporteVoz || !PIEZAS.length) return;
   if (i < 0) i = 0;
   if (i >= PIEZAS.length) {
@@ -953,29 +1053,62 @@ function hablarPieza(i) {
   generacion++;
   const mio = generacion;
   iPieza = i;
-  speechSynthesis.cancel();
+  despertarMotor();
+  const corto = callar();
 
+  if (!plan || !plan.length) plan = planDeVoz();
+  const n = intento || 0;
+  const paso = plan[Math.min(n, plan.length - 1)];
+  const ultimo = n >= plan.length - 1;
   const u = new SpeechSynthesisUtterance(PIEZAS[i].texto);
-  const v = vozElegida();
-  if (v) { u.voice = v; u.lang = idiomaDe(v); } else if (IDIOMA_CAP) { u.lang = IDIOMA_CAP === 'en' ? 'en-US' : 'es-MX'; }
+  if (paso.voz) u.voice = paso.voz;
+  if (paso.lang) u.lang = paso.lang;
   u.rate = prefs.vel;
   const t0 = performance.now();
+  let contesto = false; // el motor dio señales de vida
+
+  // Si la voz de respaldo si suena, se avisa una vez de que la elegida no sirve.
+  const apuntarFallo = () => {
+    if (!paso.voz) return;
+    VOCES_FALLIDAS.add(paso.voz.name);
+    if (!avisoVozMala) { avisoVozMala = true; toast('Esa voz no funciona aquí: se usa otra'); }
+  };
+
+  u.onstart = () => { contesto = true; };
   u.onend = () => {
+    contesto = true;
     if (mio !== generacion) return;
     anotarMedida(PIEZAS[i].palabras, performance.now() - t0, u.rate);
+    // La frase siguiente vuelve a empezar por la voz elegida: el plan se rehace.
     if (hablando && !pausado) hablarPieza(iPieza + 1);
     else actualizarBarra();
   };
   u.onerror = (e) => {
-    if (mio !== generacion || e.error === 'interrupted' || e.error === 'canceled') return;
+    contesto = true;
+    if (mio !== generacion) return; // ya se le dijo otra cosa al motor
+    /* En Android, al salir del navegador o sonar una notificación el motor
+       corta la frase. No es un fallo de la voz: se deja en pausa para que al
+       volver baste con darle a play, en vez de dejar la barra como si hablara. */
+    if (e.error === 'interrupted' || e.error === 'canceled') {
+      pausado = true;
+      actualizarBarra();
+      return;
+    }
+    // Antes de rendirse se prueban las demas voces del plan: el aparato casi
+    // siempre sabe leer con alguna, aunque no sea la que se pidio.
+    if (!ultimo) { apuntarFallo(); hablarPieza(i, plan, n + 1); return; }
     hablando = false;
     actualizarBarra();
     if (e.error === 'language-unavailable' || e.error === 'voice-unavailable') {
       pintarAvisoVoces();
       document.getElementById('settings').classList.remove('hidden');
       toast('Falta el español en este aparato: mira los pasos en los ajustes');
+    } else if (e.error === 'network') {
+      toast('Esa voz necesita internet');
+    } else if (e.error === 'not-allowed') {
+      toast('Toca el botón de play para empezar a escuchar');
     } else {
-      toast(e.error === 'network' ? 'Esa voz necesita internet' : 'La voz se detuvo');
+      toast('La voz se detuvo (' + (e.error || 'sin motivo') + ')');
     }
   };
 
@@ -984,13 +1117,25 @@ function hablarPieza(i) {
   resaltarPieza(i);
   actualizarBarra();
   // Tras cancel(), Chrome necesita un respiro antes de aceptar la siguiente.
-  setTimeout(() => { if (mio === generacion) speechSynthesis.speak(u); }, 0);
+  setTimeout(() => { if (mio === generacion) { try { speechSynthesis.speak(u); } catch {} } }, corto ? 180 : 0);
+  /* En Android pasa que no suena nada y tampoco llega ningún aviso: ni empieza
+     ni da error. Si a los tres segundos sigue muda, se pasa a la voz siguiente
+     del plan en vez de dejar la barra quieta para siempre. */
+  setTimeout(() => {
+    if (mio !== generacion || contesto) return;
+    try { if (speechSynthesis.speaking || speechSynthesis.pending) return; } catch {}
+    if (document.hidden) return; // con la pantalla apagada callar no es un fallo
+    if (!ultimo) { apuntarFallo(); hablarPieza(i, plan, n + 1); return; }
+    hablando = false;
+    actualizarBarra();
+    toast('Este aparato no logró leer en voz alta');
+  }, 3000);
 }
 
 function pararVoz() {
   if (!soporteVoz) return;
   generacion++;
-  speechSynthesis.cancel();
+  callar();
   hablando = false;
   pausado = false;
   LEYENDO = null;
@@ -1005,7 +1150,7 @@ function alternarVoz() {
   if (hablando && !pausado) {
     pausado = true;
     generacion++;
-    speechSynthesis.cancel();
+    callar();
     actualizarBarra();
     return;
   }
@@ -1033,10 +1178,13 @@ function abrirVoz(empezar) {
   if (!PIEZAS.length) trocearCapitulo();
   document.getElementById('tts').classList.add('ver');
   document.body.classList.add('con-voz');
+  despertarMotor();
   if (!VOCES.length) cargarVoces();
-  // Sin voces en español no se empieza a escondidas: se abren los ajustes con
-  // los pasos para instalarlas en este aparato.
-  const sinEspanol = !!IDIOMA_CAP && !vocesDelCapitulo().length && !vozGuardada();
+  /* Sin voces en español no se empieza a escondidas: se abren los ajustes con
+     los pasos para instalarlas en este aparato. Ojo: en Android la lista de
+     voces tarda en llegar, y con la lista vacía no se sabe nada, así que no
+     se avisa de nada y se deja leer. */
+  const sinEspanol = !!IDIOMA_CAP && !!VOCES.length && !vocesDelCapitulo().length && !vozGuardada();
   if (sinEspanol) {
     pintarAvisoVoces();
     document.getElementById('settings').classList.remove('hidden');
@@ -1050,13 +1198,15 @@ function abrirVoz(empezar) {
 
 if (soporteVoz) {
   cargarVoces();
+  esperarVoces();
   speechSynthesis.onvoiceschanged = cargarVoces;
   document.getElementById('btn-voz').addEventListener('click', () => {
+    despertarMotor();
     const barra = document.getElementById('tts');
     if (barra.classList.contains('ver')) { pararVoz(); barra.classList.remove('ver'); document.body.classList.remove('con-voz'); document.getElementById('tts-menu').classList.remove('ver'); }
     else abrirVoz(true);
   });
-  document.getElementById('tts-play').addEventListener('click', alternarVoz);
+  document.getElementById('tts-play').addEventListener('click', () => { despertarMotor(); alternarVoz(); });
   document.getElementById('tts-back').addEventListener('click', () => saltar(-5));
   document.getElementById('tts-fwd').addEventListener('click', () => saltar(5));
   document.getElementById('tts-close').addEventListener('click', () => {
